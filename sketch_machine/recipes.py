@@ -31,7 +31,8 @@ DEFAULT_ID = "default"
 BUILTIN_DIR = os.path.join(paths.ROOT, "sketch_machine", "brief_package")
 RECIPE_FILE = "recipe.toml"
 LOCK_FILE = ".mule_recipe.json"
-TEMPLATES = ("project", "brief_head", "start", "review_start", "review_intro", "package_update")
+TEMPLATES = ("project", "brief_head", "start", "review_start", "review_intro", "package_update", "reading", "look",
+             "open_points", "context_head")
 TOKENS = ("project_name", "brief_dir", "work_dir", "bash", "powershell", "recipe_id", "recipe_version")
 HARNESSES = ("claude-code", "any")
 # what Mule writes into the brief folder itself – a recipe may not put files there (compared without case: Windows)
@@ -462,6 +463,215 @@ def read_lock(brief):
     return None
 
 
+# ---- making a recipe: an empty one to start from, or a copy of an existing one
+
+FORMAT_FILE = "FORMAT.md"  # docs/recipes.md, put into every new recipe so the AI that writes it has the format
+START_FILE = "START_HERE.md"
+# files of Mule's own development that a copy does not need (hook tests and their runs, German notes)
+_COPY_SKIP = ("tests", "_runs", "LIESMICH.md", "AENDERUNGEN_HOOKS.md", "PILOT_README_de.md")
+
+_EMPTY = {
+    "recipe.toml": '''# Brief recipe for Mule – the format is in FORMAT.md, how to start in START_HERE.md
+id = "{id}"
+name = "{name}"
+version = "v0.1"
+author = ""
+description = ""
+made_for = []
+size = ""
+harness = "claude-code"
+brief_interface = 1
+forked_from = ""
+changes = "CHANGES.md"
+
+[templates]
+start = "templates/start.md"
+project = "templates/project.md"
+
+[files]
+"CLAUDE.md" = "brief/CLAUDE.md"
+''',
+    "CLAUDE.md": '''# Sketch Brief – {{{{project_name}}}}
+
+This folder is a Sketch Brief from Mule, a 3D sketching tool. `project.md` holds the task and the round, `brief.md`
+the artist's notes and the scene, `brief.json` the same as data, `views/` and `notes/` the pictures.
+
+(How the AI works with it – this recipe's way of working – goes here or into files this one includes with `@file`.)
+''',
+    "templates/start.md": "Check and discuss the Sketch Brief „{{{{project_name}}}}“ ({{{{brief_dir}}}}): read CLAUDE.md, "
+                          "project.md and brief.md and open the pictures they name, then tell me what you understood "
+                          "and ask what is open. Build nothing until I confirm.{{{{#look}}}} Before building: agree an "
+                          "image prompt per hero camera with me, have images generated, I pick.{{{{/look}}}}\n",
+    "templates/start.de.md": "Prüfe und besprich den Sketch Brief „{{{{project_name}}}}“ ({{{{brief_dir}}}}): Lies "
+                             "CLAUDE.md, project.md und brief.md und öffne die Bilder, die sie nennen; sag mir dann, "
+                             "was du verstanden hast, und frag, was offen ist. Gebaut wird erst nach meiner "
+                             "Bestätigung.{{{{#look}}}} Vor dem Bauen: je Hero-Kamera einen Bild-Prompt mit mir "
+                             "abstimmen, Bilder erzeugen lassen, ich wähle aus.{{{{/look}}}}\n",
+    "templates/project.md": '''# Project – {{{{project_name}}}}
+
+## Task
+{{{{#task_sentence}}}}
+**In one sentence:** {{{{task_sentence}}}}
+{{{{/task_sentence}}}}
+{{{{^task_sentence}}}}
+The artist set no task sentence – work out the goal from the notes and confirm it with the artist.
+{{{{/task_sentence}}}}
+{{{{#task_notes_quoted}}}}
+
+**Artist's notes for this export** (they win over a note in the scene):
+{{{{task_notes_quoted}}}}
+{{{{/task_notes_quoted}}}}
+
+## Parts this round is about
+{{{{#round_map}}}}
+- {{{{word}}}} ({{{{ids}}}}{{{{#group}}}} and everything in it{{{{/group}}}}){{{{#binding}}}} – {{{{binding}}}}{{{{/binding}}}}
+{{{{/round_map}}}}
+{{{{^round_map}}}}
+No focus and no binding set in Mule – the whole scene.
+{{{{/round_map}}}}
+
+## Pictures
+- hero cameras: {{{{#cameras}}}}{{{{name}}}} `{{{{image}}}}`{{{{^_last}}}}, {{{{/_last}}}}{{{{/cameras}}}}
+- {{{{boards}}}} whole-board pictures and {{{{board_sections}}}} section pictures in `notes/`
+{{{{^live}}}}
+- work folder: `{{{{work_dir}}}}`
+{{{{/live}}}}
+''',
+    "CHANGES.md": "# Changes\n## v0.1\n- Started.\n",
+    START_FILE: '''# {name} – a brief recipe for Mule
+
+This folder is a **brief recipe**: the way an AI works with a Sketch Brief from Mule. It starts nearly empty – it
+already works (the AI reads the brief and discusses it), everything else is up to you.
+
+**Read first:** `FORMAT.md` – what `recipe.toml` may say, where files go (`brief/…`, `work/…`), the tokens Mule
+fills in, and the facts every template can use.
+
+**What is here:**
+- `recipe.toml` – id, name, version, which files go into the brief, which templates Mule fills.
+- `CLAUDE.md` – copied into every brief folder; Claude Code reads it first. The way of working starts here.
+- `templates/start.md` (+ `start.de.md`) – the sentence the artist pastes into the chat.
+- `templates/project.md` – the project document Mule writes on every export.
+- `CHANGES.md` – one section per version; review rounds quote what is new.
+
+**Working on it:** change files here; Mule reads them on the next export (in the brief dialog: Brief recipe →
+… → Reload). After every change raise `version` in `recipe.toml` and add a section to `CHANGES.md`. Add rules,
+roles, agent types (`.claude/agents/`), hooks (`.claude/settings.json` + scripts) or tools by putting the files
+here and listing them under `[files]`. Try it by exporting a brief into a test folder and starting a session there.
+
+**brief.md is content only with this recipe:** the scene, the notes, the pictures. Mule's own reading aid (how to
+read notes and marks), its look-image procedure and its "raise with the artist" line come only with recipes that have
+the templates `reading`, `look`, `open_points` and `context_head` (see FORMAT.md) – Mule Default has all four, a
+good example (Brief recipe → … → Copy as my own recipe).
+
+This file and `FORMAT.md` stay here – they are not copied into briefs.
+''',
+}
+
+
+def slug(name):
+    """Id from a name: lower case, letters/digits/_ only, never "default"; unique in the recipe folder."""
+    base = re.sub(r"[^a-z0-9]+", "_", name.strip().lower().replace("ä", "ae").replace("ö", "oe")
+                  .replace("ü", "ue").replace("ß", "ss")).strip("_")[:48] or "recipe"
+    if base == DEFAULT_ID:
+        base = "my_default"
+    rid, k = base, 2
+    while os.path.exists(os.path.join(user_dir(), rid)):
+        rid, k = f"{base}_{k}", k + 1
+    return rid
+
+
+def _format_doc():
+    """docs/recipes.md – next to the program (installed) or in the repo (source)."""
+    for p in (paths.doc_path("docs", "recipes.md"), os.path.join(paths.ROOT, "docs", "recipes.md")):
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def _add_guides(path, name):
+    doc = _format_doc()
+    if doc:
+        shutil.copyfile(doc, os.path.join(path, FORMAT_FILE))
+    if not os.path.exists(os.path.join(path, START_FILE)):
+        with open(os.path.join(path, START_FILE), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(_EMPTY[START_FILE].format(name=name))
+
+
+def create_empty(name):
+    """A new, nearly empty recipe in the recipe folder – usable at once (the AI reads and discusses the brief).
+    -> Recipe."""
+    rid = slug(name)
+    path = os.path.join(user_dir(), rid)
+    for rel, text in _EMPTY.items():
+        if rel == START_FILE:
+            continue
+        full = os.path.join(path, *rel.split("/"))
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(text.format(id=rid, name=name.replace('"', "'")) if rel == "recipe.toml" else
+                     text.replace("{{{{", "{{").replace("}}}}", "}}"))
+    _add_guides(path, name)
+    return Recipe(path)
+
+
+def _set_key(toml, key, value):
+    """Set a top-level key of recipe.toml (the line before the first [section]); added if missing."""
+    line = f"{key} = {json.dumps(value, ensure_ascii=False)}"
+    head, sep, rest = toml.partition("\n[")
+    pat = re.compile(rf"(?m)^{re.escape(key)}\s*=.*$")
+    head = pat.sub(lambda _m: line, head, count=1) if pat.search(head) else head.rstrip("\n") + "\n" + line
+    return head + sep + rest
+
+
+def copy_recipe(recipe, name):
+    """A recipe of one's own from an existing one: same files, own id and name, version v1.0, forked_from names
+    the original. Mule's development files (hook tests, German notes) stay behind. -> Recipe."""
+    rid = slug(name)
+    path = os.path.join(user_dir(), rid)
+
+    def skip(folder, names):
+        rel = os.path.relpath(folder, recipe.path)
+        return [n for n in names if n in _SKIP or n.endswith(".pyc") or n in _COPY_SKIP and
+                (n != "tests" or rel.replace(os.sep, "/") == "_claude")]
+    shutil.copytree(recipe.path, path, ignore=skip)
+    p = os.path.join(path, RECIPE_FILE)
+    with open(p, encoding="utf-8") as fh:
+        toml = fh.read()
+    for k, v in (("id", rid), ("name", name), ("version", "v1.0"), ("author", ""),
+                 ("forked_from", f"{recipe.id} {recipe.version}")):
+        toml = _set_key(toml, k, v)
+    with open(p, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(toml)
+    if recipe.changes:  # the original's history has versions above v1.0 – review rounds would quote it as new
+        with open(os.path.join(path, recipe.changes), "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(f"# Changes\n## v1.0\n- Copy of {recipe.name} {recipe.version}.\n")
+    _add_guides(path, name)
+    return Recipe(path)
+
+
+def unpack_folder(folder):
+    """A recipe folder from somewhere (a download, a colleague's share) – copied into a temporary folder and loaded,
+    like an unpacked zip; install_unpacked puts it into the recipe folder."""
+    if not os.path.isfile(os.path.join(folder, RECIPE_FILE)):
+        raise RecipeError(f"no {RECIPE_FILE} in this folder")
+    tmp = tempfile.mkdtemp(prefix="mule_recipe_")
+    dst = os.path.join(tmp, "recipe")
+    total = 0
+    for rel in _walk(folder):
+        full = os.path.join(folder, rel)
+        if os.path.islink(full):
+            shutil.rmtree(tmp, ignore_errors=True)
+            raise RecipeError(f"„{rel}“ is a link – not allowed in a recipe")
+        total += os.path.getsize(full)
+        if total > MAX_ZIP:
+            shutil.rmtree(tmp, ignore_errors=True)
+            raise RecipeError("the recipe is larger than 50 MB")
+    shutil.copytree(folder, dst, ignore=shutil.ignore_patterns(*_SKIP, "*.pyc"))
+    r = Recipe(dst)
+    r._tmp = tmp
+    return r
+
+
 # ---- what a recipe does on the machine (shown before import and in the dialog)
 
 _NET = re.compile(r"\b(curl|wget|Invoke-WebRequest|Invoke-RestMethod|iwr|irm|Start-BitsTransfer|scp|ssh|nc|ncat|"
@@ -560,9 +770,12 @@ def install_unpacked(recipe, replace=False):
             raise RecipeError(f"a recipe „{recipe.id}“ is already installed")
         shutil.rmtree(dst)
     shutil.copytree(recipe.path, dst, ignore=shutil.ignore_patterns(*_SKIP, "*.pyc"))
-    shutil.rmtree(getattr(recipe, "_tmp", ""), ignore_errors=True)
+    discard(recipe)
     return Recipe(dst)
 
 
 def discard(recipe):
-    shutil.rmtree(getattr(recipe, "_tmp", "") or "", ignore_errors=True)
+    """Remove the temporary folder of an unpacked recipe (never anything else)."""
+    tmp = getattr(recipe, "_tmp", None)
+    if tmp and os.path.basename(tmp).startswith("mule_recipe_"):
+        shutil.rmtree(tmp, ignore_errors=True)

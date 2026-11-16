@@ -70,7 +70,7 @@ spätere Weiterverarbeitung in Houdini.</p>""" + \
         ("Review-Runde: Feedback für den laufenden Chat – ohne Ordnerwahl nach <Brief>/review_rounds/, nur was sich an "
          "den Notizen geändert hat, keine neuen Regeln; den Satz im selben Chat einfügen", "„Baut auf“ im Brief-Dialog"),
         ("Arbeitsweise des Bau-Briefs wählen: Mule Default oder ein eigenes Recipe (Regeln, Rollen, Hooks, Texte); "
-         "Recipe als .zip importieren, Inhalt ansehen", "„Brief-Recipe“ im Brief-Dialog · …"),
+         "neues oder kopiertes Recipe anlegen, als .zip oder Ordner importieren, Inhalt ansehen", "„Brief-Recipe“ im Brief-Dialog · …"),
         ("Sichtkarte (Detail nur, wo man es sieht) in Blender, ein Befehl; Werkzeug prüfen",
          "tools/vis_map/vis_blender.py · --selftest"),
         ("Szene als USD exportieren (Flächen als Polymeshes, Meshes referenziert)", "[Strg]+[Shift]+[E]"),
@@ -255,6 +255,7 @@ VIEW = _section("Oben rechts", "", [
     ("Kreidetafel ↔ Papier · Bleistift- und Kreidefarbe", "Mond-Icon · Ansicht-Menü"),
     ("Unten im Viewport: aktives Werkzeug und Schalter", "–"),
     ("Sprache der Oberfläche (Deutsch/English, gilt nach dem Neustart)", "Ansicht → Sprache / Language"),
+    ("Wo Mule Daten, Einstellungen und Sicherungen ablegt – mit Größe; Mule ganz entfernen", "Hilfe → Wo Mule Dateien ablegt …"),
 ]) + \
     _section("Licht", "Eine Sonne, reine Darstellung – Linien, Flächen und importierte Meshes werfen und empfangen Schatten.", [
         ("Licht an/aus", "Knopf unter dem Achsen-Gizmo"),

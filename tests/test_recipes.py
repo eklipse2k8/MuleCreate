@@ -2,6 +2,7 @@
 built-in recipe "default"; recipes of the user live in the recipe folder (MULE_RECIPES – the harness points it at a
 throwaway folder). The export installs the chosen recipe and fills its templates with Mule's facts, the lock file
 names it, review rounds renew only from the same recipe. Imported zips are checked before anything is installed."""
+import copy
 import json
 import os
 import shutil
@@ -281,6 +282,126 @@ def test_import_checks_before_it_installs(h=None):
         assert "default" in str(exc)
     finally:
         recipes.discard(r3)
+    _user()
+
+
+def test_new_and_copied_recipes(h: H):
+    """„New recipe“ gives a nearly empty recipe that works at once (with the format and a start guide for the AI that
+    writes it); „Copy as my own“ gives Mule Default under its own id, without Mule's development files and with a
+    fresh history – both chosen in the dialog, the sentence for a Claude session in the clipboard."""
+    from PySide6.QtWidgets import QApplication
+    root = _user()
+    assert recipes.slug("Kleine Requisite!") == "kleine_requisite" and recipes.slug("Default") == "my_default"
+    empty = recipes.create_empty("Kreatur Größe")
+    assert empty.ok, empty.problems
+    assert empty.id == "kreatur_groesse" and empty.name == "Kreatur Größe" and empty.version == "v0.1"
+    for f in ("FORMAT.md", "START_HERE.md", "CHANGES.md", "CLAUDE.md", "templates/start.de.md"):
+        assert os.path.isfile(os.path.join(empty.path, *f.split("/"))), f
+    assert "brief_interface" in open(os.path.join(empty.path, "FORMAT.md"), encoding="utf-8").read()
+    assert recipes.slug("Kreatur Größe") == "kreatur_groesse_2", "taken ids get a number"
+    sc = _scene(h)
+    sc.brief_task = {"task": "Monster", "recipe": empty.id}
+    folder = os.path.join(tempfile.mkdtemp(), "m_brief")
+    files = brief.export(sc, h.v, folder, "monster")
+    assert "CLAUDE.md" in files and "project.md" in files and recipes.LOCK_FILE in files
+    assert "START_HERE.md" not in files and "FORMAT.md" not in files and "recipe.toml" not in files
+    assert not os.path.exists(os.path.join(folder, "START_HERE.md")) and not os.path.exists(
+        os.path.join(folder, "FORMAT.md")), "guides stay in the recipe"
+    project = open(os.path.join(folder, "project.md"), encoding="utf-8").read()
+    assert "**In one sentence:** Monster" in project and "{{" not in project
+    assert open(os.path.join(folder, "CLAUDE.md"), encoding="utf-8").read().startswith("# Sketch Brief – monster")
+
+    copy = recipes.copy_recipe(recipes.default(), "Mein Default")
+    assert copy.ok, copy.problems
+    assert copy.id == "mein_default" and copy.version == "v1.0" and copy.forked_from == f"default {brief_v4.VERSION}"
+    assert copy.author == "" and not copy.builtin and copy.description == recipes.default().description
+    for gone in ("_claude/tests", "LIESMICH.md", "_claude/AENDERUNGEN_HOOKS.md", "tools/vis_map/PILOT_README_de.md"):
+        assert not os.path.exists(os.path.join(copy.path, *gone.split("/"))), gone
+    assert os.path.isfile(os.path.join(copy.path, "_claude", "hooks", "gate.ps1"))
+    changes = open(os.path.join(copy.path, "PACKAGE_CHANGES.md"), encoding="utf-8").read()
+    assert "## v1.0" in changes and "## v5" not in changes, "fresh history: review rounds quote nothing old"
+    assert [t for _s, t in recipes.plan(copy)] == [t for _s, t in recipes.plan(recipes.default())
+                                                   if not t.endswith("PILOT_README_de.md")]
+
+    dlg = BriefDialog(None, {"task": "x"}, 0, None, "a", "C:/x/a_brief")
+    dlg.quiet = True
+    made = dlg._new_recipe("Landschaft")
+    assert made.id == "landschaft" and dlg.recipe().id == "landschaft" and dlg.values()["recipe"] == "landschaft"
+    assert "START_HERE.md" in QApplication.clipboard().text() and os.path.normpath(made.path) in QApplication.clipboard().text()
+    made = dlg._copy_recipe("Landschaft groß")
+    assert made.forked_from.startswith("landschaft v0.1") and dlg.recipe().id == "landschaft_gross"
+    # a recipe folder from elsewhere: checked and copied, the original stays
+    src = _recipe(tempfile.mkdtemp())
+    got = dlg._import_recipe_folder(src, ask=False)
+    assert got.id == "lean" and os.path.isdir(src) and os.path.isdir(os.path.join(root, "lean"))
+    try:
+        recipes.unpack_folder(tempfile.mkdtemp())
+        raise AssertionError("a folder without recipe.toml was accepted")
+    except recipes.RecipeError:
+        pass
+    _user()
+
+
+def test_brief_md_holds_only_content_with_an_own_recipe(h: H):
+    """brief.md: Mule's reading aid, the look procedure, „raise with the artist“ and the context head are the recipe's
+    templates. Without them an own recipe gets content only (neutral look and context lines); with them, its own
+    texts. Every build brief says that its way of working wins over reading aids – not over the artist's words."""
+    root = _user()
+    _recipe(root)
+    from tests.test_brief_task import _text_note
+    sc = _scene(h)
+    sc.notes += [_text_note("Later", "Saddle in a later round")]
+    sc.brief_task = {"task": "x", "recipe": "lean", "parts": ["look"]}
+    data = brief.analyse(sc)
+    data["cameras"] = [{"id": "hero_1", "name": "Hero 1", "image": "views/hero_1.png", "default": False,
+                        "prompt": "chrome bike, studio light"}]
+    real_points, real_later = brief._open_points, brief._later_notes
+    brief._open_points = lambda d, lang="en": ["Two lines cross without a joint"]
+    brief._later_notes = lambda d: {d["notes"][-1]["id"]}
+    try:
+        def md_of(d):
+            folder = tempfile.mkdtemp()
+            brief.write_markdown(d, [], os.path.join(folder, "brief.md"), "bike")
+            ctx = os.path.join(folder, "context.md")
+            return (open(os.path.join(folder, "brief.md"), encoding="utf-8").read(),
+                    open(ctx, encoding="utf-8").read() if os.path.isfile(ctx) else "")
+        md, ctx = md_of(copy.deepcopy(data))
+        assert brief.PRECEDENCE in md and md.index(brief.PRECEDENCE) < md.index(brief.READ_SECTION)
+        assert "**Reading notes:**" not in md and "How to read the sketch" not in md, "no reading aid of Mule's"
+        assert "The scene contains:" in md and "Units: 1 unit = 1 m" in md, "the content stays"
+        assert "## Open points the tool noticed\n- Two lines cross without a joint" in md, "no „raise with the artist“"
+        assert "## Look images (before building)\nThe artist asked for look images" in md
+        assert "`hero_1` – prompt approved by the artist: chrome bike, studio light" in md
+        assert "Generate 2–3 variants" not in md, "no look procedure of Mule's"
+        assert "no work lines" not in ctx and "not built in this round" in ctx
+        # the same with Mule Default: its texts
+        d2 = copy.deepcopy(data)
+        d2["task"] = {"task": "x", "parts": ["look"]}
+        md, ctx = md_of(d2)
+        assert "**Reading notes:**" in md and "Raise these with the artist:" in md and "Generate 2–3 variants" in md
+        assert "- `hero_1` – prompt approved by the artist (use it, no need to ask again): chrome bike" in md
+        assert "They give no work lines in this round." in ctx
+        # an own recipe with its own texts
+        tpl = os.path.join(root, "lean", "t")
+        for name, text in (("reading", "**Read strictly:** every line binds within 1 %.\n"),
+                           ("look", "## Look\n{{#cameras}}- {{name}}{{#prompt}}: {{prompt}}{{/prompt}}\n{{/cameras}}"),
+                           ("open_points", "Decide these yourself and log them.\n"),
+                           ("context_head", "Ignore for now.\n")):
+            open(os.path.join(tpl, name + ".md"), "w", encoding="utf-8").write(text)
+        toml = os.path.join(root, "lean", "recipe.toml")
+        t = open(toml, encoding="utf-8").read().replace('review_start = "t/review_start.md"\n',
+                                                         'review_start = "t/review_start.md"\nreading = "t/reading.md"\n'
+                                                         'look = "t/look.md"\nopen_points = "t/open_points.md"\n'
+                                                         'context_head = "t/context_head.md"\n')
+        open(toml, "w", encoding="utf-8").write(t)
+        assert recipes.find("lean").ok, recipes.Recipe(os.path.join(root, "lean")).problems
+        md, ctx = md_of(copy.deepcopy(data))
+        assert "**Read strictly:** every line binds within 1 %.\n\nUnits:" in md
+        assert "## Look\n- Hero 1: chrome bike, studio light" in md
+        assert "## Open points the tool noticed\nDecide these yourself and log them.\n- Two lines" in md
+        assert "Ignore for now." in ctx
+    finally:
+        brief._open_points, brief._later_notes = real_points, real_later
     _user()
 
 

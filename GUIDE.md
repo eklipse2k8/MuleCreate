@@ -98,6 +98,30 @@ itself: on your first review Mule asks (**Set Up …** / Later / Don't ask again
 For advanced users: your own Python with faster-whisper works too. Mule finds it in `~/mcp/whisper_venv` or via
 the environment variable `SM_WHISPER_PYTHON`.
 
+## Where Mule keeps its files
+
+Mule has no installer and writes nothing into its own program folder. Help → **Where Mule keeps its files …** shows
+all of it on your machine, with sizes, and opens the data folder.
+
+| What | Where (Windows) | Notes |
+|---|---|---|
+| The program | the folder you unzipped | delete it to remove Mule |
+| Your data | `%APPDATA%\Mule` (`C:\Users\<you>\AppData\Roaming\Mule`) | kept across updates |
+| – `recipes\` | | brief recipes you made or imported |
+| – `Reviews\` | | spoken feedback |
+| – `Aufnahmen\` | | click logs of the recorder, only when you switch it on |
+| – `whisper_venv\` | | speech recognition, only when you set it up (2–4 GB) |
+| – `bible\`, `mule.log` | | your copy of the workflow bible, log of the last start |
+| Settings | registry `HKEY_CURRENT_USER\Software\SketchMachine` | window, colours, language, pen pressure |
+| Backups | `backups\` next to each saved scene; unsaved scenes in `Documents\Mule\backups` | |
+| Briefs | where you export them, with `work_<name>` next to each | |
+
+On macOS the data folder is `~/Library/Application Support/Mule`, on Linux `~/.local/share/Mule`; the settings are a
+file there (the overview names it).
+
+**Removing Mule completely:** delete the program folder and the data folder, and the settings with **Delete settings
+…** in that overview. Your scenes, backups and briefs stay where you put them.
+
 ## Known limits
 
 - Alpha: scene files may change between versions; older scenes are not always supported further.

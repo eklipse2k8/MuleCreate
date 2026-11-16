@@ -453,6 +453,9 @@ class MainWindow(QMainWindow):
         from . import intro
         help_menu.addAction(tr("&Einführung in Bildern"), lambda: intro.show_intro(self))
         help_menu.addAction(tr("Mit der eigenen &KI fragen (AI_HANDBOOK.md) …"), lambda: intro.show_ai_handbook(self))
+        help_menu.addSeparator()
+        from . import data_info
+        help_menu.addAction(tr("Wo Mule &Dateien ablegt …"), lambda: data_info.show(self))
 
     def show_manual(self):
         """Manual (Help -> Manual, F1) - opens at the tab of the current mode."""

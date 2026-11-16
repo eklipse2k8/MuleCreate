@@ -29,7 +29,7 @@ tracing paper you draw on. Lines become surfaces, and notes are prompts for late
         ("Review round: feedback for the running chat – goes to <brief>/review_rounds/ without picking a folder, only "
          "what changed in the notes, no new rules; paste the sentence into the same chat", "“Builds on” in the brief dialog"),
         ("Choose the build brief's way of working: Mule Default or a recipe of your own (rules, roles, hooks, texts); "
-         "import a recipe as .zip, look at its contents", "“Brief recipe” in the brief dialog · …"),
+         "make a new or copied recipe, import one as .zip or folder, look at its contents", "“Brief recipe” in the brief dialog · …"),
         ("Visibility map (detail only where it is seen) in Blender, one command; check the tool",
          "tools/vis_map/vis_blender.py · --selftest"),
         ("Export scene as USD (surfaces as polymeshes, meshes referenced)", "[Ctrl]+[Shift]+[E]"),
@@ -214,6 +214,7 @@ VIEW = _section("Top right", "", [
     ("Chalkboard ↔ paper · pencil and chalk color", "moon icon · View menu"),
     ("Bottom of the viewport: active tool and switches", "–"),
     ("Interface language (Deutsch/English, applies after a restart)", "View → Sprache / Language"),
+    ("Where Mule keeps data, settings and backups – with sizes; removing Mule completely", "Help → Where Mule keeps its files …"),
 ]) + \
     _section("Light", "One sun, display only – lines, surfaces and imported meshes cast and receive shadows.", [
         ("Light on/off", "button below the axis gizmo"),

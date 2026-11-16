@@ -1830,4 +1830,94 @@ EN = {
         '• … and {0} more',
     'Ein Recipe ist Anweisung und Programm zugleich: Regeln und Rollen steuern die KI, Hooks laufen auf deinem Rechner. Diese Übersicht ersetzt kein Lesen der Dateien – nimm nur Recipes, deren Quelle du traust.':
         'A recipe is instructions and program at once: rules and roles steer the AI, hooks run on your machine. This overview does not replace reading the files – only use recipes whose source you trust.',
+    'Neues Recipe …':
+        'New recipe …',
+    'Als eigenes Recipe kopieren …':
+        'Copy as my own recipe …',
+    'Recipe aus Ordner importieren …':
+        'Import recipe from folder …',
+    'Neues Recipe':
+        'New recipe',
+    'Name des Recipes (z. B. „Kreatur“, „Kleine Requisite“):':
+        'Name of the recipe (e.g. „Creature“, „Small prop“):',
+    'Das ist ein neues Brief-Recipe für Mule in {0}. Lies START_HERE.md und FORMAT.md. Ich möchte damit Folgendes: ':
+        'This is a new brief recipe for Mule in {0}. Read START_HERE.md and FORMAT.md. What I want it to do: ',
+    'Als eigenes Recipe kopieren':
+        'Copy as my own recipe',
+    'Name der Kopie von „{0}“:':
+        'Name of the copy of „{0}“:',
+    '{0} – meine Fassung':
+        '{0} – my version',
+    'Das ist mein Brief-Recipe „{1}“ für Mule in {0}, eine Kopie von „{2}“. Lies START_HERE.md und FORMAT.md. Ich möchte daran Folgendes ändern: ':
+        'This is my brief recipe „{1}“ for Mule in {0}, a copy of „{2}“. Read START_HERE.md and FORMAT.md. What I want to change: ',
+    '„{0}“ liegt jetzt in\n{1}\nund ist im Dialog ausgewählt.\n\nSo arbeitest du daran: eine Claude-Sitzung in genau diesem Ordner starten und den Satz aus der Zwischenablage einfügen (Strg+V) – er sagt der KI, wo Anleitung und Format stehen; ergänze, was das Recipe anders machen soll. Änderungen gelten ab dem nächsten Export (… → Neu einlesen).':
+        '„{0}“ is now in\n{1}\nand chosen in the dialog.\n\nHow to work on it: start a Claude session in exactly this folder and paste the sentence from the clipboard (Ctrl+V) – it tells the AI where the guide and the format are; add what the recipe should do differently. Changes apply from the next export (… → Reload).',
+    'Recipe-Ordner wählen (mit recipe.toml)':
+        'Choose the recipe folder (with recipe.toml)',
+    'Der Ordner bleibt, wo er ist.':
+        'The folder stays where it is.',
+    'Die Zip-Datei bleibt, wo sie ist.':
+        'The zip file stays where it is.',
+    'Mule kopiert es als Ordner nach {0}. {1}':
+        'Mule copies it as a folder to {0}. {1}',
+    'Wo Mule &Dateien ablegt …':
+        'Where Mule keeps its &files …',
+    'Brief-Recipes – deine eigenen und importierten':
+        'brief recipes – your own and imported ones',
+    'eingesprochenes Feedback (Ansicht → Review)':
+        'spoken feedback (View → Review)',
+    'Klick-Protokolle des Recorders (nur wenn eingeschaltet)':
+        'click logs of the recorder (only when switched on)',
+    'Spracherkennung für Reviews (nur wenn eingerichtet)':
+        'speech recognition for reviews (only when set up)',
+    'deine Kopie der Workflow-Bible':
+        'your copy of the workflow bible',
+    'Protokoll des letzten Starts':
+        'log of the last start',
+    'eigene MCP-Einträge für Brief-Ordner':
+        'your own MCP entries for brief folders',
+    'eigene MCP-Einträge für Codex':
+        'your own MCP entries for Codex',
+    'Programm: {0}':
+        'Program: {0}',
+    '   Mule schreibt hier nichts hinein. Diesen Ordner löschen = Mule entfernen.':
+        '   Mule writes nothing in here. Deleting this folder = removing Mule.',
+    'Deine Daten: {0} ({1})':
+        'Your data: {0} ({1})',
+    '(von Mule oder dir angelegt)':
+        '(made by Mule or by you)',
+    '   (leer)':
+        '   (empty)',
+    'Deine Daten: {0} – noch nicht angelegt':
+        'Your data: {0} – not created yet',
+    '   Bleibt bei einem Update erhalten; löschen, wenn du Mule ganz entfernst.':
+        '   Kept when you update; delete it when you remove Mule completely.',
+    'Einstellungen: {0}':
+        'Settings: {0}',
+    '   Fenster, Farben, Sprache, Stiftdruck … ({0})':
+        '   window, colours, language, pen pressure … ({0})',
+    'Windows-Registry':
+        'Windows registry',
+    'eine Datei':
+        'a file',
+    'Sicherungen ungespeicherter Szenen: {0}':
+        'Backups of unsaved scenes: {0}',
+    ' – noch keine':
+        ' – none yet',
+    'Neben deinen eigenen Dateien: „backups“ neben jeder gespeicherten Szene, Brief-Ordner und „work_<Name>“ dort, wo du exportierst.':
+        'Next to your own files: „backups“ next to every saved scene, brief folders and „work_<name>“ where you export.',
+    'Mule ganz entfernen: Programmordner und Datenordner löschen, die Einstellungen mit „Einstellungen löschen …“ hier unten.':
+        'Removing Mule completely: delete the program folder and the data folder, the settings with „Delete settings …“ below.',
+    'Wo Mule Dateien ablegt':
+        'Where Mule keeps its files',
+    'Datenordner öffnen':
+        'Open data folder',
+    'Einstellungen löschen …':
+        'Delete settings …',
+    'Einstellungen löschen':
+        'Delete settings',
+    'Alle Einstellungen von Mule löschen (Fenster, Farben, Sprache, Stiftdruck …)? Szenen, Recipes und Reviews bleiben. Das lässt sich nicht rückgängig machen; Mule nutzt beim nächsten Start die Vorgaben.':
+        "Delete all of Mule's settings (window, colours, language, pen pressure …)? Scenes, recipes and reviews stay. This cannot be undone; Mule uses its defaults at the next start.",
+    '   Quellcode-Fassung: Bible, Protokoll und MCP-Einträge liegen hier im Repo.':
+        '   Source version: bible, log and MCP entries are here in the repo.',
 }

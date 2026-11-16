@@ -65,6 +65,11 @@ with [uv](https://docs.astral.sh/uv/) (internet needed once; the system Python i
 Mule needs a graphics card with **OpenGL 3.3**. The interface is available in English and German:
 View → Sprache / Language, then restart.
 
+Mule has no installer and writes nothing into its program folder. Your data go to `%APPDATA%\Mule` (recipes,
+reviews, optional speech recognition), the settings to the registry, backups next to your scenes. Help → **Where
+Mule keeps its files …** lists all of it; the [guide](GUIDE.md#where-mule-keeps-its-files) says how to remove Mule
+completely.
+
 ## Working with an AI
 
 1. Sketch, and write notes where something matters.

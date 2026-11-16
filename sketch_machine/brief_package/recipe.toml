@@ -20,6 +20,10 @@ start = "templates/start.md"
 review_start = "templates/review_start.md"
 review_intro = "templates/review_intro.md"
 package_update = "templates/package_update.md"
+reading = "templates/reading.md"
+look = "templates/look.md"
+open_points = "templates/open_points.md"
+context_head = "templates/context_head.md"
 
 [files]
 "rules.md" = "brief/rules.md"

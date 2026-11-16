@@ -27,7 +27,7 @@ Example scene to open: [Example_Alpaca_Monowheel.zip](https://github.com/felixbf
 13. **Groups and generators: Symmetry** (`docs/handbook/13_symmetry.png`) – Generators work like in Cinema 4D: put objects under a Symmetry or Array null and Mule shows the copies live. Legend: (1) Objects → Symmetry: a generator null; the selected objects go under it; Draw one half – the other half appears live and updates while you draw; Alt+G: plain group (null); Objects → Array: copies on a circle, line or path; Alt+C (Convert): turns the generator into real lines
 14. **Notes (N) and the note board** (`docs/handbook/14_note_board.png`) – Notes are prompts in space: a short heading points at a part, and its board holds everything the AI should know about it. The octopus says which similar parts the same note also means. Steps: Step 1 · Notes mode (N): double-click on a part → Step 2 · camera button: the view goes onto the board → Step 3 · write into the board → Step 4 · octopus: the note also means similar parts. Legend: (1) Double-click in Notes mode: a note with a leader line to that part; (2) Camera button at the note: a picture of the view goes onto its board; (3) Bottom right: the board of the active note – pictures, videos, arrows; (4) Type, paste or drop pictures into it; it is what the AI reads about this part; (5) Octopus: Shift+drag from the anchor (or right-click → add selection) – the note means these too
 15. **Hero camera** (`docs/handbook/15_hero_camera.png`) – Hero cameras are the views that matter most. Tick a screenshot on a note board as hero camera, and the AI looks through exactly this camera while it builds and reviews. Steps: Step 1 · click the screenshot: the check box appears → Step 2 · ticked: name it – turquoise frame. Legend: (1) Tick “hero camera” at the top right of a screenshot on the board; (2) Give the camera a name (default Hero 1, Hero 2 …); (3) A turquoise frame marks hero pictures; The brief renders a clean picture and a USD camera from it; Without hero cameras the brief uses three standard angles
-16. **Export Sketch Brief (Ctrl+E)** (`docs/handbook/16_brief_dialog.png`) – The Sketch Brief is the hand-over to the AI: a folder with pictures, notes, the scene as USD and working rules. The dialog asks only for what the AI cannot read from the scene. Legend: (1) The task in one sentence; (2) Hints that apply only to this export; (3) Discuss only – nothing gets built; (4) Autoprompt: a ready sentence for the AI chat lands on the clipboard; Then choose a folder; start Claude Code or Codex in that brief folder
+16. **Export Sketch Brief (Ctrl+E)** (`docs/handbook/16_brief_dialog.png`) – The Sketch Brief is the hand-over to the AI: a folder with pictures, notes, the scene as USD and working rules. The dialog asks only for what the AI cannot read from the scene. Legend: (1) The task in one sentence; (2) Hints that apply only to this export; (3) Discuss only – nothing gets built; (4) Brief recipe: the way of working – Mule Default or your own (…); (5) Autoprompt: a ready sentence for the AI chat lands on the clipboard; Then choose a folder; start Claude Code or Codex in that brief folder
 17. **Review: talk your feedback** (`docs/handbook/17_review_mark.png`) – Walk through the scene and talk, like in a review session. Mule records your voice and where you looked and pointed; the AI turns it into draft notes. Legend: (1) While recording, a click sets a numbered marker exactly there; (2) Mark tool (on at the start) – off: work normally, the recording goes on; Review → Start Review: voice, camera and pointer are recorded; Send Review: transcribes and puts a sentence on the clipboard; Paste it into the AI chat yourself (Ctrl+V) – nothing is sent automatically; The AI then writes draft notes at the marked parts; you accept them
 18. **Shots: what happens when** (`docs/handbook/18_shots.png`) – Shots shows timing without animating: drawings per frame on flipbook layers, camera positions and notes about what happens between them. Steps: Step 1 · Space+N: flipbook layer, draw at frame 1001 → Step 2 · frame 1012: draw the next state → Step 3 · shot note with camera: what happens in between. Legend: (1) Timeline: one row per flipbook layer; a drawing holds until the next one; (2) Shots panel: shot notes with text and camera positions; Space+N in Shots: a flipbook layer; draw at any frame, O: onion skin; Nothing is animated – the notes say what happens in between
 
@@ -254,8 +254,18 @@ Code: `sketch_machine/i18n.py`, `sketch_machine/i18n_en.py` (German UI string �
   - in the packaged program also a writable copy of the workflow bible (`bible/sketch_machine_bible.md`) and the
     place for the user's own MCP entries (`.mcp.json`, `.codex/config.toml`) that every brief export copies into
     the brief folder (see §Brief, §MCP).
+  - `recipes` – the user's brief recipes, one folder each (see §Brief recipes).
+- **Help → Where Mule Keeps Its Files …** (Wo Mule Dateien ablegt): one overview of all of this on the user's machine –
+  program folder (from source: the repo, which then also holds bible, log and MCP entries), the data folder with every
+  entry and its size (known entries explained, others listed by name), the settings location, the folder for backups
+  of unsaved scenes (`Documents/Mule/backups`), and how to remove Mule completely. Buttons: **Open data folder**,
+  **Delete settings …** (asks first; clears all QSettings – scenes, recipes and reviews stay), Close. Listing never
+  creates the data folder. Mule has no installer (the Windows package is a zip; `packaging/mule.iss` is an unused
+  draft): removing Mule = deleting the program folder and the data folder, plus the settings. GUIDE.md has the same
+  as a table ("Where Mule keeps its files").
 
 Code: `sketch_machine/scene.py` (`to_dict`, `save`, `load`), `sketch_machine/backup.py`, `sketch_machine/paths.py`,
+`sketch_machine/data_info.py`,
 `sketch_machine/assoc.py`, `sketch_machine/recorder.py`, `sketch_machine/review.py`, `sketch_machine/whisper_setup.py`.
 
 ## Data model
@@ -2276,9 +2286,16 @@ Code: `sketch_machine/brief.py` (analysis, pictures, brief.md/brief.json, export
 - **Brief recipe:** (Brief-Recipe) – the **brief recipe** of a build brief: **Mule Default (v5.0)** or a recipe
   from the user's recipe folder (§Brief recipes). Greyed-out entries have a problem (tooltip). The grey line below
   gives description, author, what it is made for and how many hook commands it brings; a recipe that is not Mule's
-  own says "not checked by Mule". **…** opens a menu: **Import recipe (.zip) …**, **Show contents …** (what the
-  recipe runs on this machine), **Open recipe folder**, **Reload**. Disabled with "Discuss only" and in a review
-  round (the round keeps the recipe of its brief). Stored with the scene (only when it is not Mule Default).
+  own says "not checked by Mule". **…** opens a menu: **New recipe …** (a nearly empty recipe that already works,
+  with `START_HERE.md` and `FORMAT.md` for the AI that writes it), **Copy as my own recipe …** (the chosen recipe
+  under the user's name, v1.0, fresh changes file, without Mule's hook tests and German notes) – both choose the new
+  recipe, open its folder and put a sentence for a Claude session in that folder into the clipboard –, **Import
+  recipe (.zip) …**, **Import recipe from folder …** (checked, shown, copied into the recipe folder after a yes;
+  the zip or folder stays as it is), **Show contents …** (what the recipe runs on this machine), **Open recipe
+  folder**, **Reload**. Disabled with "Discuss only" and in a review round (the round keeps the recipe of its
+  brief). Stored with the scene (only when it is not Mule Default).
+  **Helping a user make one:** "New recipe" or "Copy as my own recipe", then a Claude session in the folder Mule
+  opened; the format is in `FORMAT.md` there (= `docs/recipes.md`).
 - **Look pre-stage: first generate images from the hero cameras, then build** (Look-Vorstufe). Disabled with
   "Discuss only". Adds the section "Look images (before building)" to `brief.md` and a line to `project.md`: write one
   image prompt per hero camera from the brief, get the artist's OK (prompts already approved with `set_hero_prompt`
@@ -2325,8 +2342,13 @@ views, notes) are rewritten.
 
 ### What is written to the brief folder
 Build brief (default) – all files relative to `<scene>_brief/`:
-- `brief.md` – the content: scene, notes, components (see next heading). In a build brief it starts with a short
-  pointer to `conductor.md`, `rules.md`, `levels.md`, `roles/` and `project.md`.
+- `brief.md` – the content: scene, notes, components (see next heading). In a build brief it starts with the
+  recipe's head (Mule Default: a short pointer to `conductor.md`, `rules.md`, `levels.md`, `roles/` and `project.md`)
+  and a fixed paragraph: brief.md is content; where a reading aid or procedure in it disagrees with the brief's way of
+  working, the way of working wins – the artist's own words in the notes stay the artist's. The reading aid ("Reading
+  notes", "How to read the sketch"), the look procedure, the line "Raise these with the artist" and the head of
+  `context.md` come from the recipe's templates `reading`, `look`, `open_points`, `context_head`; a recipe without
+  them gets content only (§Brief recipes, `docs/recipes.md`).
 - `brief.json` – the same, structured and complete (keys include `task`, `focus`, `bindings`, `cameras` with
   `eye/target/up/direction/fov_vertical_deg/aspect/orthographic_height/id_image/id_parts`, `id_colors`,
   `part_notes` (every part with the notes and captioned pictures that reach it), `notes`, `project_note`,
@@ -2461,6 +2483,10 @@ template and its facts, review rounds, import – is in `docs/recipes.md`. Code:
 
 - **Choosing:** "Brief recipe" in the brief dialog; the choice is stored in the scene's task as `recipe` (not for
   Mule Default). A stored recipe that is missing on this machine falls back to Mule Default, and the dialog says so.
+- **brief.md stays content:** what tells the AI how to work – the reading aid, the look procedure, "raise with the
+  artist", the head of `context.md` – are the templates `reading`, `look`, `open_points`, `context_head` (Mule Default
+  has them with Mule's texts; "New recipe" has none). Every build brief says that its way of working wins over such
+  aids, never over the artist's words in the notes. "Discuss only" keeps Mule's texts.
 - **Lock file** `.mule_recipe.json` in the brief folder names the recipe and its digest (sha256 over its files).
   Briefs from before recipes (only `.claude/package_version`) count as Mule Default.
 - **Review rounds** always use the brief's recipe: a newer version of the **same** recipe is copied in (its config
@@ -2553,7 +2579,7 @@ quoted into review rounds).
 - **`SET:` commands** – a line `SET: <key>=<value>` in a real artist message (not in quoted agent or system text) is
   applied by the hook to `gate.local.conf`: `level=scout|study|final`, `max_builders=1–12`, `max_weekly=1–100`,
   `pause=<reason>` or `pause=off`. Every other key is refused. Agents can never change settings themselves.
-- `recipe.toml` – describes the package as a recipe (files, config, templates, version); `templates/` – the Mustache templates Mule fills: `project.md`, `brief_head.md`, `start.md` (+ `start.de.md`), `review_start.md` (+ `.de`), `review_intro.md`, `package_update.md` (filled by `brief_v4.project_context` and `recipes.render`).
+- `recipe.toml` – describes the package as a recipe (files, config, templates, version); `templates/` – the Mustache templates Mule fills: `project.md`, `brief_head.md`, `start.md` (+ `start.de.md`), `review_start.md` (+ `.de`), `review_intro.md`, `package_update.md`, `reading.md`, `look.md`, `open_points.md`, `context_head.md` (filled by `brief_v4.project_context` and `recipes.render`).
 - `STARTPROMPT.md` – template of the start prompt (same content as the build-brief autoprompt).
 - `PACKAGE_CHANGES.md` – one section per package version with "Take over:" instructions for a running project;
   quoted in a review round that brings a newer package.
@@ -3519,6 +3545,8 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Alle Viewports zeigen → Show all viewports
 - Alles aufklappen → Expand all
 - Alles einklappen → Collapse all
+- Als eigenes Recipe kopieren → Copy as my own recipe
+- Als eigenes Recipe kopieren … → Copy as my own recipe …
 - am Weltursprung → at the world origin
 - Andere Datei … → Other file …
 - Ansehen → View
@@ -3588,6 +3616,8 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Datei → File
 - Datei zeigen → Show the file
 - Datei … → File …
+- Datenordner öffnen → Open data folder
+- deine Kopie der Workflow-Bible → your copy of the workflow bible
 - Delete Selection	Entf → Delete selection	Del
 - des Arrays gesetzt → of the array set
 - des Nulls → of the null
@@ -3610,10 +3640,13 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Ebene → Plane
 - Ebenen → Planes
 - Ebenen: → Layers:
+- eigene MCP-Einträge für Brief-Ordner → your own MCP entries for brief folders
+- eigene MCP-Einträge für Codex → your own MCP entries for Codex
 - Eigene Stiftfarbe (Farbrad) → Own pen color (color wheel)
 - Eigener Wert … → Custom value …
 - Ein-/Ausblenden → Show/Hide
 - Einblenden → Show
+- eine Datei → a file
 - Einfügen → Paste
 - Einfügen	Strg+V → Paste	Ctrl+V
 - Einfügen: Zwischenablage ist leer. → Paste: clipboard is empty.
@@ -3626,6 +3659,8 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Einrichten → Set Up
 - Einrichten … → Set Up …
 - Einstellungen → Settings
+- Einstellungen löschen → Delete settings
+- Einstellungen löschen … → Delete settings …
 - Einstellungen… → Settings…
 - Entlang Linie → Along line
 - entscheidet die KI → the AI decides
@@ -3748,6 +3783,8 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Neu einlesen → Reload
 - Neue Kamera → New camera
 - Neue Kamera (Screenshot ins Brett) → New camera (screenshot onto the board)
+- Neues Recipe → New recipe
+- Neues Recipe … → New recipe …
 - Nicht mehr fragen → Don't ask again
 - Nicht nutzbar: → Not usable:
 - nichts → nothing
@@ -3780,6 +3817,7 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Pfad → Path
 - Pinselstriche → brush strokes
 - Projekt → Project
+- Protokoll des letzten Starts → log of the last start
 - Punkt → Point
 - Punkte → Points
 - Punkte oder Kanten → points or edges
@@ -3787,8 +3825,10 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Punkte ziehen: immer weich → Drag points: always soft
 - Punktgröße → Point size
 - Rechteck → Rectangle
+- Recipe aus Ordner importieren … → Import recipe from folder …
 - Recipe importieren → Import recipe
 - Recipe importieren (.zip) … → Import recipe (.zip) …
+- Recipe-Ordner wählen (mit recipe.toml) → Choose the recipe folder (with recipe.toml)
 - Recipe-Ordner öffnen → Open recipe folder
 - Review absenden → Send Review
 - Review beenden → Stop Review
@@ -3876,10 +3916,13 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Werkzeuge → Tools
 - Whisper installieren (einige Minuten) … → Installing Whisper (a few minutes) …
 - Willkommen bei Mule Create → Welcome to Mule Create
+- Windows-Registry → Windows registry
 - Winkel ° → Angle °
 - winzige Linie(n) gelöscht → tiny line(s) deleted
 - Winzige Linien und Punkte löschen → Delete tiny lines and points
 - Wird beim Exportieren gelöscht → Will be deleted on export
+- Wo Mule Dateien ablegt → Where Mule keeps its files
+- Wo Mule Dateien ablegt … → Where Mule keeps its files …
 - Wählen … → Choose …
 - Zeichenpapier → Drawing paper
 - Zeichnen → Draw

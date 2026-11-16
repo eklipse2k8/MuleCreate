@@ -95,7 +95,12 @@ class BriefDialog(QDialog):
         more.setText("…")
         more.setPopupMode(QToolButton.InstantPopup)
         menu = QMenu(more)
+        menu.addAction(tr("Neues Recipe …"), self._new_recipe)
+        menu.addAction(tr("Als eigenes Recipe kopieren …"), self._copy_recipe)
+        menu.addSeparator()
         menu.addAction(tr("Recipe importieren (.zip) …"), self._import_recipe)
+        menu.addAction(tr("Recipe aus Ordner importieren …"), self._import_recipe_folder)
+        menu.addSeparator()
         menu.addAction(tr("Inhalt ansehen …"), self._show_recipe)
         menu.addAction(tr("Recipe-Ordner öffnen"), self._open_recipe_dir)
         menu.addAction(tr("Neu einlesen"), lambda: self._fill_recipes(self.recipe_combo.currentData()))
@@ -298,6 +303,57 @@ class BriefDialog(QDialog):
         from PySide6.QtGui import QDesktopServices
         QDesktopServices.openUrl(QUrl.fromLocalFile(recipes.user_dir()))
 
+    def _new_recipe(self, name=None):
+        """A nearly empty recipe of one's own, ready for a Claude session that writes it. -> Recipe or None."""
+        if name is None:
+            from PySide6.QtWidgets import QInputDialog
+            name, ok = QInputDialog.getText(self, tr("Neues Recipe"), tr("Name des Recipes (z. B. „Kreatur“, „Kleine Requisite“):"))
+            if not ok or not name.strip():
+                return None
+        r = recipes.create_empty(name.strip())
+        sentence = tr("Das ist ein neues Brief-Recipe für Mule in {0}. Lies START_HERE.md und FORMAT.md. Ich möchte damit Folgendes: ").format(os.path.normpath(r.path))
+        return self._made_recipe(r, sentence)
+
+    def _copy_recipe(self, name=None):
+        """The chosen recipe as a recipe of one's own to change. -> Recipe or None."""
+        src = self.recipe()
+        if name is None:
+            from PySide6.QtWidgets import QInputDialog
+            name, ok = QInputDialog.getText(self, tr("Als eigenes Recipe kopieren"),
+                                            tr("Name der Kopie von „{0}“:").format(src.name), text=tr("{0} – meine Fassung").format(src.name))
+            if not ok or not name.strip():
+                return None
+        r = recipes.copy_recipe(src, name.strip())
+        sentence = tr("Das ist mein Brief-Recipe „{1}“ für Mule in {0}, eine Kopie von „{2}“. Lies START_HERE.md und FORMAT.md. Ich möchte daran Folgendes ändern: ").format(os.path.normpath(r.path), r.name, src.label())
+        return self._made_recipe(r, sentence)
+
+    def _made_recipe(self, r, sentence):
+        """New recipe: choose it, sentence for a Claude session into the clipboard, open its folder."""
+        from PySide6.QtWidgets import QApplication, QMessageBox
+        self._fill_recipes(r.id)
+        QApplication.clipboard().setText(sentence)
+        self.recipe_made = r.path  # tests: no folder window
+        if not getattr(self, "quiet", False):
+            QMessageBox.information(self, tr("Brief-Recipe"), tr("„{0}“ liegt jetzt in\n{1}\nund ist im Dialog ausgewählt.\n\nSo arbeitest du daran: eine Claude-Sitzung in genau diesem Ordner starten und den Satz aus der Zwischenablage einfügen (Strg+V) – er sagt der KI, wo Anleitung und Format stehen; ergänze, was das Recipe anders machen soll. Änderungen gelten ab dem nächsten Export (… → Neu einlesen).").format(r.name, os.path.normpath(r.path)))
+            from PySide6.QtCore import QUrl
+            from PySide6.QtGui import QDesktopServices
+            QDesktopServices.openUrl(QUrl.fromLocalFile(r.path))
+        return r
+
+    def _import_recipe_folder(self, path=None, ask=True):
+        """A recipe folder from somewhere – checked and copied like a zip. -> Recipe or None."""
+        from PySide6.QtWidgets import QFileDialog, QMessageBox
+        if not path:
+            path = QFileDialog.getExistingDirectory(self, tr("Recipe-Ordner wählen (mit recipe.toml)"))
+            if not path:
+                return None
+        try:
+            r = recipes.unpack_folder(path)
+        except recipes.RecipeError as exc:
+            QMessageBox.warning(self, tr("Recipe importieren"), str(exc))
+            return None
+        return self._install_checked(r, ask, tr("Der Ordner bleibt, wo er ist."))
+
     def _import_recipe(self, path=None, ask=True):
         """Unpack a recipe zip, show what it does on this machine, install after confirmation. -> Recipe or None."""
         from PySide6.QtWidgets import QFileDialog, QMessageBox
@@ -310,6 +366,11 @@ class BriefDialog(QDialog):
         except recipes.RecipeError as exc:
             QMessageBox.warning(self, tr("Recipe importieren"), str(exc))
             return None
+        return self._install_checked(r, ask, tr("Die Zip-Datei bleibt, wo sie ist."))
+
+    def _install_checked(self, r, ask, stays):
+        """Show what an unpacked recipe does, copy it into the recipe folder after confirmation, choose it."""
+        from PySide6.QtWidgets import QMessageBox
         try:
             if not r.ok:
                 QMessageBox.warning(self, tr("Recipe importieren"), tr("Dieses Recipe ist nicht nutzbar:") + "\n• "
@@ -317,9 +378,12 @@ class BriefDialog(QDialog):
                 return None
             exists = os.path.exists(recipes.target_of(r))
             if ask:
+                where = tr("Mule kopiert es als Ordner nach {0}. {1}").format(
+                    os.path.normpath(recipes.target_of(r)), stays)
                 box = QMessageBox(QMessageBox.Question, tr("Recipe importieren"),
-                                  summary_text(r) + "\n\n" + (tr("Ein Recipe „{0}“ ist schon installiert – ersetzen?").format(r.id)
-                                                              if exists else tr("Installieren?")),
+                                  summary_text(r) + "\n\n" + where + "\n\n"
+                                  + (tr("Ein Recipe „{0}“ ist schon installiert – ersetzen?").format(r.id)
+                                     if exists else tr("Installieren?")),
                                   QMessageBox.Yes | QMessageBox.No, self)
                 if box.exec() != QMessageBox.Yes:
                     return None

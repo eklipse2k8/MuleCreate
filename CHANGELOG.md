@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## Mule Create Alpha 1.3 – v0.99.270 (2026-11-16)
 
+- **Where Mule keeps its files:** new in the Help menu – program folder, data folder with every entry and its size,
+  settings, backups, and how to remove Mule completely (with **Delete settings …**). The guide and the README say
+  the same.
 - **Example scene:** `Example_Alpaca_Monowheel.zip` on the release page – sketch and finished model (USD, with and
   without cargo) in one scene, free to use under CC BY 4.0; linked from the README, the guide and the introduction.
 - **Leaner build runs (Mule Default v5.1):** measured on a full run, no check removed. The main chat hands over and
@@ -11,9 +14,12 @@
   and builders get a hint to hand over when their context grows large.
 - **Brief recipes:** the whole way of working of a build brief – rules, roles, agents, hooks, tools, the process
   part of `project.md` and the sentences for the chat – is now a swappable recipe. Choose it under **Brief recipe**
-  in the brief dialog; **…** imports a recipe as .zip (Mule shows its hook commands, permissions and network calls
-  first), shows its contents and opens the recipe folder. Mule's own method is the recipe **Mule Default**, unchanged.
-  Every build brief names its recipe in `.mule_recipe.json`; review rounds keep the brief's recipe. Format:
+  in the brief dialog; **…** makes a new recipe or a copy of the chosen one to work on with a Claude session, imports
+  a recipe as .zip or folder (Mule shows its hook commands, permissions and network calls first), shows its contents
+  and opens the recipe folder. Mule's own method is the recipe **Mule Default**, unchanged.
+  Every build brief names its recipe in `.mule_recipe.json`; review rounds keep the brief's recipe. `brief.md` holds
+  content only: the reading aid, the look procedure and similar texts come from the recipe, and every build brief
+  says that its way of working wins over them – never over the artist's words in the notes. Format:
   `docs/recipes.md`.
 - README: picture at the top, direct links to the download, the introduction and the AI handbook.
 - Known limits now say that the local MCP server has no password (it only listens on this computer).

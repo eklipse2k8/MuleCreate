@@ -25,6 +25,23 @@ what works.
 A recipe that has a problem (a missing file, a path that leaves its folder, a template with an open section …) is
 still listed, greyed out, with the problem as its tooltip.
 
+A recipe is just a folder. Mule reads every sub-folder of the recipe folder that holds a `recipe.toml`; zips are
+only for passing recipes on.
+
+## Making your own
+
+In the brief dialog, **Brief recipe** → **…**:
+
+- **New recipe …** – asks for a name and makes a nearly empty recipe that already works (the AI reads the brief and
+  discusses it, nothing more). Start from here when you want to build a way of working from scratch.
+- **Copy as my own recipe …** – copies the recipe chosen in the list (for example Mule Default) under your name,
+  version v1.0, `forked_from` set, a fresh changes file. Start from here when you want to change one thing.
+
+Either way Mule chooses the new recipe, opens its folder and puts a sentence for a Claude session into the clipboard.
+Start a Claude session **in that folder** and paste it: it points the AI at `START_HERE.md` (what is in the folder,
+how to work on it) and `FORMAT.md` (this page). Then say what the recipe should do. Mule reads the files again on
+the next export (**…** → **Reload** refreshes the list).
+
 ## Folder layout
 
 Any layout you like – `recipe.toml` says where every file goes. A small example:
@@ -69,6 +86,10 @@ brief_head = "templates/brief_head.md"
 review_start = "templates/review_start.md"
 review_intro = "templates/review_intro.md"
 package_update = "templates/package_update.md"
+reading = "templates/reading.md"
+look = "templates/look.md"
+open_points = "templates/open_points.md"
+context_head = "templates/context_head.md"
 
 [files]                          # recipe path = target; targets start with brief/ or work/; "x/" copies a folder
 "RULES.md" = "brief/RULES.md"
@@ -172,6 +193,28 @@ every recipe.
 
 Where the AI finds the way of working. Fact: `has_context`. Without it Mule writes one neutral sentence.
 
+### What brief.md says on its own, and what the recipe decides
+
+`brief.md` is **content**: the scene (sizes, parts, ids, units, what `scene.usd` holds), every note with its text,
+pictures, captions, board sections and arrows, the focus the artist chose, the views and hero cameras, and what the
+artist already clarified. Mule writes that for every recipe.
+
+Everything in it that tells the AI *how to work* is the recipe's:
+
+| Template | Where it goes | Facts | Without it |
+|---|---|---|---|
+| `reading` | "Reading the scene", after the list of what the scene contains: how to read notes, marks and existing geometry | – | nothing |
+| `look` | the section for the look pre-stage (only when the artist ticked it in the dialog) | `cameras`: list of `id`, `name`, `image`, `prompt` (approved prompt or empty) | a heading, one sentence that the artist wants look images, the approved prompts |
+| `open_points` | the line between "Open points the tool noticed" and the list | – | no line, only the list |
+| `context_head` | the line under the heading of `context.md` (notes outside the focus) | – | "Read for intent and for how the parts belong together; they are not built in this round." |
+
+Mule Default has all four with Mule's own texts. A recipe made with **New recipe** has none of them – its briefs
+carry content only.
+
+Every build brief, whatever its recipe, also says under its head: brief.md is content; where a reading aid or
+procedure in it disagrees with the way of working the brief came with (`CLAUDE.md` and the files it names,
+`project.md`), the way of working wins – but the artist's own words in the notes stay what the artist asked for.
+
 ### Review rounds: `review_start`, `review_intro`, `package_update`
 
 A review round ("Builds on" in the dialog) is feedback for a running chat. It always uses **the recipe the brief was
@@ -209,8 +252,10 @@ longer installed, the round brings nothing new and the brief keeps what it has.
 
 ## Importing
 
-**…** → **Import recipe (.zip)** in the brief dialog. The zip may hold the recipe folder itself or the files of it.
-Before anything is installed Mule checks the zip (no paths out of it, no links, at most 50 MB) and shows:
+**…** → **Import recipe (.zip)** or **Import recipe from folder** in the brief dialog. The zip may hold the recipe
+folder itself or the files of it. Mule unpacks it into a temporary folder, checks it (no paths out of it, no links,
+at most 50 MB), shows what it is and does, and only after you say yes copies it as a folder into the recipe folder
+(`recipes/<id>/`). The zip or folder you picked stays where it is and is not changed. Mule shows:
 
 - name, author, version, what it is made for, the digest;
 - every hook command Claude Code would run, the permissions it grants without asking, its own MCP servers;
@@ -225,8 +270,8 @@ model you ran it with, and what the lock file says.
 
 ## Writing a recipe: tips
 
-- Start from a copy of Mule Default (`sketch_machine/brief_package/` in the source) and change one thing at a time,
-  so a comparison tells you what that one thing did. Set `forked_from`.
+- Start from a copy of Mule Default (**Copy as my own recipe**) and change one thing at a time, so a comparison
+  tells you what that one thing did.
 - Rules that hold for every project beat rules that fix one project's problem.
 - Everything Mule knows about the scene is in `brief.md` and `brief.json`; the MCP server `sketch_machine` (see the
   AI handbook) lets the AI look at the live scene and write back what was clarified.

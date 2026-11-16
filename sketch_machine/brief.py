@@ -1461,29 +1461,19 @@ def _task_md(t, bindings=None, focus=None):
     return md
 
 
-def _look_md(cams):
-    """Look pre-stage: images from the hero cameras as a visual target - only hero angles, the artist
-    chooses, afterwards the images are orientation (geometry > notes > generated images)."""
-    return ["## Look images (before building)",
-            "Before you build anything, make a visual target with an image generator:",
-            "1. Write one strong image prompt per hero camera, built from this brief and its notes: what the object is "
-            "(and what it is for, where that matters); its form, proportions and main parts as in the hero picture; materials, surfaces and "
-            "colors; light, mood and background; the camera (angle as in the picture, lens feel); the style (e.g. "
-            "photoreal product shot or concept art); one line on what to avoid. Nothing the brief does not support. "
-            "Show the prompts to the artist and wait for an OK – if a camera already has an approved prompt below, "
-            "use that one.",
-            "2. Generate 2–3 variants per camera, using the clean hero picture as structure input (image-to-image or "
-            "reference image) so proportions and camera hold. Hero angles only – never orthographic views: generated "
-            "front, side and top views do not agree with each other and must not be read as measurements.",
-            "3. Save them as `gen/<camera>_a.png`, `gen/<camera>_b.png` … next to this brief and let the artist pick. "
-            "If you have no image tool, hand the prompts and pictures to the artist and wait for the images in `gen/`.",
-            "4. Build only after the artist picked. The picked images are orientation for look, detail distribution "
-            "and shading, not something to copy: on conflict the sketch geometry wins over the notes, and the notes "
-            "win over generated images.",
-            "", "Cameras for this step: every hero camera above – input `views/<camera>.png` → "
-            "`gen/<camera>_a.png`, `gen/<camera>_b.png` …",
-            *[f"- `{c['id']}` – prompt approved by the artist (use it, no need to ask again): {c['prompt']}"
-              for c in cams if c.get("prompt")]]
+def _look_md(cams, recipe=None):
+    """Look pre-stage (ticked in the dialog): how to make the look images is the recipe's (template "look"); without
+    one, Mule only passes on the artist's wish and the approved prompts."""
+    from . import recipes
+    ctx = {"cameras": [{"id": c["id"], "name": c.get("name", c["id"]), "image": c.get("image", ""),
+                        "prompt": c.get("prompt") or ""} for c in cams]}
+    text = (recipe or recipes.default()).render("look", ctx)
+    if text is None:
+        text = ("## Look images (before building)" + chr(10) + "The artist asked for look images from the hero cameras "
+                "before building." + "".join(chr(10) + f"- `{c['id']}` – prompt approved by the artist: {c['prompt']}"
+                                             for c in ctx["cameras"] if c["prompt"]))
+    return text.rstrip(chr(10)).split(chr(10))
+
 
 
 CORE_FILE = "core.md"  # the core once more as its own file - for rereading at the start of each unit
@@ -1588,8 +1578,9 @@ def _core_md(data):
     return md
 
 
-def _intro(data):
+def _intro(data, recipe=None):
     """Reading aid (reference material): what the scene contains (depending on content) and how to read it."""
+    from . import recipes
     lines = [l for l in data["lines"] if not l.get("paint")]
     parts = []
     if data["meshes"]:
@@ -1606,39 +1597,13 @@ def _intro(data):
     if data["notes"] or (data.get("project_note") or {}).get("text"):
         parts.append("**notes** (N#) with text, reference images, viewport screenshots and hand-drawn marks – the "
                      "artist's intent; the project note applies to everything")
-    # smooth only where the object is meant to be smooth - bark, rock, skin, things grown keep their irregularity
-    geometry = ("- Existing geometry (meshes, surfaces) is the starting point, unless set otherwise on single parts: "
-                "its silhouette, proportions, positions, how the parts connect and the axes of motion hold; develop "
-                "the rest – main bodies, cross-sections, transitions, connections – rather than only adding detail. "
-                "What looks like a by-product of low resolution or quick modelling (facets, small kinks, stray waves) "
-                "is not intent: where the form is meant to be smooth, smooth it; where its character is irregular "
-                "(bark, rock, skin, grown or worn forms), keep that character, not the facets. Ask when unsure.")
-    marks = ("Lines, marks and sketches over images show intent – roughly where, and what character – not exact "
-             "dimensions. Exact positions follow from the existing geometry and from how the part works or sits.")
+    # how to read notes and the sketch is the recipe's (template "reading"; Mule Default: today's reading aid)
+    reading = (recipe or recipes.default()).render("reading", {})
+    reading = reading.rstrip(chr(10)).split(chr(10)) + [""] if reading else []
     return ([READ_SECTION, "The scene contains:"]
             + [f"- {p}" for p in parts]
-            + ["", "**Reading notes:** a note points at one or a few example spots. It often means the whole part "
-               "and its similar or mirrored counterparts (pointing at three of six identical joints, windows or legs "
-               "means all six), unless its text says otherwise; where it may be a one-off (damage, a scar, a single "
-               "special detail), ask. Each anchor below names the object it hits and has a picture "
-               "(`views/note_N#_k.png`) showing that object whole and highlighted, with a line from the note's name to "
-               "the spot. Where the artist marked further parts the note also means, the anchor lists them as „also "
-               "meant“ (lighter in its picture; `part_notes` in `brief.json` lists every part with the notes that "
-               "reach it). That list is marked by hand and may be incomplete – similar parts are likely meant too. A "
-               "picture's caption („…“) can name the parts the picture belongs to („→ parts H3, M5“, confirmed by the "
-               "artist); `part_notes` lists such pictures at the part too. Each note board comes as one picture (whole board) and in sections – frames the artist "
-               "drew (titled), everything else grouped by proximity; each section has a picture showing how text, "
-               "images and hand-drawn arrows belong together. Arrows are numbered P#: the list names what they "
-               "connect, the section picture shows exactly where. Viewport screenshots show the sketch itself (their "
-               "cameras are in `brief.json`). Arrows often only point in a direction – read text and picture "
-               "together, and ask when unsure.", "",
-               "**How to read the sketch:**",
-               geometry, "- " + marks,
-               "- Words like smooth, flowing, flush or calmer are design goals, not measurements. Where the artist "
-               "gives numbers, they matter.",
-               "- Where something moves or deforms: think through every state (e.g. open, closed, folded, posed, the "
-               "extremes) and what touches or collides, even when no note mentions it.", "",
-               "Units: 1 unit = 1 m, Y is up. Ids: **H#** groups (nulls), **M#** meshes, **F#** surfaces, **S#** "
+            + [""] + reading
+            + ["Units: 1 unit = 1 m, Y is up. Ids: **H#** groups (nulls), **M#** meshes, **F#** surfaces, **S#** "
                "stroke objects, **L#** lines, **G#** connected line groups, **N#** notes – the same in "
                "`views/*.png`, `scene.usd` (prim names) and `brief.json`. Hidden objects are not part of this brief. "
                "`scene.usd` is the scene itself for Houdini/Blender/Maya: hierarchy as Xforms, surfaces as polymeshes "
@@ -1908,7 +1873,15 @@ def _v4_head(has_context, recipe=None):
     text = (recipe or recipes.default()).render("brief_head", {"has_context": bool(has_context)})
     if text is None:
         text = "This file holds the notes of this round and the scene; the way of working comes with the recipe."
-    return [text.rstrip("\n"), ""]
+    return [text.rstrip("\n"), "", PRECEDENCE, ""]
+
+
+# every build brief, whatever the recipe (2026-11-16): Mule's texts in brief.md never overrule the recipe – but the
+# artist's own words in the notes are content and stay the artist's words
+PRECEDENCE = ("**This file is content:** the scene, the artist's notes and the pictures. Where a reading aid or "
+              "procedure in it disagrees with the way of working this brief came with (`CLAUDE.md` and the files it "
+              "names, `project.md`), the way of working wins. The artist's own words in the notes are not reading "
+              "aids – they stay what the artist asked for.")
 
 
 def write_markdown(data, views, path, scene_name):
@@ -1919,16 +1892,21 @@ def write_markdown(data, views, path, scene_name):
         n.pop("later", None)
         if n["id"] in later:
             n["later"] = True
-    if builds:  # build brief: the way of working is in the recipe, the brief is content
-        from . import recipes
-        core = _v4_head(bool(later), recipes.get((data.get("task") or {}).get("recipe")))
+    from . import recipes
+    # build brief: the way of working is the recipe's – also the reading aid, the look procedure and how open points
+    # and later notes are put; "discuss only" keeps Mule's own texts
+    recipe = recipes.get((data.get("task") or {}).get("recipe")) if builds else recipes.default()
+    if builds:
+        core = _v4_head(bool(later), recipe)
     else:
         core = _core_md(data)
         with open(os.path.join(os.path.dirname(path), CORE_FILE), "w", encoding="utf-8") as fh:
             fh.write("\n".join([f"# Sketch Brief – {scene_name}", "", *core]) + "\n")
-    md = [f"# Sketch Brief – {scene_name}", "", *core, *_intro(data)]
+    md = [f"# Sketch Brief – {scene_name}", "", *core, *_intro(data, recipe)]
+    ctx_head = recipe.render("context_head", {})
     ctx = [f"# Context – notes of later rounds ({scene_name})",
-           "Read for intent and for how the parts belong together. They give no work lines in this round.", ""]
+           ctx_head.rstrip(chr(10)) if ctx_head is not None else
+           "Read for intent and for how the parts belong together; they are not built in this round.", ""]
     b = data["bounds"]
     md += ["## Overview"]
     if b:
@@ -1940,7 +1918,9 @@ def write_markdown(data, views, path, scene_name):
     md.append(f"- {len(data['groups'])} connected line groups (G#, listed in brief.json)")
     points = _open_points(data)
     if points:
-        md += ["", "## Open points the tool noticed", "Raise these with the artist:", *[f"- {x}" for x in points]]
+        ask = recipe.render("open_points", {})
+        md += ["", "## Open points the tool noticed", *([ask.rstrip(chr(10))] if ask else []),
+               *[f"- {x}" for x in points]]
     if data.get("focus"):
         fc = data["focus"]
         x, y, z = fc["bounds"]["size"]
@@ -1976,7 +1956,7 @@ def write_markdown(data, views, path, scene_name):
                    "(and in generated look images from that camera). Colour → part → notes that point at it: "
                    "`brief.json` → `id_colors`, per camera `cameras[].id_parts`."]
     if cams and TASK_LOOK in (data.get("task") or {}).get("parts", []):
-        md += ["", *_look_md(cams)]
+        md += ["", *_look_md(cams, recipe)]
     md.append("")
     pn = data.get("project_note") or {}
     if pn.get("text") or pn.get("images") or pn.get("drawings"):

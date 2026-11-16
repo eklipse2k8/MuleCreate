@@ -908,14 +908,16 @@ def brief_dialog(h, s):
     s.box(s.widget_rect(dlg.task, pad=4, base=dlg), 1, at="l")
     s.box(s.widget_rect(dlg.notes, pad=4, base=dlg), 2, at="l")
     s.box(s.widget_rect(dlg.discuss, pad=4, base=dlg), 3, at="l")
-    s.box(s.widget_rect(dlg.copy_prompt, pad=4, base=dlg), 4, at="l")
+    s.box(s.widget_rect(dlg.recipe_row, pad=4, base=dlg), 4, at="l")
+    s.box(s.widget_rect(dlg.copy_prompt, pad=4, base=dlg), 5, at="l")
     s.snap("", widget=dlg)
     dlg.reject()
     s.save("16_brief_dialog", "Export Sketch Brief (Ctrl+E)",
            [(1, "The task in one sentence"),
             (2, "Hints that apply only to this export"),
             (3, "Discuss only – nothing gets built"),
-            (4, "Autoprompt: a ready sentence for the AI chat lands on the clipboard"),
+            (4, "Brief recipe: the way of working – Mule Default or your own (…)"),
+            (5, "Autoprompt: a ready sentence for the AI chat lands on the clipboard"),
             (None, "Then choose a folder; start Claude Code or Codex in that brief folder")],
            "The Sketch Brief is the hand-over to the AI: a folder with pictures, notes, the scene as USD and working "
            "rules. The dialog asks only for what the AI cannot read from the scene.")

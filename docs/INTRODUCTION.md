@@ -236,7 +236,8 @@ The Sketch Brief is the hand-over to the AI: a folder with pictures, notes, the 
 - **1** The task in one sentence
 - **2** Hints that apply only to this export
 - **3** Discuss only – nothing gets built
-- **4** Autoprompt: a ready sentence for the AI chat lands on the clipboard
+- **4** Brief recipe: the way of working – Mule Default or your own (…)
+- **5** Autoprompt: a ready sentence for the AI chat lands on the clipboard
 - Then choose a folder; start Claude Code or Codex in that brief folder
 
 [← Hero camera](#15-hero-camera) · [Contents](#contents) · [Review: talk your feedback →](#17-review-talk-your-feedback)

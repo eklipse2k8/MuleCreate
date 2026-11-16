@@ -36,3 +36,7 @@ open_source/
 # test runs of the brief hooks (bash sketch_machine/brief_package/_claude/tests/run_tests.sh)
 sketch_machine/brief_package/_claude/tests/_runs/
 backups/
+
+# the artist's own loose test scenes – never part of the repository
+tests/scenes/loft_test.sketch.sketch.json
+tests/scenes/netz_multi_v004.sketch.sketch.json

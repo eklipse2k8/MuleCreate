@@ -83,3 +83,19 @@ def test_oeffentliche_bible_nur_technik_und_werkzeuge(h=None):
     titles = [line[4:].strip() for line in out.splitlines() if line.startswith("### ")]
     assert not set(titles) & set(mod.BIBLE_PROCESS), "Ablauf-Einträge sind draußen"
     assert len(titles) >= 20 and "## Protocol" in out and mod.BIBLE_NOTE in out
+
+
+def test_einfuehrung_ist_aktuell(h=None):
+    """Einführung (docs/INTRODUCTION.md, introduction.html, Block oben im Handbuch) passt zu den Bildern."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("handbook_intro", ROOT / "packaging" / "handbook_intro.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    pics = mod.pictures()
+    assert len(pics) >= 18, len(pics)
+    for p in pics:
+        assert (ROOT / "docs" / "handbook" / p["file"]).is_file(), f"Bild fehlt: {p['file']}"
+    assert mod.handbook_block(pics) in _text(), "Block oben im Handbuch veraltet: packaging/handbook_intro.py"
+    intro = (ROOT / "docs" / "INTRODUCTION.md").read_text(encoding="utf-8")
+    assert intro == mod.introduction_md(pics), "docs/INTRODUCTION.md veraltet: packaging/handbook_intro.py"
+    assert _text().index("View the introduction") < _text().index("## How to use this handbook"), "ganz oben"

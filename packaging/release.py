@@ -14,7 +14,7 @@ import time
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 WORK = os.path.join(ROOT, "dist", "_release")
-LINUX_FILES = ("README.md", "LIESMICH.md", "AI_HANDBOOK.md", "LICENSE", "CONTRIBUTING.md", "ANLEITUNG.md", "GUIDE.md", "CHANGELOG.md", "bible", "packaging", "requirements.txt", "requirements-build.txt", "sketch_machine", "start.sh")  # Mule only, no tests and no Houdini MCP
+LINUX_FILES = ("README.md", "LIESMICH.md", "AI_HANDBOOK.md", "docs", "LICENSE", "CONTRIBUTING.md", "ANLEITUNG.md", "GUIDE.md", "CHANGELOG.md", "bible", "packaging", "requirements.txt", "requirements-build.txt", "sketch_machine", "start.sh")  # Mule only, no tests and no Houdini MCP
 DOCS = ("ANLEITUNG.md", "GUIDE.md", "AI_HANDBOOK.md", "CHANGELOG.md")  # sit in the Windows package next to Mule.exe
 # Source package: everything tracked except measurement scripts (they point to private scenes) and the studio guide
 SOURCE_EXCLUDE = ("bench", "packaging/LIESMICH_Studio.txt")
@@ -98,6 +98,8 @@ def pack(program, tag):
     source = os.path.join(WORK, "quelle")
     for name in DOCS + ("CONTRIBUTING.md",):
         shutil.copy2(os.path.join(source, name), os.path.join(program, name))
+    if os.path.isdir(os.path.join(source, "docs")):  # introduction with its pictures, next to the guides
+        shutil.copytree(os.path.join(source, "docs"), os.path.join(program, "docs"), dirs_exist_ok=True)
     windows = shutil.make_archive(os.path.join(out, "Mule_Windows"), "zip", os.path.dirname(program), "Mule")
     linux = os.path.join(out, "Mule_Linux.tar.gz")
     git("archive", "--format=tar.gz", "--prefix=Mule/", "-o", linux, "HEAD", *LINUX_FILES)

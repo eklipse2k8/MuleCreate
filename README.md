@@ -74,6 +74,8 @@ Review transcripts use [faster-whisper](https://github.com/SYSTRAN/faster-whispe
 
 ## Documentation
 
+- **`docs/INTRODUCTION.md`** – start here: 18 pictures of the main functions to click through
+  (or open `docs/introduction.html` as a slide show).
 - **`AI_HANDBOOK.md`** – the complete reference, written for AI assistants. If you have a question about Mule, give
   this file to your AI (Claude, ChatGPT, Codex, …) and ask it. It covers every function, shortcut, workflow, the
   brief format and the MCP tools.

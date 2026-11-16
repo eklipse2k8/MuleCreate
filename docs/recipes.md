@@ -30,6 +30,8 @@ only for passing recipes on.
 
 ## Making your own
 
+To see how a complete recipe fits together, read [Mule Default – how the recipe works](mule_default_recipe.md).
+
 In the brief dialog, **Brief recipe** → **…**:
 
 - **New recipe …** – asks for a name and makes a nearly empty recipe that already works (the AI reads the brief and
@@ -110,10 +112,13 @@ LEVEL = "study"
 
 - `brief/…` is the brief folder (`<scene>_brief/`), `work/…` the work folder next to it (`work_<scene>/`). Mule
   always creates `work/review/`, `work/export/` and `work/tools/`.
-- Targets may not leave these folders and may not use the names Mule writes itself in the brief folder: `brief.md`,
+- Targets are written with forward slashes. They may not leave these folders – no `..`, no `.` as a part, no
+  backslash or `:`, no name that ends in a dot or a space, no Windows device name (`con`, `nul`, …), no 8.3 short
+  name (`NAME~1.EXT`); Mule also checks
+  the real path before writing – and may not use the names Mule writes itself in the brief folder: `brief.md`,
   `brief.json`, `project.md`, `context.md`, `core.md`, `scene.usd`, `review.md`, `clarified_history.md`, `.mcp.json`,
   `.codex/`, `views/`, `notes/`, `shots/`, `videos/`, `gen/`, `review_rounds/`, `.mule_recipe.json` (case does not
-  matter – Windows).
+  matter – Windows). The same holds for `[config] file`, `keep` and `running_marker`.
 - Folders are copied with everything inside except `__pycache__`, `.git`, `*.pyc`, `.DS_Store`, `Thumbs.db`.
 - If the recipe installs `brief/.claude/settings.json`, Mule adds the work folder to
   `permissions.additionalDirectories`, so Claude Code may write there.
@@ -230,9 +235,23 @@ Without these templates Mule writes short neutral texts.
 
 ## The lock file
 
-Every build brief gets `.mule_recipe.json`: id, name, version, author and a **digest** (sha256 over all files of the
-recipe). It tells review rounds which recipe to renew from, and it names exactly which recipe a result came from –
-quote it when you share results.
+Every build brief gets `.mule_recipe.json`: id, name, version, author, a **digest** (sha256 over what makes the
+recipe: `recipe.toml`, the files it installs, its templates, its changes file) and the list of **files** it installed.
+It tells review rounds which recipe to renew from, and it names exactly which recipe a result came from – quote it
+when you share results.
+
+**One way of working per brief.** When another recipe is exported into a brief folder that already has one, or a newer
+version of the same recipe no longer has a file, Mule first removes what the previous recipe installed in the brief
+folder and the new one does not write (from the lock's file list). This is deliberately narrow – the lock lies in the
+brief folder, where an AI or a download could change it:
+- only in the brief folder – never in the work folder, which holds the run's results and may serve two briefs (old
+  tools there simply stay);
+- never while a run is in progress (`running_marker` of the old or the new recipe);
+- never Mule's content (judged by the real file name, so short names like `BRIEF~1.JSO` do not get past), never a
+  `keep` file of the old or the new recipe, never the run marker, never a link.
+
+Briefs made before the lock listed its files (Mule v0.99.263–272) are cleaned by the plan of the installed recipe:
+a file the new version moved elsewhere stays in its old place.
 
 ## Versions and review rounds
 
@@ -246,9 +265,15 @@ Raise `version` whenever you change the recipe, and add a section to your `chang
 - First version.
 ```
 
+Versions are `v<major>.<minor>[.<patch>]` (`v1` = `v1.0`); a recipe whose version has no number is not usable. In
+the changes file a heading may go on after the number (`## v1.1 (2026-11-17)`).
+
 A review round into a brief made with v1.0 then copies v1.1 into the brief folder (the config file keeps the run's
-values and only gets new keys; `keep` files stay) and quotes the v1.1 section in `review.md`. If the recipe is no
-longer installed, the round brings nothing new and the brief keeps what it has.
+values and only gets new keys; `keep` files stay) and quotes the v1.1 section in `review.md`; the brief dialog says
+so before the export, and warns when the installed recipe has another author than the one the brief was made with.
+Only the same id is ever renewed – never another recipe. If the recipe is no longer installed, the round brings
+nothing new, the brief keeps what it has, and `review.md` and the sentence for the chat use Mule's short neutral texts
+(never another recipe's).
 
 ## Importing
 

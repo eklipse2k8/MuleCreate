@@ -2283,7 +2283,7 @@ Code: `sketch_machine/brief.py` (analysis, pictures, brief.md/brief.json, export
   that the folder holds no `brief.json`. Disabled while "Discuss only" is ticked (but remembered).
 - **Type:** **Discuss only – build nothing** (Nur besprechen – nichts bauen). Writes the old "Core" style brief
   (see below) with no package, no hooks, no work folder.
-- **Brief recipe:** (Brief-Recipe) – the **brief recipe** of a build brief: **Mule Default (v5.0)** or a recipe
+- **Brief recipe:** (Brief-Recipe) – the **brief recipe** of a build brief: **Mule Default (v5.1)** or a recipe
   from the user's recipe folder (§Brief recipes). Greyed-out entries have a problem (tooltip). The grey line below
   gives description, author, what it is made for and how many hook commands it brings; a recipe that is not Mule's
   own says "not checked by Mule". **…** opens a menu: **New recipe …** (a nearly empty recipe that already works,
@@ -2294,8 +2294,9 @@ Code: `sketch_machine/brief.py` (analysis, pictures, brief.md/brief.json, export
   the zip or folder stays as it is), **Show contents …** (what the recipe runs on this machine), **Open recipe
   folder**, **Reload**. Disabled with "Discuss only" and in a review round (the round keeps the recipe of its
   brief). Stored with the scene (only when it is not Mule Default).
-  **Helping a user make one:** "New recipe" or "Copy as my own recipe", then a Claude session in the folder Mule
-  opened; the format is in `FORMAT.md` there (= `docs/recipes.md`).
+  **Helping a user make one:** first read `docs/mule_default_recipe.md` (how a complete recipe works and why) – it is
+  also in every copy of Mule Default as `ABOUT_MULE_DEFAULT.md`. Then "New recipe" or "Copy as my own recipe", then
+  a Claude session in the folder Mule opened; the format is in `FORMAT.md` there (= `docs/recipes.md`).
 - **Look pre-stage: first generate images from the hero cameras, then build** (Look-Vorstufe). Disabled with
   "Discuss only". Adds the section "Look images (before building)" to `brief.md` and a line to `project.md`: write one
   image prompt per hero camera from the brief, get the artist's OK (prompts already approved with `set_hero_prompt`
@@ -2487,6 +2488,13 @@ template and its facts, review rounds, import – is in `docs/recipes.md`. Code:
   artist", the head of `context.md` – are the templates `reading`, `look`, `open_points`, `context_head` (Mule Default
   has them with Mule's texts; "New recipe" has none). Every build brief says that its way of working wins over such
   aids, never over the artist's words in the notes. "Discuss only" keeps Mule's texts.
+- **One way of working per brief:** the lock lists the files a recipe installed; exporting another recipe into the
+  same folder (or a newer version that drops a file) first removes what the old one installed in the **brief folder**
+  and the new one does not write. Never in the work folder, never during a run, never Mule's content (real file name,
+  so 8.3 short names do not get past), keep files, the run marker or links – the lock itself could have been edited.
+- **Robust list:** a recipe that cannot be read (wrong encoding, wrong types, broken template) is shown greyed out
+  with its problem – it never blocks the dialog. If the chosen recipe breaks before the export, Mule asks before
+  falling back to Mule Default.
 - **Lock file** `.mule_recipe.json` in the brief folder names the recipe and its digest (sha256 over its files).
   Briefs from before recipes (only `.claude/package_version`) count as Mule Default.
 - **Review rounds** always use the brief's recipe: a newer version of the **same** recipe is copied in (its config
@@ -2501,14 +2509,18 @@ template and its facts, review rounds, import – is in `docs/recipes.md`. Code:
 - **Helping a user write one:** start from a copy of `sketch_machine/brief_package/`, give it its own `id`, set
   `forked_from`, change one thing at a time, raise `version` and add a section to the changes file on every change.
 
-## Way-of-working package (v5.0)
+## Way-of-working package (v5.1)
+
+How the recipe works as a whole – the idea, the three layers (text, hooks, measuring tools), the rules by theme, the
+levels, roles, a round step by step, the files, what the hooks enforce, where each mechanism came from and what to
+learn from it – is explained for people in `docs/mule_default_recipe.md`. This section is the reference.
 
 ### What it is
 The built-in recipe **Mule Default**: a fixed, versioned set of rules, roles and hooks in
 `sketch_machine/brief_package/` (described by its `recipe.toml`) that every build brief carries unless another recipe
 is chosen. It turns one Claude Code session in the brief folder into a **conductor** (main chat) that never builds
 and starts fresh sub-agents for each role, guarded by hooks. The version is in `recipe.toml` (`brief_v4.VERSION`,
-currently `v5.0`) and is written to the lock file `.mule_recipe.json` and the head of `project.md`.
+currently `v5.1`) and is written to the lock file `.mule_recipe.json` and the head of `project.md`.
 
 Copied into the brief: `rules.md`, `levels.md`, `conductor.md`, `roles/`, `CLAUDE.md` (with the project name),
 `.claude/agents/`, `.claude/hooks/` (without the template `gate.conf`; a fresh one is generated from
@@ -3489,7 +3501,7 @@ Review
   tests on push, Windows/Linux, `QT_QPA_PLATFORM=offscreen`) are **drafts, not active**: they must be moved to
   `.github/workflows/` to run; neither has ever run.
 - Versioning: commits are titled `v0.99.NNN: …`; releases are tagged `v0.99.NNN`; the brief package has its own
-  version (`brief_v4.VERSION`, currently v5.0) recorded in `PACKAGE_CHANGES.md`.
+  version (`brief_v4.VERSION`, currently v5.1) recorded in `PACKAGE_CHANGES.md`.
 
 ## Contribution policy
 
@@ -3911,6 +3923,7 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - von → from
 - Vorige übernehmen → Copy previous
 - Was passiert in diesem Bereich? → What happens in this range?
+- Weitere Einstellungen für Claude Code: → Further settings for Claude Code:
 - Welt → World
 - Werkzeug aus → Tool off
 - Werkzeuge → Tools

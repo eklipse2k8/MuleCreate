@@ -1920,4 +1920,20 @@ EN = {
         "Delete all of Mule's settings (window, colours, language, pen pressure …)? Scenes, recipes and reviews stay. This cannot be undone; Mule uses its defaults at the next start.",
     '   Quellcode-Fassung: Bible, Protokoll und MCP-Einträge liegen hier im Repo.':
         '   Source version: bible, log and MCP entries are here in the repo.',
+    'Review-Runde: der Brief nennt kein Recipe – die Runde bringt nur das Review, keine Arbeitsweise.':
+        'Review round: the brief names no recipe – the round brings the review only, no way of working.',
+    'Diese Runde bringt die neuere Version {1} statt {0} in den laufenden Brief.':
+        'This round brings the newer version {1} instead of {0} into the running brief.',
+    'Achtung: anderer Autor als beim Brief („{0}“ statt „{1}“) – prüf das Recipe vorher in seinem Ordner.':
+        "Careful: another author than the brief's („{0}“ instead of „{1}“) – check the recipe in its folder first.",
+    'Weitere Einstellungen für Claude Code:':
+        'Further settings for Claude Code:',
+    'NICHT GEPRÜFT – nicht lesbar: {0}. Was darin steht, zeigt diese Übersicht nicht.':
+        'NOT CHECKED – cannot be read: {0}. This overview does not show what is in it.',
+    'nicht lesbare Einstellungen – nicht geprüft':
+        'unreadable settings – not checked',
+    'Das Recipe „{0}“ ist nicht installiert oder gerade nicht nutzbar. Mit Mule Default exportieren?':
+        'The recipe „{0}“ is not installed or not usable right now. Export with Mule Default?',
+    'Review-Runde: das Recipe des Briefs „{0}“ ist installiert, aber gerade nicht nutzbar ({1}) – die Runde bringt keine neue Version mit.':
+        "Review round: the brief's recipe „{0}“ is installed but not usable right now ({1}) – the round brings no new version.",
 }

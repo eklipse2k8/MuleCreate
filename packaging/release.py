@@ -30,6 +30,7 @@ PUBLIC_NOTES = """**Mule Create {name}** – sketch in 3D space with lines, add 
 - **Source / Linux:** `Mule_Source.zip` – run `./start.sh` (Linux) or `start.bat` (Windows). Linux is hardly tested.
 - **Guides:** `GUIDE.md`, `CHANGELOG.md`; the introduction in pictures is in `docs/` and in the program (Help menu).
 - **`AI_HANDBOOK.md`:** the complete reference, written for AI assistants. Give it to your AI and ask your questions about Mule.
+- **Brief recipes:** [how Mule's own way of working is built, and why](https://github.com/felixbfx/MuleCreate/blob/main/docs/mule_default_recipe.md) · [swap it or write your own](https://github.com/felixbfx/MuleCreate/blob/main/docs/recipes.md).
 
 Needs a graphics card with OpenGL 3.3. Bugs and ideas: please open an issue. Contact: mulecreate@gmail.com.
 

@@ -2319,9 +2319,13 @@ def export(scene, viewport, folder, scene_name="sketch", focus=None, data=None, 
     data.pop("_notice", None)
     if (data.get("task") or {}).get("kind") != "discuss":  # work-method package v4 (rules, roles, hooks, view map)
         from . import brief_v4, recipes
-        recipe = recipes.get((data.get("task") or {}).get("recipe"))
+        wanted = (data.get("task") or {}).get("recipe")
+        recipe = recipes.get(wanted)
         brief_v4.remove_old_core(folder)
         files, notice = brief_v4.install(folder, scene_name, recipe)
+        if wanted and recipe.id != wanted:  # said, never silent (the app asks before; MCP exports read it here)
+            notice = (notice + " " if notice else "") + (f"The recipe „{wanted}“ is not installed or not usable – "
+                                                         "the brief was made with Mule Default.")
         project = brief_v4.write_project(data, scene_name, folder, has_context, recipe)
         written += files + ([project] if project else [])
         if has_context:

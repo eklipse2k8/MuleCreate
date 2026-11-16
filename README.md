@@ -104,6 +104,8 @@ Review transcripts use [faster-whisper](https://github.com/SYSTRAN/faster-whispe
 - **F1** in the program – the manual (English and German).
 - `GUIDE.md` – short guide: install, main workflows, reporting problems.
 - `CHANGELOG.md` – changes per release.
+- `docs/recipes.md` – brief recipes: swap the AI's way of working, write your own;
+  `docs/mule_default_recipe.md` – how Mule's own recipe works, and why.
 - `bible/sketch_machine_bible.md` – lessons from AI build sessions, kept by the AIs that worked with Mule.
 
 ## For developers

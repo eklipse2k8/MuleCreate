@@ -51,7 +51,8 @@ class RecipeError(Exception):
 
 
 class Recipe:
-    """A loaded recipe; problems lists what makes it unusable (then it is shown, but cannot be chosen)."""
+    """A loaded recipe; problems lists what makes it unusable (then it is shown, but cannot be chosen). Loading never
+    raises: a recipe being edited (by hand or by an AI) may be half done, and must not block the brief dialog."""
 
     def __init__(self, path, builtin=False):
         self.path = os.path.abspath(path)
@@ -68,74 +69,101 @@ class Recipe:
                 self.meta = tomllib.load(fh)
         except FileNotFoundError:
             self.problems.append(f"no {RECIPE_FILE}")
-        except (tomllib.TOMLDecodeError, OSError) as exc:
+        except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError) as exc:
             self.problems.append(f"{RECIPE_FILE} cannot be read: {exc}")
         m = self.meta
-        self.id = str(m.get("id") or os.path.basename(self.path))
-        self.name = str(m.get("name") or self.id)
-        self.version = str(m.get("version") or "v0")
-        self.author = str(m.get("author") or "")
-        self.description = str(m.get("description") or "")
-        self.made_for = [str(x) for x in m.get("made_for") or ()]
-        self.size = str(m.get("size") or "")
-        self.harness = str(m.get("harness") or "claude-code")
+        text = lambda k, d="": str(m.get(k) or d)  # noqa: E731
+        self.id = text("id", os.path.basename(self.path))
+        self.name = text("name", self.id)
+        self.version = text("version", "v0")
+        self.author = text("author")
+        self.description = text("description")
+        mf = m.get("made_for")
+        self.made_for = [str(x) for x in mf] if isinstance(mf, list) else ([str(mf)] if mf else [])
+        self.size = text("size")
+        self.harness = text("harness", "claude-code")
         self.interface = m.get("brief_interface", BRIEF_INTERFACE)
-        self.forked_from = str(m.get("forked_from") or "")
+        self.forked_from = text("forked_from")
         self.running_marker = m.get("running_marker") or ""
         self.changes = m.get("changes") or ""
         if not self.meta:
             return
-        if not _ID.match(self.id):
-            self.problems.append(f"id „{self.id}“: only lower-case letters, digits, '-', '_' and '.'")
+        try:
+            self._validate(m)
+        except Exception as exc:  # noqa: BLE001 – whatever is wrong, the recipe is shown as unusable, never a crash
+            self.problems.append(f"{RECIPE_FILE} cannot be used: {type(exc).__name__}: {exc}")
+
+    def _validate(self, m):
+        if not valid_id(self.id):
+            self.problems.append(f"id „{self.id}“: lower-case letters, digits, '-', '_', '.' (not at the end), "
+                                 "no Windows device name")
+        if version_key(self.version) is None:
+            self.problems.append(f"version „{self.version}“: write it as v<major>.<minor>, e.g. v1.0")
         if not isinstance(self.interface, int) or self.interface > BRIEF_INTERFACE:
             self.problems.append(f"needs brief interface {self.interface}, this Mule offers {BRIEF_INTERFACE} – "
                                  "update Mule")
         if self.harness not in HARNESSES:
             self.problems.append(f"harness „{self.harness}“ unknown (known: {', '.join(HARNESSES)})")
-        for src, dst in (m.get("files") or {}).items():
-            if not (self._inside(src) and _target_ok(dst)):
-                self.problems.append(f"files: „{src}“ → „{dst}“ leaves its folder (targets start with brief/ or work/)")
+        for key in ("files", "templates", "config"):
+            if not isinstance(m.get(key, {}), dict):
+                self.problems.append(f"[{key}] must be a table")
+                return
+        for src, dst in m.get("files", {}).items():
+            target = clean_target(dst)
+            if not (self._inside(src) and target):
+                self.problems.append(f"files: „{src}“ → „{dst}“ leaves its folder (targets start with brief/ or work/, "
+                                     "forward slashes, no '.', '..', ':' or names ending in a dot or space)")
                 continue
             full = os.path.join(self.path, src)
-            if src.endswith("/") != dst.endswith("/"):
+            if src.endswith("/") != target.endswith("/"):
                 self.problems.append(f"files: „{src}“ → „{dst}“: folder to folder, file to file")
             elif not (os.path.isdir(full) if src.endswith("/") else os.path.isfile(full)):
                 self.problems.append(f"files: „{src}“ is missing")
             else:
-                self.files[src] = dst
-        for key, rel in (m.get("templates") or {}).items():
+                self.files[src] = target
+        for key, rel in m.get("templates", {}).items():
             if key not in TEMPLATES:
                 self.problems.append(f"templates: „{key}“ unknown (known: {', '.join(TEMPLATES)})")
             elif not (self._inside(rel) and os.path.isfile(os.path.join(self.path, rel))):
                 self.problems.append(f"templates: „{rel}“ is missing")
             else:
                 self.templates[key] = rel
-        taken = sorted({t.split("/")[1] for _s, t in plan(self) if t.startswith("brief/")
-                        and t.split("/")[1].lower() in MULE_FILES})
-        if taken:
-            self.problems.append("files: " + ", ".join(taken) + " in the brief folder belong to Mule's content")
         if "start" not in self.templates:
             self.problems.append("templates: „start“ (the sentence for the chat) is required")
-        conf = m.get("config") or {}
+        conf = m.get("config", {})
         if conf:
-            if not _target_ok(conf.get("file", "")) or conf["file"].endswith("/"):
+            target = clean_target(conf.get("file", ""))
+            if not target or target.endswith("/"):
                 self.problems.append("config: „file“ must be a file under brief/ or work/")
             else:
-                self.config_file = conf["file"]
-                self.config_values = {str(k): str(v) for k, v in (conf.get("values") or {}).items()}
-        for k in [*(conf.get("keep") or ()), *(m.get("keep") or ())]:
-            if _target_ok(k):
-                self.keep.append(k)
+                self.config_file = target
+                values = conf.get("values", {})
+                if not isinstance(values, dict):
+                    self.problems.append("[config.values] must be a table")
+                else:
+                    self.config_values = {str(k): str(v) for k, v in values.items()}
+        keep = [*(conf.get("keep") or ()), *(m.get("keep") or ())]
+        for k in keep if isinstance(keep, list) else ():
+            target = clean_target(k)
+            if target:
+                self.keep.append(target)
             else:
                 self.problems.append(f"keep: „{k}“ must be under brief/ or work/")
-        if self.running_marker and not _target_ok(self.running_marker):
-            self.problems.append("running_marker must be under brief/ or work/")
+        if self.running_marker:
+            target = clean_target(self.running_marker)
+            if not target:
+                self.problems.append("running_marker must be under brief/ or work/")
+            self.running_marker = target or ""
+        taken = sorted({t.split("/")[1] for t in [*(t for _s, t in plan(self)), self.config_file or ""]
+                        if t.startswith("brief/") and t.split("/")[1].lower() in MULE_FILES})
+        if taken:
+            self.problems.append("files: " + ", ".join(taken) + " in the brief folder belong to Mule's content")
         if self.changes and not (self._inside(self.changes) and os.path.isfile(os.path.join(self.path, self.changes))):
             self.problems.append(f"changes: „{self.changes}“ is missing")
         check_templates(self)
 
     def _inside(self, rel):
-        if not isinstance(rel, str) or not rel or os.path.isabs(rel) or rel.startswith(("/", "\\")):
+        if not isinstance(rel, str) or not rel or "\\" in rel or ":" in rel or rel.startswith("/"):
             return False
         full = os.path.normpath(os.path.join(self.path, rel))
         return full == self.path or full.startswith(self.path + os.sep)
@@ -148,7 +176,7 @@ class Recipe:
         return f"{self.name} ({self.version})"
 
     def template(self, key, lang=None):
-        """Text of a template (language variant name.<lang>.ext first) or None."""
+        """Text of a template (language variant name.<lang>.ext first) or None. UTF-8, with or without BOM."""
         rel = self.templates.get(key)
         if not rel:
             return None
@@ -160,7 +188,7 @@ class Recipe:
         for c in cands:
             p = os.path.join(self.path, c)
             if os.path.isfile(p):
-                with open(p, encoding="utf-8") as fh:
+                with open(p, encoding="utf-8-sig") as fh:
                     return fh.read()
         return None
 
@@ -173,18 +201,72 @@ class Recipe:
         if not self.changes:
             return ""
         try:
-            with open(os.path.join(self.path, self.changes), encoding="utf-8") as fh:
+            with open(os.path.join(self.path, self.changes), encoding="utf-8-sig") as fh:
                 return fh.read()
-        except OSError:
+        except (OSError, UnicodeDecodeError):
             return ""
 
 
-def _target_ok(t):
-    if not isinstance(t, str) or not t.startswith(("brief/", "work/")):
-        return False
-    rest = t.split("/", 1)[1]
-    return bool(rest) and ".." not in rest.replace("\\", "/").split("/") and not os.path.isabs(rest) \
-        and ":" not in rest
+class Missing:
+    """The recipe a brief was made with, when it is no longer installed (or a brief without one): no templates – Mule
+    writes its short neutral texts and never another recipe's process words."""
+    builtin = False
+    templates = {}
+
+    def __init__(self, lock=None):
+        lock = lock or {}
+        self.id = lock.get("id") or ""
+        self.name = lock.get("name") or self.id or "no recipe"
+        self.version = lock.get("version") or ""
+
+    def label(self):
+        return f"{self.name} ({self.version})" if self.version else self.name
+
+    def render(self, key, ctx, lang=None):
+        return None
+
+    def changes_text(self):
+        return ""
+
+
+_RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)), *(f"lpt{i}" for i in range(1, 10))}
+_PART = re.compile(r"^[^<>:\"|?*\\/\x00-\x1f]+$")
+
+
+def _part_ok(part):
+    """One path component that means the same on every system: no '.', '..', no trailing dot or space (Windows drops
+    them), no device names, no characters Windows forbids."""
+    return (bool(_PART.match(part)) and part not in (".", "..") and not part.endswith((".", " "))
+            and part.split(".")[0].lower() not in _RESERVED
+            and not re.search(r"~\d", part))  # 8.3 short names ("BRIEF~1.JSO") would name another file
+
+
+def clean_target(t):
+    """A recipe target as Mule uses it ("brief/…" or "work/…", forward slashes, a trailing "/" for a folder), or None
+    when it could point anywhere else – checked part by part, so that "brief/\\Users", "brief/./brief.md",
+    "brief/brief.md." and "brief/x/../.." are all refused."""
+    if not isinstance(t, str) or not t.startswith(("brief/", "work/")) or "\\" in t:
+        return None
+    root, rest = t.split("/", 1)
+    folder = rest.endswith("/")
+    parts = rest.rstrip("/").split("/") if rest.rstrip("/") else []
+    if not parts or not all(_part_ok(p) for p in parts):
+        return None
+    return root + "/" + "/".join(parts) + ("/" if folder else "")
+
+
+def valid_id(rid):
+    return bool(_ID.match(rid)) and _part_ok(rid) and not rid.endswith((".mule_new", ".mule_old"))
+
+
+def version_key(v):
+    """v1.2.3 → (1, 2, 3), padded so that v1 == v1.0; a heading may go on after the number ("## v1.1 (2026-11-16)").
+    None if there is no version number."""
+    mt = re.match(r"\s*v?(\d+(?:\.\d+)*)", str(v or ""))
+    if not mt:
+        return None
+    nums = [int(x) for x in mt.group(1).split(".")]
+    return tuple(nums + [0] * (4 - len(nums)))[:max(4, len(nums))]
 
 
 # ---- folders and lookup
@@ -211,7 +293,7 @@ def available():
         names = []
     for n in names:
         p = os.path.join(root, n)
-        if os.path.isdir(p) and n not in _SKIP and not n.startswith("."):
+        if os.path.isdir(p) and n not in _SKIP and not n.startswith(".") and not n.endswith((".mule_new", ".mule_old")):
             r = Recipe(p)
             if any(o.id == r.id for o in out):
                 r.problems.append(f"id „{r.id}“ is already taken by another recipe")
@@ -328,8 +410,19 @@ def check_templates(recipe):
 # ---- installing into a brief
 
 def _resolve(target, brief, work):
+    """Path of a clean target – checked once more on the real path (links, junctions): it must lie inside the brief or
+    the work folder, otherwise RecipeError and nothing is written."""
+    target = clean_target(target)
+    if not target:
+        raise RecipeError("a recipe target leaves the brief and work folders")
     root, rest = target.split("/", 1)
-    return os.path.join(brief if root == "brief" else work, *rest.split("/"))
+    base = brief if root == "brief" else work
+    dst = os.path.join(base, *rest.rstrip("/").split("/"))
+    real, real_base = os.path.realpath(dst), os.path.realpath(base)
+    if os.path.normcase(real) != os.path.normcase(real_base) and \
+            not os.path.normcase(real).startswith(os.path.normcase(real_base) + os.sep):
+        raise RecipeError(f"„{target}“ would end up outside the {root} folder")
+    return dst
 
 
 def _fill_bytes(raw, tokens):
@@ -366,16 +459,84 @@ def plan(recipe):
     return out
 
 
+def _targets(recipe):
+    """Every target the recipe writes (files and its config file)."""
+    return [t for _s, t in plan(recipe)] + ([recipe.config_file] if recipe.config_file else [])
+
+
+def _protected(dst, brief, keep_real):
+    """Never removed by a recipe switch, whatever a lock file says (it lies in the brief folder, where an AI or a
+    download could change it): Mule's content – judged by the real name, so 8.3 short names and other spellings do not
+    get past –, keep files, links."""
+    real = os.path.realpath(dst)
+    rel = os.path.relpath(real, os.path.realpath(brief))
+    first = rel.split(os.sep)[0].casefold()
+    return (rel.startswith("..") or first in MULE_FILES or os.path.normcase(real) in keep_real
+            or os.path.islink(dst) or not os.path.isfile(dst))
+
+
+def _remove_previous(brief, work, recipe, keep_targets):
+    """What the recipe that was in this brief before installed and `recipe` does not write – removed so that a brief
+    never holds two ways of working (another recipe exported into the same folder, or a newer version that drops a
+    file). Deliberately narrow: only in the brief folder (the work folder holds the run's results and may be shared by
+    two briefs), never while a run is in progress, never Mule's content, keep files, the run marker or links. Taken
+    from the lock's file list; locks without one: from that recipe's plan. -> removed targets."""
+    lock = read_lock(brief) or {}
+    prev = find(lock.get("id")) if lock.get("id") else None
+    for r in (prev, recipe):
+        try:
+            if r is not None and is_running(r, brief, work):
+                return []
+        except RecipeError:
+            return []
+    old = lock.get("files")
+    if not isinstance(old, list):
+        old = _targets(prev) if prev else []
+    keep_real = set()
+    for t in [*keep_targets, *(prev.keep if prev else []),
+              *([prev.running_marker] if prev and prev.running_marker else []),
+              *([recipe.running_marker] if recipe.running_marker else [])]:
+        try:
+            keep_real.add(os.path.normcase(os.path.realpath(_resolve(t, brief, work))))
+        except RecipeError:
+            pass
+    new = {t.casefold() for t in keep_targets}
+    removed = []
+    for t in old:
+        t = clean_target(t) if isinstance(t, str) else None
+        if not t or not t.startswith("brief/") or t.endswith("/") or t.casefold() in new:
+            continue
+        try:
+            dst = _resolve(t, brief, work)
+        except RecipeError:
+            continue
+        if _protected(dst, brief, keep_real):
+            continue
+        os.remove(dst)
+        removed.append(t)
+        base = os.path.realpath(brief)
+        d = os.path.dirname(dst)
+        while os.path.realpath(d) != base and os.path.isdir(d) and not os.listdir(d):
+            os.rmdir(d)
+            d = os.path.dirname(d)
+    return removed
+
+
 def install(recipe, brief, work, tokens, fresh_conf=True):
     """Copy the recipe into brief folder and work folder, write the config file and the lock file. In a running run
     (fresh_conf False) the config keeps its values and only gets new keys; files under keep are never overwritten.
-    Returns the written files relative to the brief folder (work-folder files are not listed)."""
+    What an earlier recipe of this brief installed and this one does not is removed first. Every target is checked
+    against the real path before it is written. Returns the written files relative to the brief folder (work-folder
+    files are not listed)."""
+    targets = _targets(recipe)
+    resolved = {t: _resolve(t, brief, work) for t in targets}  # every target checked before anything is removed or written
+    _remove_previous(brief, work, recipe, set(targets) | set(recipe.keep))
     written = []
     skip = {recipe.config_file} if recipe.config_file else set()
     for src, target in plan(recipe):
         if target in skip:
             continue
-        dst = _resolve(target, brief, work)
+        dst = resolved[target]
         if target in recipe.keep and os.path.exists(dst):
             continue
         os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -388,7 +549,7 @@ def install(recipe, brief, work, tokens, fresh_conf=True):
         if target.startswith("brief/"):
             written.append(target[6:])
     if recipe.config_file:
-        conf_path = _resolve(recipe.config_file, brief, work)
+        conf_path = resolved[recipe.config_file]
         values = {k: _fill_bytes(v.encode("utf-8"), tokens).decode("utf-8") for k, v in recipe.config_values.items()}
         if fresh_conf or not os.path.isfile(conf_path):
             os.makedirs(os.path.dirname(conf_path), exist_ok=True)
@@ -397,15 +558,18 @@ def install(recipe, brief, work, tokens, fresh_conf=True):
             if recipe.config_file.startswith("brief/"):
                 written.append(recipe.config_file[6:])
         else:
-            with open(conf_path, encoding="utf-8") as fh:
-                have = {line.split("=", 1)[0] for line in fh.read().splitlines() if "=" in line}
+            with open(conf_path, encoding="utf-8-sig") as fh:
+                old = fh.read()
+            have = {line.split("=", 1)[0].strip() for line in old.splitlines() if "=" in line}
             missing = [k for k in values if k not in have]
             if missing:
                 with open(conf_path, "a", encoding="utf-8", newline="\n") as fh:
-                    fh.write("".join(f"{k}={values[k]}\n" for k in missing))
+                    # a file without a final line break would glue the new key onto the run's last value
+                    fh.write(("\n" if old and not old.endswith("\n") else "")
+                             + "".join(f"{k}={values[k]}\n" for k in missing))
                 if recipe.config_file.startswith("brief/"):
                     written.append(recipe.config_file[6:])
-    write_lock(brief, recipe)
+    write_lock(brief, recipe, targets)
     written.append(LOCK_FILE)
     return written
 
@@ -441,10 +605,14 @@ def digest(recipe):
     return h.hexdigest()
 
 
-def write_lock(brief, recipe):
+def write_lock(brief, recipe, targets=None):
+    """Lock of a brief: which recipe, which version, its digest – and the files it installed, so that another recipe
+    or a newer version can take exactly these away again."""
     with open(os.path.join(brief, LOCK_FILE), "w", encoding="utf-8") as fh:
         json.dump({"id": recipe.id, "name": recipe.name, "version": recipe.version, "author": recipe.author,
-                   "builtin": recipe.builtin, "digest": digest(recipe)}, fh, indent=1, ensure_ascii=False)
+                   "builtin": recipe.builtin, "digest": digest(recipe),
+                   "files": sorted(targets if targets is not None else _targets(recipe))},
+                  fh, indent=1, ensure_ascii=False)
         fh.write("\n")
 
 
@@ -580,21 +748,54 @@ def slug(name):
     return rid
 
 
-def _format_doc():
-    """docs/recipes.md – next to the program (installed) or in the repo (source)."""
-    for p in (paths.doc_path("docs", "recipes.md"), os.path.join(paths.ROOT, "docs", "recipes.md")):
+def _doc(name):
+    """A file of docs/ – next to the program (installed) or in the repo (source); None if missing."""
+    for p in (paths.doc_path("docs", name), os.path.join(paths.ROOT, "docs", name)):
         if os.path.isfile(p):
             return p
     return None
 
 
-def _add_guides(path, name):
+def _format_doc():
+    return _doc("recipes.md")
+
+
+ABOUT_DEFAULT = (("mule_default_recipe.md", "ABOUT_MULE_DEFAULT.md"),
+                 ("mule_default_recipe_de.md", "ABOUT_MULE_DEFAULT_de.md"))  # the German one only where it exists
+
+
+START_COPY = '''# {name} – a brief recipe for Mule
+
+This folder is a **brief recipe**: the way an AI works with a Sketch Brief from Mule. It is a copy of **{source}** –
+complete and working; change it step by step.
+
+**Read first:**
+- `FORMAT.md` – what `recipe.toml` may say, where files go (`brief/…`, `work/…`), the tokens Mule fills in, and the
+  facts every template can use.
+{about}
+**Working on it:** change files here; Mule reads them on the next export (in the brief dialog: Brief recipe → … →
+Reload). Change one thing at a time, so a comparison with the original tells you what that one thing did. After every
+change raise `version` in `recipe.toml` and add a section to the changes file named there. Hook tests, if the
+original had them, were left behind – test hooks by exporting a brief into a test folder and starting a session there.
+
+This file, `FORMAT.md` and the `ABOUT_*` files stay here – they are not copied into briefs.
+'''
+
+
+def _add_guides(path, name, source=None):
+    """FORMAT.md and START_HERE.md into a new recipe (a copy keeps a START_HERE.md it already has)."""
     doc = _format_doc()
     if doc:
         shutil.copyfile(doc, os.path.join(path, FORMAT_FILE))
     if not os.path.exists(os.path.join(path, START_FILE)):
+        if source is None:
+            text = _EMPTY[START_FILE].format(name=name)
+        else:
+            about = [f for _s, f in ABOUT_DEFAULT if os.path.isfile(os.path.join(path, f))]
+            text = START_COPY.format(name=name, source=source, about="- " + " / ".join(f"`{f}`" for f in about)
+                                     + " – how the original works, rule by rule, and why.\n" if about else "")
         with open(os.path.join(path, START_FILE), "w", encoding="utf-8", newline="\n") as fh:
-            fh.write(_EMPTY[START_FILE].format(name=name))
+            fh.write(text)
 
 
 def create_empty(name):
@@ -645,7 +846,12 @@ def copy_recipe(recipe, name):
     if recipe.changes:  # the original's history has versions above v1.0 – review rounds would quote it as new
         with open(os.path.join(path, recipe.changes), "w", encoding="utf-8", newline="\n") as fh:
             fh.write(f"# Changes\n## v1.0\n- Copy of {recipe.name} {recipe.version}.\n")
-    _add_guides(path, name)
+    if recipe.builtin:  # how Mule Default works and why – the starting point of the copy, explained
+        for src, dst in ABOUT_DEFAULT:
+            doc = _doc(src)
+            if doc:
+                shutil.copyfile(doc, os.path.join(path, dst))
+    _add_guides(path, name, recipe.label())
     return Recipe(path)
 
 
@@ -678,39 +884,64 @@ _NET = re.compile(r"\b(curl|wget|Invoke-WebRequest|Invoke-RestMethod|iwr|irm|Sta
                   r"FromBase64String|base64\s+-d|DownloadString|DownloadFile)\b|https?://", re.I)
 
 
+_KNOWN_SETTINGS = {"hooks", "statusLine", "permissions", "mcpServers", "$schema"}
+
+
+def _hook_command(hk):
+    """One hook as text: a command with its args, or its type and URL/prompt for hooks that run no command."""
+    if not isinstance(hk, dict):
+        return str(hk)
+    if hk.get("command") or hk.get("args"):
+        return " ".join([str(hk.get("command", "")), *map(str, hk.get("args") or ())]).strip()
+    return f"[{hk.get('type', '?')}] " + str(hk.get("url") or hk.get("prompt") or "")[:120]
+
+
 def summary(recipe):
-    """{"files", "hooks": [(event, command)], "allow": [...], "mode", "network": [(file, line, text)], "mcp": [...]}
-    – read from the recipe's Claude settings and scripts. A help for looking, not a guarantee."""
-    out = {"files": 0, "hooks": [], "allow": [], "mode": "", "network": [], "mcp": [], "brief": [], "work": []}
+    """{"files", "hooks": [(event, command)], "allow", "mode", "network": [(file, line, text)], "mcp", "other":
+    [(file, key, value)], "unreadable": [file]} – read from the recipe's Claude settings and scripts. A help for
+    looking, not a guarantee: a settings file it cannot read is named as not reviewed, never left out quietly."""
+    out = {"files": 0, "hooks": [], "allow": [], "mode": "", "network": [], "mcp": [], "brief": [], "work": [],
+           "other": [], "unreadable": []}
     for src, target in plan(recipe):
         out["files"] += 1
-        out["brief" if target.startswith("brief/") else "work"].append(target.split("/", 1)[1])
+        rel = target.split("/", 1)[1]
+        out["brief" if target.startswith("brief/") else "work"].append(rel)
         name = os.path.basename(target)
         if name in ("settings.json", "settings.local.json", ".mcp.json"):
             try:
-                with open(src, encoding="utf-8") as fh:
+                with open(src, encoding="utf-8-sig") as fh:
                     data = json.load(fh)
-            except (OSError, ValueError):
-                continue
-            for event, groups in (data.get("hooks") or {}).items():
-                for g in groups or ():
-                    for hk in (g or {}).get("hooks") or ():
-                        cmd = " ".join([str(hk.get("command", "")), *map(str, hk.get("args") or ())]).strip()
-                        out["hooks"].append((event, cmd))
-            if data.get("statusLine"):
-                out["hooks"].append(("statusLine", str(data["statusLine"].get("command", ""))))
-            perm = data.get("permissions") or {}
-            out["allow"] += [str(a) for a in perm.get("allow") or ()]
-            out["mode"] = out["mode"] or str(perm.get("defaultMode") or "")
-            out["mcp"] += list((data.get("mcpServers") or {}).keys())
+                if not isinstance(data, dict):
+                    raise ValueError("not an object")
+                for event, groups in (data.get("hooks") or {}).items():
+                    for g in groups if isinstance(groups, list) else [groups]:
+                        hooks = g.get("hooks") if isinstance(g, dict) else None
+                        for hk in hooks if isinstance(hooks, list) else [g]:
+                            out["hooks"].append((str(event), _hook_command(hk)))
+                if data.get("statusLine"):
+                    out["hooks"].append(("statusLine", _hook_command(data["statusLine"])))
+                perm = data.get("permissions") or {}
+                if isinstance(perm, dict):
+                    out["allow"] += [str(x) for x in perm.get("allow") or ()]
+                    out["mode"] = out["mode"] or str(perm.get("defaultMode") or "")
+                    if perm.get("additionalDirectories"):
+                        out["other"].append((rel, "permissions.additionalDirectories",
+                                             str(perm["additionalDirectories"])[:160]))
+                servers = data.get("mcpServers") or {}
+                out["mcp"] += list(servers.keys()) if isinstance(servers, dict) else [str(servers)]
+                # everything else a settings file can do (env, apiKeyHelper, model, …) is shown as it is
+                for key in sorted(set(data) - _KNOWN_SETTINGS):
+                    out["other"].append((rel, key, json.dumps(data[key], ensure_ascii=False)[:160]))
+            except Exception:  # noqa: BLE001 – unreadable or of an unknown shape: say so, never stay silent
+                out["unreadable"].append(rel)
         if os.path.splitext(src)[1].lower() in _TEXT and not src.endswith(".md"):
             try:
                 with open(src, encoding="utf-8", errors="replace") as fh:
                     for k, line in enumerate(fh, 1):
                         if _NET.search(line):
-                            out["network"].append((target.split("/", 1)[1], k, line.strip()[:120]))
+                            out["network"].append((rel, k, line.strip()[:120]))
             except OSError:
-                pass
+                out["unreadable"].append(rel)
     return out
 
 
@@ -759,17 +990,36 @@ def target_of(recipe):
 
 
 def install_unpacked(recipe, replace=False):
-    """Move an unpacked recipe into the recipe folder. -> the installed Recipe."""
+    """Copy an unpacked recipe into the recipe folder. Replacing goes through a fresh copy first and swaps the folders
+    only when it is complete – an open window or session in the old folder can stop it, but never leave half a recipe.
+    -> the installed Recipe."""
     if recipe.id == DEFAULT_ID:
         raise RecipeError("the id „default“ belongs to Mule's own recipe – give the recipe its own id")
-    if not _ID.match(recipe.id):
+    if not valid_id(recipe.id):
         raise RecipeError(f"id „{recipe.id}“ is not usable as a folder name")
     dst = target_of(recipe)
-    if os.path.exists(dst):
-        if not replace:
-            raise RecipeError(f"a recipe „{recipe.id}“ is already installed")
-        shutil.rmtree(dst)
-    shutil.copytree(recipe.path, dst, ignore=shutil.ignore_patterns(*_SKIP, "*.pyc"))
+    if os.path.islink(dst) or getattr(os.path, "isjunction", lambda _p: False)(dst):
+        raise RecipeError(f"„{dst}“ is a link to another folder – Mule does not replace it; change it there or "
+                          "remove the link first")
+    if os.path.exists(dst) and not replace:
+        raise RecipeError(f"a recipe „{recipe.id}“ is already installed")
+    fresh, old = dst + ".mule_new", dst + ".mule_old"
+    try:
+        for p in (fresh, old):
+            shutil.rmtree(p, ignore_errors=True)
+        shutil.copytree(recipe.path, fresh, ignore=shutil.ignore_patterns(*_SKIP, "*.pyc"))
+        if os.path.exists(dst):
+            os.rename(dst, old)
+        try:
+            os.rename(fresh, dst)
+        except OSError:
+            if os.path.exists(old) and not os.path.exists(dst):
+                os.rename(old, dst)  # put the old one back
+            raise
+        shutil.rmtree(old, ignore_errors=True)
+    except OSError as exc:
+        shutil.rmtree(fresh, ignore_errors=True)
+        raise RecipeError(f"could not install „{recipe.id}“ – is its folder open in Explorer or a session? ({exc})")
     discard(recipe)
     return Recipe(dst)
 

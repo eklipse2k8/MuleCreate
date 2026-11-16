@@ -29,7 +29,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 # language of the program, not a document)
 EXCLUDE = ("bench", "packaging/LIESMICH_Studio.txt", "bible/konzept_timing.md", "ANLEITUNG.md", "LIESMICH.md",
            "sketch_machine/brief_package/LIESMICH.md", "sketch_machine/brief_package/_claude/AENDERUNGEN_HOOKS.md",
-           "sketch_machine/brief_package/tools/vis_map/PILOT_README_de.md")
+           "sketch_machine/brief_package/tools/vis_map/PILOT_README_de.md", "docs/mule_default_recipe_de.md")
 BIBLE = os.path.join("bible", "sketch_machine_bible.md")
 # Workflow bible in the public repo: technique and tool entries only. Entries about the build process (agents, reviewers,
 # gates, the artist's intent) are superseded by the brief package (rules, roles, hooks) and stay in the private bible.

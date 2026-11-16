@@ -10,6 +10,7 @@ folder), the recipe stays untouched - otherwise rules would change mid-run; only
 images) is renewed."""
 import json
 import os
+import re
 import shutil
 
 from . import paths, recipes
@@ -71,17 +72,19 @@ def work_dir(folder):
 
 
 def recipe_of(folder):
-    """Recipe a brief folder was made with (lock file; briefs from before recipes: Mule's own). None if it is
-    no longer installed."""
-    lock = recipes.read_lock(folder) or {}
-    return recipes.find(lock.get("id"))
+    """Recipe a brief folder was made with (lock file; briefs from before recipes: Mule's own). None if the brief
+    names none (a discussion brief) or that recipe is no longer installed – never silently another one."""
+    lock = recipes.read_lock(folder)
+    return recipes.find(lock["id"]) if lock else None
 
 
 def running(folder, recipe=None):
     """Has a run already begun in the work folder? (marker of the recipe that is in the folder, else of recipe)"""
-    r = recipe_of(folder) if recipes.read_lock(folder) else None
-    r = r or recipe or recipes.default()
-    return recipes.is_running(r, folder, work_dir(folder))
+    r = recipe_of(folder) or recipe or recipes.default()
+    try:
+        return recipes.is_running(r, folder, work_dir(folder))
+    except recipes.RecipeError:
+        return False
 
 
 def _tokens(folder, scene_name, work, recipe):
@@ -122,10 +125,8 @@ def install(folder, scene_name, recipe=None):
 
 
 def _version_key(v):
-    try:
-        return tuple(int(x) for x in v.strip().lstrip("v").split("."))
-    except ValueError:
-        return (0,)
+    """recipes.version_key, with no number counting as the oldest."""
+    return recipes.version_key(v) or (0,)
 
 
 def changes_since(old, recipe=None):
@@ -133,7 +134,7 @@ def changes_since(old, recipe=None):
     text = (recipe or recipes.default()).changes_text()
     out, keep = [], False
     for line in text.splitlines():
-        if line.startswith("## v"):
+        if re.match(r"## (v\d|\d+\.\d)", line):  # "## v1.1", "## v1.1 (2026-11-16)", "## 1.1" – not "## 3 things"
             keep = _version_key(line[3:]) > _version_key(old or "v0")
         if keep:
             out.append(line)

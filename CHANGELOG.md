@@ -1,5 +1,25 @@
 # Changelog
 
+## Mule Create Alpha 1.4 – v0.99.275 (2026-11-17)
+
+- **Brief recipes hardened** after an independent review: recipe targets can no longer point outside the brief and
+  work folders by a backslash, `./` or a trailing dot, nor onto Mule's own files through the config file; a recipe
+  that is half edited or in another encoding is shown as unusable instead of blocking the brief dialog; exporting
+  another recipe into the same brief folder removes the previous way of working instead of mixing both; a review round
+  for a brief whose recipe is gone uses neutral texts; the dialog announces a newer recipe version (and another
+  author) before a review round brings it; the import overview reads settings with a BOM, names what it cannot read
+  and shows `env`, `apiKeyHelper` and similar keys; replacing an installed recipe is all or nothing; version headings
+  like `## v1.1 (date)` are understood; a config file without a final line break is no longer glued together.
+- **Second review of the hardening:** the clean-up on a recipe switch trusted the lock file's list, which lies in the
+  brief folder and can be edited – it now removes only in the brief folder, never during a run, and never Mule's
+  content, keep files, the run marker or links (8.3 short names and other spellings included). Every target is
+  checked before anything is removed or written; a recipe folder that is a link is not replaced; `## 3 things` in a
+  changes file is no longer read as a version.
+- **How Mule Default works:** [docs/mule_default_recipe.md](https://github.com/felixbfx/MuleCreate/blob/main/docs/mule_default_recipe.md) explains Mule's own recipe – the idea, the three
+  layers (text, hooks, measuring tools), the rules by theme, levels, roles, a round step by step, the files, what the
+  hooks enforce, where each mechanism came from and what to learn from it. "Copy as my own recipe" puts it into the
+  copy as `ABOUT_MULE_DEFAULT.md`, and the copy gets a start guide of its own.
+
 ## Mule Create Alpha 1.3 – v0.99.271 (2026-11-16)
 
 - **Where Mule keeps its files:** new in the Help menu – program folder, data folder with every entry and its size,

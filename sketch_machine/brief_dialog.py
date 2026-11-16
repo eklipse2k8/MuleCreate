@@ -20,7 +20,8 @@ def autoprompt(name, folder, task):
     # images opened, no units and work list. That is why the sentence refers to the first round in the core.
     from . import i18n, recipes, review_round
     if (task or {}).get("kind") != "discuss" and review_round.is_brief((task or {}).get("based_on")):  # review round
-        recipe = brief_v4.recipe_of(review_round.base_of(task["based_on"])) or recipes.default()
+        base = review_round.base_of(task["based_on"])
+        recipe = brief_v4.recipe_of(base) or recipes.Missing(recipes.read_lock(base))
         text = recipe.render("review_start", {"round": review_round.round_number(folder or ""), "project_name": name,
                                               "round_dir": os.path.normpath(folder) if folder else ""}, i18n.LANG)
         return (text or tr("Review-Runde {0} zu „{1}“ liegt in {2}. Lies dort review.md ganz und arbeite weiter.").format(
@@ -268,9 +269,20 @@ class BriefDialog(QDialog):
             lock = recipes.read_lock(base) or {}
             r = brief_v4.recipe_of(base)
             if r is None and lock:
+                broken = next((x for x in recipes.available() if x.id == lock["id"] and not x.ok), None)
+                if broken:
+                    return tr("Review-Runde: das Recipe des Briefs „{0}“ ist installiert, aber gerade nicht nutzbar ({1}) – die Runde bringt keine neue Version mit.").format(broken.name, "; ".join(broken.problems[:2]))
                 return tr("Review-Runde: der Brief nutzt „{0}“ {1} – auf diesem Rechner nicht installiert, die Runde bringt keine neue Version mit.").format(lock.get("name") or lock["id"], lock.get("version", ""))
-            return tr("Review-Runde: es gilt das Recipe des Briefs – {0}.").format(
-                (r or recipes.default()).label())
+            if r is None:
+                return tr("Review-Runde: der Brief nennt kein Recipe – die Runde bringt nur das Review, keine Arbeitsweise.")
+            text = tr("Review-Runde: es gilt das Recipe des Briefs – {0}.").format(r.label())
+            old = lock.get("version") or ""
+            if (recipes.version_key(old) or (0,)) < (recipes.version_key(r.version) or (0,)):
+                # a newer version goes into the running brief with this round – say so, and whose it is
+                text += " " + tr("Diese Runde bringt die neuere Version {1} statt {0} in den laufenden Brief.").format(old or "?", r.version)
+                if lock.get("author") is not None and lock.get("author") != r.author:
+                    text += " " + tr("Achtung: anderer Autor als beim Brief („{0}“ statt „{1}“) – prüf das Recipe vorher in seinem Ordner.").format(r.author or "–", lock.get("author") or "–")
+            return text
         r = self.recipe()
         lines = []
         if self._recipe_missing:
@@ -290,6 +302,8 @@ class BriefDialog(QDialog):
             meta.append(tr("{0} Stelle(n) mit Netz/Download in Skripten").format(len(sm["network"])))
         if sm["mode"] in ("bypassPermissions", "acceptEdits"):
             meta.append(tr("Rechte-Modus „{0}“").format(sm["mode"]))
+        if sm["unreadable"]:
+            meta.append(tr("nicht lesbare Einstellungen – nicht geprüft"))
         lines.append(" · ".join(meta))
         return "\n".join(lines)
 
@@ -503,6 +517,12 @@ def summary_text(r):
                 + (tr(" · Rechte-Modus „{0}“").format(sm["mode"]) if sm["mode"] else "")]
     if sm["mcp"]:
         out += ["", tr("Eigene MCP-Server: {0}").format(", ".join(sm["mcp"]))]
+    if sm["other"]:
+        out += ["", tr("Weitere Einstellungen für Claude Code:")]
+        out += [f"• {f}: {k} = {clean(v)}" for f, k, v in sm["other"][:12]]
+    if sm["unreadable"]:
+        out += ["", tr("NICHT GEPRÜFT – nicht lesbar: {0}. Was darin steht, zeigt diese Übersicht nicht.").format(
+            ", ".join(sm["unreadable"]))]
     if sm["network"]:
         out += ["", tr("Netz/Download in Skripten ({0}):").format(len(sm["network"]))]
         out += [f"• {f}:{k}  {t}" for f, k, t in sm["network"][:12]]

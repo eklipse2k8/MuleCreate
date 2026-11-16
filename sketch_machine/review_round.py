@@ -335,11 +335,12 @@ def markdown(d, cur, scene_name, folder, base, prev_folder, pkg=None, recipe=Non
 def write(cur, folder, scene_name):
     """Write review.md into the round (cur: brief.json data of this round); an older package in the brief folder is
     renewed in the process (brief_v4.update_package, 2026-11-16). -> file name."""
-    from . import brief_v4
+    from . import brief_v4, recipes
     base = base_of(folder)
     prev, prev_folder = previous(base, skip=folder)
     d = delta(prev, cur)
     pkg = brief_v4.update_package(base, scene_name)
     with open(os.path.join(folder, ROUND_FILE), "w", encoding="utf-8") as fh:
-        fh.write(markdown(d, cur, scene_name, folder, base, prev_folder, pkg, brief_v4.recipe_of(base)))
+        recipe = brief_v4.recipe_of(base) or recipes.Missing(recipes.read_lock(base))  # never another recipe's words
+        fh.write(markdown(d, cur, scene_name, folder, base, prev_folder, pkg, recipe))
     return ROUND_FILE

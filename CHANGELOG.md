@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Example scene:** `Example_Alpaca_Monowheel.zip` on the release page – sketch and finished model (USD, with and
+  without cargo) in one scene, free to use under CC BY 4.0; linked from the README, the guide and the introduction.
 - **Leaner build runs (Mule Default v5.1):** measured on a full run, no check removed. The main chat hands over and
   compacts at about 250 k tokens and goes on in the same chat; hook texts stay short enough to arrive whole (the full
   rules load through `CLAUDE.md`); each role names a *strong* or *light* model, harness-neutral; the detail stage

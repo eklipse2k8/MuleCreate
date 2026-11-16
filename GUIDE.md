@@ -15,7 +15,7 @@ No Python and no installation needed.
 “Windows protected your PC”. Click **“More info”**, then **“Run anyway”**. (On a German Windows:
 „Weitere Informationen“ → „Trotzdem ausführen“.) If your company does not allow this, cancel and ask your IT.
 
-**Linux / from source:** unzip `Mule_Quellcode.zip`, then
+**Linux / from source:** unzip `Mule_Source.zip`, then
 - Linux: `./start.sh` (on first start it sets up its own Python 3.14 inside the folder with
   [uv](https://docs.astral.sh/uv/); this needs internet once),
 - Windows: `start.bat` (the first start sets everything up itself, needs Python 3.14 and internet once), or by hand `py -3.14 -m venv .venv`, `.venv\Scripts\pip install -r requirements.txt`,
@@ -27,6 +27,10 @@ Mule needs a graphics card with OpenGL 3.3. Traces outside its folder: settings 
 (`HKCU\Software\SketchMachine`), log and recordings in `%APPDATA%\Mule` (on Linux in the home folder).
 
 **Language:** menu View → Sprache / Language, then restart.
+
+**Example scene:** [Example_Alpaca_Monowheel.zip](https://github.com/felixbfx/MuleCreate/releases/download/v0.99.255/Example_Alpaca_Monowheel.zip) – a finished project to look at: the sketch and
+the model an AI built from it (USD, with and without cargo). Unzip, keep the folder together, open
+`Alpaca_Monowheel.mule`. Free to use under CC BY 4.0 (credit: "Alpaca Monowheel by Felix Barthel (Mule Create)").
 
 ## The main workflows
 

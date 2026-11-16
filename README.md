@@ -5,7 +5,7 @@
 ![Mule Create: modes, tools, viewport, outliner and status line](docs/handbook/01_overview.png)
 
 **[Download for Windows](https://github.com/felixbfx/MuleCreate/releases)** · **[Introduction in pictures](docs/INTRODUCTION.md)** (18 pictures, two
-minutes) · Questions about Mule: give [`AI_HANDBOOK.md`](AI_HANDBOOK.md) to your AI and ask it.
+minutes) · **[Example scene](https://github.com/felixbfx/MuleCreate/releases/download/v0.99.255/Example_Alpaca_Monowheel.zip)** · Questions about Mule: give [`AI_HANDBOOK.md`](AI_HANDBOOK.md) to your AI and ask it.
 
 Mule Create (short: Mule) is a standalone program for technical sketching in 3D. You draw lines on planes that you
 place in space, like tracing paper. Lines can become surfaces, lofts and curve nets. You attach notes, reference
@@ -29,6 +29,16 @@ macOS is not tested. Scene files may change between alpha versions.
   turns it into draft notes at the right parts.
 - **Shots** (prototype): show what happens when, with flipbook planes and camera positions, without animating.
 - **Export**: Sketch Brief, scene as USD, curves.
+
+## Example scene
+
+![Example scene Alpaca Monowheel: the sketch and the two finished models](docs/example_alpaca_monowheel.png)
+
+**[Example_Alpaca_Monowheel.zip](https://github.com/felixbfx/MuleCreate/releases/download/v0.99.255/Example_Alpaca_Monowheel.zip)** (130 MB) – a one-wheeled expedition vehicle, sketched in Mule and then
+built by an AI from the Sketch Brief. One scene holds the sketch (lines, surfaces, groups with symmetry) and the
+finished model as USD, with and without cargo. Unzip, keep the folder together and open `Alpaca_Monowheel.mule`.
+Free to use, also commercially, under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) – credit:
+"Alpaca Monowheel by Felix Barthel (Mule Create), CC BY 4.0".
 
 ## Install and start
 

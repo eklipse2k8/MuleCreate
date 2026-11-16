@@ -8,6 +8,8 @@ The source of this file is `AI_HANDBOOK.md` in the Mule repository; it ships in 
 
 **People: [View the introduction](https://github.com/felixbfx/MuleCreate/blob/main/docs/INTRODUCTION.md)** – 18 pictures of the main functions to click through (in the repository: `docs/INTRODUCTION.md`, or open `docs/introduction.html` as a slide show). Any question about Mule: give the file AI_HANDBOOK.md to your AI (Claude, ChatGPT, Codex …) and ask it – it describes every function, shortcut and workflow.
 
+Example scene to open: [Example_Alpaca_Monowheel.zip](https://github.com/felixbfx/MuleCreate/releases/download/v0.99.255/Example_Alpaca_Monowheel.zip) – sketch and finished model (USD, with and without cargo) in one scene; unzip, keep the folder together, open Alpaca_Monowheel.mule. CC BY 4.0.
+
 **For the AI:** the pictures in `docs/handbook/` show these steps; their text is below, so you can describe them and point the user to the right picture.
 
 1. **The window** (`docs/handbook/01_overview.png`) – Mule has four modes: Draw puts lines down, Edit changes them, Notes holds prompts for the AI, Shots shows timing. Any question about Mule: give the file AI_HANDBOOK.md to your AI and ask it. Legend: (1) Modes Draw · Edit · Notes · Shots (Tab, N), display buttons on the right; (2) Tools of the current mode (pen, brush, eraser …); (3) Viewport: Alt or Space + mouse buttons move the camera; (4) Outliner: planes, stroke objects, surfaces, nulls; (5) Status line: what is active and which keys work right now

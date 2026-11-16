@@ -4,6 +4,8 @@
 
 > Any question about Mule: give the file AI_HANDBOOK.md to your AI (Claude, ChatGPT, Codex …) and ask it – it describes every function, shortcut and workflow.
 
+> Example scene to open: [Example_Alpaca_Monowheel.zip](https://github.com/felixbfx/MuleCreate/releases/download/v0.99.255/Example_Alpaca_Monowheel.zip) – sketch and finished model (USD, with and without cargo) in one scene; unzip, keep the folder together, open Alpaca_Monowheel.mule. CC BY 4.0.
+
 ## Contents
 
 1. [The window](#1-the-window)

@@ -14,6 +14,13 @@ BIBLE_NAME = os.path.join("bible", "sketch_machine_bible.md")
 LOG_NAME = "mule.log"
 
 
+def doc_path(*parts):
+    """Documentation next to the program: in the repo its root, installed the folder of Mule.exe (docs/,
+    AI_HANDBOOK.md – the release copies them there)."""
+    base = os.path.dirname(sys.executable) if FROZEN else ROOT
+    return os.path.join(base, *parts)
+
+
 def user_dir():
     """Folder for the user's data (is created)."""
     if sys.platform == "win32":

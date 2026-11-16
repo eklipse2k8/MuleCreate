@@ -450,6 +450,9 @@ class MainWindow(QMainWindow):
         manual_action = QAction(tr("&Handbuch"), self, shortcut=QKeySequence("F1"))
         manual_action.triggered.connect(self.show_manual)
         help_menu.addAction(manual_action)
+        from . import intro
+        help_menu.addAction(tr("&Einführung in Bildern"), lambda: intro.show_intro(self))
+        help_menu.addAction(tr("Mit der eigenen &KI fragen (AI_HANDBOOK.md) …"), lambda: intro.show_ai_handbook(self))
 
     def show_manual(self):
         """Manual (Help -> Manual, F1) - opens at the tab of the current mode."""
@@ -1828,6 +1831,8 @@ def main():
         window.show()
         if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):  # double-click on a scene; load after showing
             QTimer.singleShot(startup.FADE_MS + 50, lambda: window.load_path(sys.argv[1]))
+        from . import intro
+        QTimer.singleShot(startup.FADE_MS + 600, lambda: intro.ask_at_first_start(window))  # once: offer the intro
         if window.mcp is None:  # port taken: otherwise the AI silently talks to the other Mule
             QTimer.singleShot(startup.FADE_MS + 100, lambda: window.statusBar().showMessage(tr(
                 "KI-Anbindung aus: Port {0} ist belegt (läuft schon eine Mule?) – die KI sieht dann die andere Mule"

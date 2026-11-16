@@ -205,6 +205,7 @@ nach gewollten Änderungen der Darstellung `tests\run.py render --update-baselin
 | **Arbeitsbereich zurücksetzen**: Outliner, Notiz, Shots, Timeline und die Leisten wieder angedockt an ihrem Platz – auch wenn ein Panel abgekoppelt oder geschlossen wurde. Der Outliner ist danach immer da; Notiz, Shots und Timeline zeigen sich wie sonst nach Modus | Menü Ansicht |
 | Undo / Redo – auch Auswahl-Änderungen sind eigene Schritte (leicht, ohne Kopie der Szene; zählen nicht gegen das Limit von 150 Schritten), und Undo einer Operation stellt die Auswahl von davor wieder her | Strg + Z / Strg + Shift + Z |
 | Handbuch im Programm: Überblick, Zeichnen, Edit, Notizen, Ansicht & Licht, Tastenkürzel – eigenes Fenster neben der Zeichnung, öffnet beim Tab des aktuellen Modus | Hilfe → Handbuch, F1 |
+| **Einführung in Bildern**: Diashow mit 18 Bildern im Programm (Pfeiltasten, Esc); oben im Handbuch als erster Knopf, daneben „Mit der eigenen KI fragen (AI_HANDBOOK.md)“: erklärt die Datei für die eigene KI und zeigt sie im Explorer. Beim ersten Start fragt Mule einmal (Ansehen / Später / Nicht mehr fragen) | Hilfe → Einführung in Bildern |
 | Alle Linien löschen | Rechtsklick → Alle Linien löschen |
 
 ## Lizenz / License

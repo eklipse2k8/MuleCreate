@@ -1702,6 +1702,30 @@ EN = {
         'Backup failed: {0}',
     'Backup: {0}':
         'Backup: {0}',
+    'Mule Create – Einführung in Bildern':
+        'Mule Create – Introduction in pictures',
+    'Mit der eigenen KI fragen (AI_HANDBOOK.md)':
+        'Ask your own AI (AI_HANDBOOK.md)',
+    'Die Bilder der Einführung fehlen in diesem Ordner – online: {0}':
+        'The introduction pictures are missing in this folder – online: {0}',
+    'Mit der eigenen KI fragen':
+        'Ask your own AI',
+    'AI_HANDBOOK.md beschreibt alle Funktionen, Kürzel und Abläufe von Mule – geschrieben für KIs.\n\nGib die Datei deiner KI (Claude, ChatGPT, Codex …): in den Chat ziehen oder anhängen, dann einfach fragen, z. B. „Wie mache ich in Mule eine Röhre?“':
+        'AI_HANDBOOK.md describes every function, shortcut and workflow of Mule – written for AIs.\n\nGive the file to your AI (Claude, ChatGPT, Codex …): drag it into the chat or attach it, then just ask, e.g. “How do I make a tube in Mule?”',
+    'Datei zeigen':
+        'Show the file',
+    'Online öffnen':
+        'Open online',
+    'Willkommen bei Mule Create':
+        'Welcome to Mule Create',
+    'Möchtest du die Einführung in Bildern ansehen? 18 Bilder zu den wichtigsten Funktionen, etwa zwei Minuten.\n\nSpäter jederzeit: Hilfe → Einführung in Bildern.':
+        'Would you like to see the introduction in pictures? 18 pictures of the main functions, about two minutes.\n\nAny time later: Help → Introduction in Pictures.',
+    '▶  Einführung in Bildern':
+        '▶  Introduction in pictures',
+    '&Einführung in Bildern':
+        '&Introduction in Pictures',
+    'Mit der eigenen &KI fragen (AI_HANDBOOK.md) …':
+        'Ask Your Own &AI (AI_HANDBOOK.md) …',
     "Für die Hooks des Bau-Briefs fehlt auf diesem Rechner: {0} – ohne sie gelten die Regeln nur im Chat":
         "The build brief's hooks need something this computer lacks: {0} – without it the rules only hold in the chat",
     "fehlt":

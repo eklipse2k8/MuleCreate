@@ -5,7 +5,7 @@ Content as terse HTML; keys are written [Ctrl]+[Z] – they are shown as small k
 import re
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QTabWidget, QTextBrowser, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QPushButton, QTabWidget, QTextBrowser, QVBoxLayout, QWidget
 
 from . import i18n, ui
 from .i18n import tr
@@ -308,6 +308,20 @@ class ManualWindow(QWidget):
         self.resize(720, 620)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
+        # first thing in the manual: the introduction in pictures and the way to the AI handbook
+        from . import intro
+        top = QHBoxLayout()
+        top.setContentsMargins(10, 8, 10, 4)
+        self.intro_button = QPushButton(tr("▶  Einführung in Bildern"))
+        self.intro_button.setStyleSheet(f"QPushButton {{ background: {ui.ACCENT}; color: {ui.BG}; font-weight: 600; "
+                                        f"border: 0; border-radius: 5px; padding: 7px 16px; }}")
+        self.intro_button.clicked.connect(lambda: intro.show_intro(self.parent() or self))
+        self.ai_button = QPushButton(tr("Mit der eigenen KI fragen (AI_HANDBOOK.md)"))
+        self.ai_button.clicked.connect(lambda: intro.show_ai_handbook(self))
+        top.addWidget(self.intro_button)
+        top.addWidget(self.ai_button)
+        top.addStretch(1)
+        lay.addLayout(top)
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
         for title, html in _tabs():

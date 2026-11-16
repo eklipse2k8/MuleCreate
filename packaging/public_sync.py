@@ -65,9 +65,20 @@ def sync(checkout, message=None, push=False, fetch=True, tag=None):
         hits = pe.clean_copy(tmp)
         if hits:
             raise SystemExit("Private traces – nothing changed, fix them in this repo first:\n" + "\n".join(hits[:50]))
-        for rel in _public_git(checkout, "ls-files", "-z").split("\0"):  # tracked files only: ignored ones stay
-            if rel:
-                os.remove(os.path.join(checkout, rel))
+        tracked = [rel for rel in _public_git(checkout, "ls-files", "-z").split("\0") if rel]
+        locked = []
+        for rel in tracked:  # before touching anything: a running Mule from this folder locks files
+            path = os.path.join(checkout, rel)
+            try:  # renaming fails exactly when deleting would (file open without delete sharing)
+                os.replace(path, path + ".synccheck")
+                os.replace(path + ".synccheck", path)
+            except OSError:
+                locked.append(rel)
+        if locked:
+            raise SystemExit(f"{len(locked)} file(s) in the public checkout are in use (is Mule running from it?), "
+                             f"e.g. {locked[0]} – close it and try again; nothing was changed.")
+        for rel in tracked:  # tracked files only: ignored ones stay
+            os.remove(os.path.join(checkout, rel))
         for base, dirs, files in os.walk(checkout, topdown=False):  # folders that are empty now
             if ".git" in base.split(os.sep):
                 continue

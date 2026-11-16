@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# Mule unter Linux starten.
+# Start Mule on Linux.
 #
-# Die App bringt ihr eigenes Python mit (wie Houdini oder Blender): beim ersten Start legt dieses Skript mit uv
-# ein eigenständiges Python 3.14 im Projektordner an (runtime/python) und daraus die Umgebung .venv mit genau den
-# Paketversionen aus requirements.txt. Das System-Python (z. B. 3.9) wird weder benutzt noch verändert, Admin-
-# Rechte sind nicht nötig. Danach startet die App ohne uv und ohne Internet – auch für andere Nutzer, die den
-# Projektordner lesen können.
+# The app brings its own Python (like Houdini or Blender): on the first start this script uses uv to set up a
+# standalone Python 3.14 inside the project folder (runtime/python) and from it the environment .venv with exactly the
+# package versions of requirements.txt. The system Python (e.g. 3.9) is neither used nor changed, no admin rights are
+# needed. After that the app starts without uv and without internet – also for other users who can read the folder.
 set -u
 cd "$(dirname "$(readlink -f "$0")")" || exit 1
 HERE="$(pwd)"
@@ -14,8 +13,8 @@ VENV_PY="$HERE/.venv/bin/python"
 
 fail() {
     echo
-    echo "FEHLER: $*" >&2
-    if [ -t 0 ]; then read -r -p "Enter zum Schließen … " _; fi
+    echo "ERROR: $*" >&2
+    if [ -t 0 ]; then read -r -p "Enter to close … " _; fi
     exit 1
 }
 
@@ -36,42 +35,42 @@ find_uv() {
 }
 
 if ! venv_ok && venv_python_ok; then
-    # Umgebung passt, nur neue Pakete fehlen (z. B. scipy seit v0.84.2): nachinstallieren, nichts neu anlegen
-    echo "Mule: neue Pakete installieren (einmalig, braucht Internet) …"
+    # environment fine, only new packages missing (e.g. scipy since v0.84.2): install them, create nothing new
+    echo "Mule: installing new packages (once, needs internet) …"
     find_uv
     export UV_LINK_MODE=copy
     if [ -n "$UV" ]; then
-        "$UV" pip install --python "$VENV_PY" -r "$HERE/requirements.txt" || fail "Die Pakete konnten nicht installiert werden."
+        "$UV" pip install --python "$VENV_PY" -r "$HERE/requirements.txt" || fail "The packages could not be installed."
     else
-        "$VENV_PY" -m pip install -r "$HERE/requirements.txt" || fail "Die Pakete konnten nicht installiert werden."
+        "$VENV_PY" -m pip install -r "$HERE/requirements.txt" || fail "The packages could not be installed."
     fi
 fi
 
 if ! venv_ok; then
-    echo "Mule: eigenes Python $PY_VERSION und Pakete einrichten (einmalig, braucht Internet) …"
+    echo "Mule: setting up its own Python $PY_VERSION and packages (once, needs internet) …"
     find_uv
-    [ -n "$UV" ] || fail "uv wurde nicht gefunden. Einmalig installieren (ohne Admin-Rechte):
+    [ -n "$UV" ] || fail "uv was not found. Install it once (no admin rights needed):
     curl -LsSf https://astral.sh/uv/install.sh | sh
-danach ./start.sh erneut ausführen."
-    export UV_PYTHON_INSTALL_DIR="$HERE/runtime/python"  # Python liegt im Projekt, nicht im Home-Verzeichnis
-    export UV_LINK_MODE=copy  # echte Kopien statt Links in den uv-Cache (Netzwerkspeicher, andere Nutzer)
-    export UV_PYTHON_PREFERENCE=only-managed  # nie das System-Python nehmen
-    if [ -e "$HERE/.venv" ]; then  # alte Umgebung (z. B. Python 3.10) beiseitelegen, nicht löschen
+then run ./start.sh again."
+    export UV_PYTHON_INSTALL_DIR="$HERE/runtime/python"  # Python lives in the project, not in the home folder
+    export UV_LINK_MODE=copy  # real copies instead of links into the uv cache (network drives, other users)
+    export UV_PYTHON_PREFERENCE=only-managed  # never use the system Python
+    if [ -e "$HERE/.venv" ]; then  # move an old environment (e.g. Python 3.10) aside, do not delete it
         old="$HERE/.venv.alt-$(date +%Y%m%d-%H%M%S)"
-        mv "$HERE/.venv" "$old" && echo "Alte Umgebung verschoben nach: $old (kann gelöscht werden)"
+        mv "$HERE/.venv" "$old" && echo "Old environment moved to: $old (can be deleted)"
     fi
-    "$UV" python install "$PY_VERSION" || fail "Python $PY_VERSION konnte nicht installiert werden."
-    "$UV" venv --python "$PY_VERSION" "$HERE/.venv" || fail "Die Umgebung .venv konnte nicht angelegt werden."
-    "$UV" pip install --python "$VENV_PY" -r "$HERE/requirements.txt" || fail "Die Pakete konnten nicht installiert werden."
-    venv_ok || fail "Die Umgebung ist unvollständig – Ausgabe oben prüfen."
-    echo "Fertig eingerichtet: $("$VENV_PY" --version), Python liegt in runtime/python."
+    "$UV" python install "$PY_VERSION" || fail "Python $PY_VERSION could not be installed."
+    "$UV" venv --python "$PY_VERSION" "$HERE/.venv" || fail "The environment .venv could not be created."
+    "$UV" pip install --python "$VENV_PY" -r "$HERE/requirements.txt" || fail "The packages could not be installed."
+    venv_ok || fail "The environment is incomplete – check the output above."
+    echo "Set up: $("$VENV_PY" --version), Python lives in runtime/python."
 fi
 
-export PYTHONFAULTHANDLER=1  # stürzt doch etwas ab, steht die genaue Stelle im Terminal
+export PYTHONFAULTHANDLER=1  # if something crashes, the exact place shows in the terminal
 "$VENV_PY" -m sketch_machine "$@"
 status=$?
 if [ $status -ne 0 ] && [ -t 0 ]; then
     echo
-    read -r -p "Mule wurde mit Fehler $status beendet – Enter zum Schließen … " _
+    read -r -p "Mule ended with error $status – Enter to close … " _
 fi
 exit $status

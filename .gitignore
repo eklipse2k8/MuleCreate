@@ -8,18 +8,18 @@ shot.png
 runtime/
 .venv.alt-*/
 
-# Testläufe (Bilder, Ergebnisse, lokale Referenzbilder)
+# test runs (pictures, results, local reference pictures)
 tests/_out/
 tests/_baseline/
 
-# Kurvennetz-Probelauf: übernommene Kopien von Testdateien (lokal)
+# curve-net trial: copies of test files (local)
 netz_probelauf/
 
-# Paket und Installer (packaging/)
+# package and installer (packaging/)
 build/
 dist/
 
-# Private Arbeitsordner und lokale Einstellungen (nicht ins öffentliche Repo)
+# private working folders and local settings (not for the public repository)
 .claude/
 .codex/
 .mcp.json
@@ -30,9 +30,9 @@ referenzen/
 praesentation/
 testlauf_*/
 open_source/
-# lose Arbeitsszenen im Hauptordner (Testszenen gehören nach tests/scenes/)
+# loose working scenes in the root folder (test scenes belong in tests/scenes/)
 /*.sketch.json
 
-# Testläufe der Brief-Hooks (bash sketch_machine/brief_package/_claude/tests/run_tests.sh)
+# test runs of the brief hooks (bash sketch_machine/brief_package/_claude/tests/run_tests.sh)
 sketch_machine/brief_package/_claude/tests/_runs/
 backups/

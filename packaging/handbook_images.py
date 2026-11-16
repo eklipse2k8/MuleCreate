@@ -106,7 +106,7 @@ class Shot:
         self.marks = []
 
     # --- the picture ---
-    def save(self, name, title, legend, summary="", cols=None):
+    def save(self, name, title, legend, summary="", cols=None, index=True):
         """title and summary (one sentence: what the picture explains) on top, the panels in a grid (more than three:
         two per row), the legend below. legend: [(number or None, text)]."""
         if self.marks or not self.panels:
@@ -184,7 +184,8 @@ class Shot:
         path = os.path.join(OUT, name + ".png")
         out.save(path)
         print("written", os.path.relpath(path, ROOT))
-        _record(name, title, summary, legend, [pn["title"] for pn in self.panels])
+        if index:  # not for pictures outside the introduction (the README picture)
+            _record(name, title, summary, legend, [pn["title"] for pn in self.panels])
         self.panels = []
 
     def _mark(self, p, kind, geo, number, at, to, sc):
@@ -286,6 +287,42 @@ def overview(h, s):
         (5, "Status line: what is active and which keys work right now")],
         "Mule has four modes: Draw puts lines down, Edit changes them, Notes holds prompts for the AI, Shots shows "
         "timing. Any question about Mule: give the file AI_HANDBOOK.md to your AI and ask it.")
+
+
+README_SCENE = os.environ.get("MULE_README_SCENE", "")  # the Alpaca Monowheel scene (.mule) – not in the repository
+
+
+def readme_overview(h, s):
+    """The window as on the README page: the Alpaca Monowheel scene (the first project made entirely in Mule) with
+    its saved camera, notes and drawing aids hidden. Not part of the introduction (that keeps 01_overview)."""
+    if not os.path.isfile(README_SCENE):
+        raise FileNotFoundError("set MULE_README_SCENE to the Alpaca Monowheel scene (the example scene's .mule)")
+    h.load(README_SCENE)
+    for o in (*h.sc.nulls, *h.sc.strokes, *h.sc.surfaces):  # public pictures are English (the file stays as it is)
+        o.name = o.name.replace("Alpaka", "Alpaca")
+    h.w.outliner.rebuild()
+    h.draw_mode()
+    h.w.notes_visible_action.setChecked(False)
+    h.w.planes_action.setChecked(False)
+    h.pump(0.3)
+    h.grab()
+    top = s.widget_rect(_toolbar(h, Qt.TopToolBarArea), pad=-2)
+    s.box(top, 1, at=QPointF(top.left() + 330, top.center().y()))
+    s.box(s.widget_rect(_toolbar(h, Qt.LeftToolBarArea), pad=-2), 2, at=QPointF(24, 800))
+    view = s.widget_rect(h.v, pad=-8)
+    s.box(view, 3, at=QPointF(view.left() + 40, view.top() + 34))
+    out = s.widget_rect(_dock(h, "Outliner"), pad=-2)
+    s.box(out, 4, at=QPointF(out.right() - 26, out.top() + 44))
+    status = _status_rect(s)
+    s.box(status, 5, at=QPointF(status.right() - 30, status.top() - 18))
+    s.save("readme_overview", "The window", [
+        (1, "Modes Draw · Edit · Notes · Shots (Tab, N), display buttons on the right"),
+        (2, "Tools of the current mode (pen, brush, eraser …)"),
+        (3, "Viewport: Alt or Space + mouse buttons move the camera"),
+        (4, "Outliner: planes, stroke objects, surfaces, nulls"),
+        (5, "Status line: what is active and which keys work right now")],
+        "The Alpaca Monowheel, sketched entirely in Mule. Four modes: Draw puts lines down, Edit changes them, Notes "
+        "holds prompts for the AI, Shots shows timing.", index=False)
 
 
 def _rect_scene(h):
@@ -1100,7 +1137,7 @@ PICTURES = {"01_overview": overview, "02_pen_brush": pen_brush, "03_paint_mode":
             "07_draw_on_surface": draw_on_surface, "08_edit_gizmo": edit_gizmo, "09_extrude": extrude, "10_loft": loft, "11_fill": fill,
             "12_insert_point": insert_point, "13_delete_point": delete_point, "14_symmetry": symmetry,
             "15_note_board": note_board, "16_hero_camera": hero_camera, "17_brief_dialog": brief_dialog,
-            "18_review_mark": review_mark, "19_shots": shots}
+            "18_review_mark": review_mark, "19_shots": shots, "readme_overview": readme_overview}
 
 
 def main():

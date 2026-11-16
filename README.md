@@ -11,7 +11,7 @@
 <p align="center">The newest version in one click: unzip, start <code>Mule\Mule.exe</code> – no installation, no Python.<br>
 <a href="https://github.com/felixbfx/MuleCreate/releases">All versions, source code, Linux</a></p>
 
-![Mule Create: modes, tools, viewport, outliner and status line](docs/handbook/01_overview.png)
+![Mule Create with the Alpaca Monowheel: modes, tools, viewport, outliner and status line](docs/handbook/readme_overview.png)
 
 **[All releases](https://github.com/felixbfx/MuleCreate/releases)** · **[Introduction in pictures](docs/INTRODUCTION.md)** (19 pictures, two
 minutes) · **[Example scene](https://github.com/felixbfx/MuleCreate/releases/download/v0.99.255/Example_Alpaca_Monowheel.zip)** · Questions about Mule: give [`AI_HANDBOOK.md`](AI_HANDBOOK.md) to your AI and ask it.

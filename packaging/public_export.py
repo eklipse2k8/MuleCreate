@@ -12,6 +12,8 @@ git setting, so later commits carry the new address too.
 Afterwards by hand: create an empty repo on GitHub, then in the target folder
     git remote add origin https://github.com/<konto>/<repo>.git
     git push -u origin main
+
+Only for the very first state. Later updates of an existing public repo: packaging/public_sync.py.
 """
 import argparse
 import os
@@ -59,7 +61,10 @@ def export(target):
 
 
 def public_bible(text):
-    """Bible without the process entries (BIBLE_PROCESS), with a note under the title. Every title must exist."""
+    """Bible without the process entries (BIBLE_PROCESS), with a note under the title. Every title must exist.
+    An already public bible (in the public repo itself) stays as it is."""
+    if BIBLE_NOTE in text:
+        return text
     head, sep, entries = text.partition("\n## Entries\n")
     parts = entries.split("\n### ")
     keep, found = [parts[0]], set()
@@ -93,6 +98,23 @@ def private_hits(target):
     return hits
 
 
+def clean_copy(target):
+    """The public state of HEAD in target (existing, empty folder): export, public bible. Returns private hits."""
+    export(target)
+    path = os.path.join(target, BIBLE)
+    with open(path, encoding="utf-8") as fh:
+        text = public_bible(fh.read())
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(text)
+    return private_hits(target)
+
+
+def head_version():
+    """(short hash, version tag or None) of HEAD in this repo."""
+    tags = [t for t in git("tag", "--points-at", "HEAD").split() if t.startswith("v")]
+    return git("rev-parse", "--short", "HEAD"), (tags[0] if tags else None)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("target", help="neuer, leerer Ordner (außerhalb dieses Repos)")
@@ -108,17 +130,11 @@ def main():
         sys.exit(f"{target} ist nicht leer.")
     if re.search("|".join(PRIVATE), a.email, re.IGNORECASE):
         sys.exit("Das ist die alte Adresse – für das öffentliche Repo eine neue angeben.")
-    head = git("rev-parse", "--short", "HEAD")
-    tags = [t for t in git("tag", "--points-at", "HEAD").split() if t.startswith("v")]
+    head, tag = head_version()
+    tags = [tag] if tag else []
 
     os.makedirs(target, exist_ok=True)
-    export(target)
-    path = os.path.join(target, BIBLE)
-    with open(path, encoding="utf-8") as fh:
-        text = public_bible(fh.read())
-    with open(path, "w", encoding="utf-8", newline="\n") as fh:
-        fh.write(text)
-    hits = private_hits(target)
+    hits = clean_copy(target)
     if hits:
         print("Private Spuren gefunden – nichts committet, bitte zuerst im Mule-Repo beheben:")
         print("\n".join(hits[:50]))

@@ -1,7 +1,9 @@
 """Test package as GitHub release: builds from the commit, not from the working folder, checks and uploads.
 Run from the repo root: .venv/Scripts/python.exe packaging/release.py
 Prerequisite: the current commit has its version tag and is pushed. Only what passes the self-test is uploaded.
-With --alpha "Alpha 1": draft only (not public, not "latest"), with source package, ANLEITUNG and CHANGELOG."""
+With --alpha "Alpha 1": draft only (not public, not "latest"), with source package, ANLEITUNG and CHANGELOG.
+With --public "Alpha 2": in the PUBLIC checkout (after packaging/public_sync.py): the same files as --alpha, published
+as a pre-release with the public release text (PUBLIC_NOTES)."""
 import json
 import os
 import shutil
@@ -16,7 +18,27 @@ LINUX_FILES = ("README.md", "LIESMICH.md", "AI_HANDBOOK.md", "LICENSE", "CONTRIB
 DOCS = ("ANLEITUNG.md", "GUIDE.md", "AI_HANDBOOK.md", "CHANGELOG.md")  # sit in the Windows package next to Mule.exe
 # Source package: everything tracked except measurement scripts (they point to private scenes) and the studio guide
 SOURCE_EXCLUDE = ("bench", "packaging/LIESMICH_Studio.txt")
-ALPHA = sys.argv[sys.argv.index("--alpha") + 1] if "--alpha" in sys.argv else None
+PUBLIC = sys.argv[sys.argv.index("--public") + 1] if "--public" in sys.argv else None
+ALPHA = PUBLIC or (sys.argv[sys.argv.index("--alpha") + 1] if "--alpha" in sys.argv else None)
+PUBLIC_NOTES = """**Mule Create {name}** – sketch in 3D space with lines, add notes, pictures and spoken feedback, and export a Sketch Brief from which an AI (Claude Code, Codex, …) builds the object in Houdini or Blender. This is an alpha: expect bugs, and scene files may change between versions.
+
+**Downloads**
+- **Windows:** `Mule_Windows.zip` – unzip into a folder of its own and start `Mule.exe` in the `Mule` folder. No Python needed. The program is not signed yet: on the first start Windows SmartScreen warns – click "More info", then "Run anyway". The package passed its self-test in English and German.
+- **Source / Linux:** `Mule_Quellcode.zip` – run `./start.sh` (Linux) or `start.bat` (Windows). Linux is hardly tested.
+- **Guides:** `GUIDE.md` (English), `ANLEITUNG.md` (German), `CHANGELOG.md`.
+- **`AI_HANDBOOK.md`:** the complete reference, written for AI assistants. Give it to your AI and ask your questions about Mule.
+
+Needs a graphics card with OpenGL 3.3. Bugs and ideas: please open an issue. Contact: mulecreate@gmail.com.
+
+---
+
+**Deutsch:** Windows: `Mule_Windows.zip` entpacken und im Ordner `Mule` die `Mule.exe` starten (bei der SmartScreen-Warnung „Weitere Informationen“ → „Trotzdem ausführen“). Anleitung: `ANLEITUNG.md`. Fragen zu Mule beantwortet deine KI mit `AI_HANDBOOK.md`. Fehler und Ideen bitte als Issue.
+
+Mule Create is free software under the GNU GPL v3.0. The name "Mule Create" and the Mule logo are reserved.
+
+**Changes**
+
+{changes}"""
 
 
 def git(*args):
@@ -96,6 +118,18 @@ def pack(program, tag):
 
 
 def publish(tag, files):
+    if PUBLIC:
+        if os.path.exists(os.path.join(ROOT, "packaging", "LIESMICH_Studio.txt")):
+            sys.exit("--public only in the public checkout (after packaging/public_sync.py), not in the private repo.")
+        changes = open(os.path.join(WORK, "quelle", "CHANGELOG.md"), encoding="utf-8").read().split("\n", 2)[2]
+        for attempt in range(3):  # GitHub occasionally answers uploads with a 502
+            done = subprocess.run(["gh", "release", "create", tag, *files, "--verify-tag", "--prerelease",
+                                   "--title", f"Mule Create {PUBLIC} ({tag})",
+                                   "--notes", PUBLIC_NOTES.format(name=PUBLIC, changes=changes)], cwd=ROOT)
+            if done.returncode == 0:
+                return
+            time.sleep(30)
+        sys.exit("Hochladen dreimal fehlgeschlagen; auf GitHub nach einem halben Release sehen.")
     if ALPHA:
         changes = open(os.path.join(WORK, "quelle", "CHANGELOG.md"), encoding="utf-8").read().split("\n", 2)[2]
         notes = ("Entwurf, nur intern – nicht öffentlich. Windows: Mule_Windows.zip entpacken, Mule.exe starten "
@@ -119,6 +153,8 @@ def publish(tag, files):
 
 
 if __name__ == "__main__":
+    if PUBLIC and os.path.exists(os.path.join(ROOT, "packaging", "LIESMICH_Studio.txt")):
+        sys.exit("--public only in the public checkout (after packaging/public_sync.py), not in the private repo.")
     tag = version()
     program = build(export_source())
     selftest(program)

@@ -3349,11 +3349,21 @@ Review
 - `packaging/release.py` – builds from the tagged, pushed commit via `git archive` (never the working folder), runs
   the self-test in German and English outside the project, packs `Mule_Windows.zip` (with ANLEITUNG, GUIDE,
   CHANGELOG, CONTRIBUTING) and the Linux source tar or, with `--alpha "Alpha 1"`, `Mule_Quellcode.zip` plus docs,
-  then `gh release create` (alpha: draft, not latest). Refuses without a version tag `v…`, unpushed commit/tag, or an
-  existing release.
-- `packaging/public_export.py TARGET --name … --email …` – exports the current commit without history into a new
-  folder (without developer-only files), scans for private traces and aborts on any hit, makes one commit;
+  then `gh release create` (alpha: draft, not latest). With `--public "Alpha 2"`, run in the public checkout: same
+  files, published as a pre-release with the public release text. Refuses without a version tag `v…`,
+  unpushed commit/tag, or an existing release.
+- **Two repositories.** Mule is developed in a private repository; the public repository `felixbfx/MuleCreate` holds
+  a cleaned copy (without developer-only files, with the public bible, no private traces). Its history is its own:
+  one commit per published version, tagged like the private version.
+- `packaging/public_export.py TARGET --name … --email …` – only for the very first public state: exports the current
+  commit without history into a new folder, scans for private traces and aborts on any hit, makes one commit;
   pushes nothing.
+- `packaging/public_sync.py [--checkout PATH] [--push]` – every later update: puts the cleaned state of the private
+  HEAD into the existing public checkout (default `../MuleCreate`) as one new commit with HEAD's version tag.
+  Refuses if HEAD has no tag, the checkout is not clean, not on `main`, behind `origin`, already has the tag, or the
+  state has private traces; ignored files there (`dist/`) stay. Without `--push` it only commits locally.
+- Publishing a new version: commit and tag in the private repo → `public_sync.py --push` → in the public checkout
+  `<private>/.venv/Scripts/python.exe packaging/release.py --public "Alpha N"`.
 - `packaging/mule.iss` – Inno Setup installer script (`ISCC.exe packaging\mule.iss` → `dist\Mule_Setup.exe`).
   `packaging/mule.ico`, `packaging/mule_main.py` (PyInstaller entry).
 - `packaging/github-build.yml` (build + self-test on Windows/Linux/macOS, manual) and `github-kern-tests.yml` (core

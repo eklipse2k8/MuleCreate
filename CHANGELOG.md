@@ -1,6 +1,6 @@
 # Changelog
 
-## Mule Create Alpha 1 – v0.99.248 (2026-11-16)
+## Mule Create Alpha 1 – v0.99.250 (2026-11-16)
 
 Erste öffentliche Fassung (Open Source, GPL-3.0). Neu gegenüber v0.99.229:
 
@@ -22,6 +22,8 @@ Erste öffentliche Fassung (Open Source, GPL-3.0). Neu gegenüber v0.99.229:
 - Ist Port 8770 belegt (zweite Mule), sagt die Statusleiste jetzt, dass die KI-Anbindung aus ist.
 - Die alte KI-Brief-Prüfung über die Anthropic-API (seit v0.99.78 abgeschaltet) ist ganz entfernt, samt dem Paket
   `anthropic`; Klären läuft über den Chat und MCP.
+- Für Entwickler: `packaging/public_sync.py` überträgt neue Stände als je einen Commit ins öffentliche Repo,
+  `release.py --public` legt dort das Release an.
 - Die Workflow-Bible im öffentlichen Repo enthält Technik- und Werkzeug-Einträge; wie ein Bau abläuft, regelt das
   Arbeitsweise-Paket im Brief. Jede KI ergänzt beim Nutzer dessen eigene Kopie.
 - Bau-Brief: die Hooks nehmen die Programme dieses Rechners (Git Bash auch außerhalb des Standardordners; unter

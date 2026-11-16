@@ -1,5 +1,11 @@
 # Changelog
 
+## Mule Create Alpha 1.5 – v0.99.279 (2026-11-17)
+
+- **Introduction: new picture "Drawing on surfaces"** (now 19 pictures, right after own planes): click a surface to
+  draw on it; a line across it becomes a control line and shapes the surface; paint (S) only colours it. The first
+  start question counts the pictures instead of naming a fixed number.
+
 ## Mule Create Alpha 1.4 – v0.99.275 (2026-11-17)
 
 - **Brief recipes hardened** after an independent review: recipe targets can no longer point outside the brief and

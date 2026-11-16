@@ -167,8 +167,8 @@ def ask_at_first_start(parent):
         return
     box = QMessageBox(parent)
     box.setWindowTitle(tr("Willkommen bei Mule Create"))
-    box.setText(tr("Möchtest du die Einführung in Bildern ansehen? 18 Bilder zu den wichtigsten Funktionen, "
-                   "etwa zwei Minuten.\n\nSpäter jederzeit: Hilfe → Einführung in Bildern."))
+    box.setText(tr("Möchtest du die Einführung in Bildern ansehen? {n} Bilder zu den wichtigsten Funktionen, "
+                   "etwa zwei Minuten.\n\nSpäter jederzeit: Hilfe → Einführung in Bildern.").format(n=len(pictures())))
     yes = box.addButton(tr("Ansehen"), QMessageBox.AcceptRole)
     later = box.addButton(tr("Später"), QMessageBox.RejectRole)
     box.addButton(tr("Nicht mehr fragen"), QMessageBox.DestructiveRole)

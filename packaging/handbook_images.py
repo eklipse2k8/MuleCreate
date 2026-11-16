@@ -330,7 +330,7 @@ def extrude(h, s):
     s.box(QRect(status.left(), status.top(), 700, status.height()), 5, at=QPointF(720, status.top() - 16))
     s.snap("Step 2 · press X, move the mouse", crop)
     h.key(Qt.Key_Escape)
-    s.save("08_extrude", "Extrude (X)", [
+    s.save("09_extrude", "Extrude (X)", [
         (1, "Edit mode (Tab), edge mode (key 2)"),
         (2, "Select the lines – click, Shift adds, L: connected"),
         (3, "Press X, move the mouse: that sets the length"),
@@ -580,6 +580,78 @@ def new_plane(h, s):
            "for example at the handle of the cup – so you can draw details there.")
 
 
+def draw_on_surface(h, s):
+    """Click a surface: it is the target. A line drawn across it becomes a control line (net line) – moving it shapes
+    the surface. Paint (S) on the same surface only colours it."""
+    from sketch_machine import components, network
+    sc = _ground(h, (0, 0.3, 0), 6.0, (0.25, 0.6, 0.76))
+    sc.new_stroke()
+    size = 1.6
+
+    def arc(a, b, lift, n=31):
+        t = np.linspace(0, 1, n)[:, None]
+        p = np.asarray(a, float) * (1 - t) + np.asarray(b, float) * t
+        p[:, 1] += lift * np.sin(np.pi * t[:, 0])
+        return p
+    corners = [[-size, 0, -size], [size, 0, -size], [size, 0, size], [-size, 0, size]]
+    border = []
+    for k, (a, b) in enumerate(zip(corners, corners[1:] + corners[:1])):
+        sc.add_curve(arc(a, b, 0.35 if k % 2 == 0 else 0.0), None)
+        border.append(sc.curves[-1])
+    network.sync(sc)
+    for a, b in zip(border, border[1:] + border[:1]):
+        network.join(sc, a, len(a.points) - 1, b, 0)
+    surf = sc.create_patch(border)
+    sc.sync_lofts()
+    _sync(h)
+    crop = QRect(0, 60, 1060, 780)
+    centre = np.array([0.0, 0.25, 0.0])
+    h.click(h.scrf(centre))
+    h.pump(0.1)
+    h.grab()
+    s.ring(s.view_point(centre), 1, 26, at="r")
+    s.label(s.view_point([size, 0.0, size]), "active surface: tinted, with grid", "r")
+    s.snap("Step 1 · click a surface: you draw on it", crop)
+    h.stroke_world([[x, 0.3, 0.3] for x in np.linspace(-size * 1.1, size * 1.1, 30)])
+    new = h.sc.curves[-1]
+    s.ring(s.view_point(new.points[len(new.points) // 3]), 2, 18, at="t")
+    s.label(s.view_point(new.points[-1]), "new control line, border to border", "r")
+    s.snap("Step 2 · draw a line across it", crop)
+    k = network.knot_at(new, new.points[len(new.points) // 2])
+    components.ComponentGroup(h.sc, [(new, k)], []).translate(np.array([0.0, 0.7, 0.0]))
+    h.sc.sync_lofts()
+    h.edit_mode("point")
+    h.v.point_selection = [("line", h.sc.owner_of(new).id, new.id, k)]
+    _sync(h)
+    s.ring(s.view_point(new.points[k]), 3, 18, at="r")
+    s.label(s.view_point(new.points[-1]), "the surface follows the line", "r")
+    s.snap("Step 3 · move a point of the line", crop)
+    h.v.point_selection = []
+    h.draw_mode()
+    h.w.paint_mode_action.trigger()
+    h.w._use_color((0.62, 0.18, 0.55), remember=True)  # not orange: orange is the selection colour
+    h.v.ws.pen_world = 0.16
+    h.v.set_draw_tool("brush")
+    g = surf.grid()
+    rows = g if g.shape[0] >= g.shape[1] else g.transpose(1, 0, 2)
+    for r in np.linspace(0.3, 0.7, 3):
+        row = rows[int(r * (len(rows) - 1))]
+        h.stroke([h.scrf(p) for p in row[int(0.15 * len(row)):int(0.85 * len(row))]])
+    h.grab()
+    s.box(_action_rect(s, _rail(h), h.w.paint_mode_action), 4, at="r")
+    s.label(s.view_point(new.points[-1]), "paint: colour only, the shape stays", "r")
+    s.snap("Paint mode (S) · colour the surface", crop)
+    h.w.paint_mode_action.trigger()
+    s.save("07_draw_on_surface", "Drawing on surfaces: lines shape, paint colours",
+           [(1, "Click a surface, plane or mesh: it becomes the target (status line: Drawing on …)"),
+            (2, "Pen or brush draws on it; a line from border to border becomes a control line of the surface"),
+            (3, "Move the line or its points (Edit, point mode): the surface follows its lines"),
+            (4, "Paint mode (S): colour lies flat on the surface – look and shading, never the shape"),
+            (None, "Lines build the form, paint decorates it")],
+           "You can draw directly on surfaces and meshes. Lines drawn on a surface become its control lines and "
+           "shape it; paint only colours it.", cols=2)
+
+
 def edit_gizmo(h, s):
     """Edit mode: select an object, T shows the move gizmo."""
     h.load("tests/scenes/teacup.sketch.json")
@@ -598,7 +670,7 @@ def edit_gizmo(h, s):
     s.ring(s.view_point((pts.min(0) + pts.max(0)) / 2), 4, 34, at="r")
     s.snap("", FULL)
     h.v.set_transform_tool(None)
-    s.save("07_edit_gizmo", "Edit mode (Tab): select and transform",
+    s.save("08_edit_gizmo", "Edit mode (Tab): select and transform",
            [(1, "Move (T)"), (2, "Rotate (R)"), (3, "Scale (E) – past the pivot: mirror"),
             (4, "The gizmo sits on the selection: drag an arrow, ring or square"),
             (None, "Click selects, Shift adds, Ctrl removes; Ctrl while dragging snaps"),
@@ -635,7 +707,7 @@ def loft(h, s):
     h.v._changed()
     s.label(s.view_point([1.0, 1.2, 0]), "loft through all three", "r")
     s.snap("Step 2 · Shift+F", CROP)
-    s.save("09_loft", "Loft (Shift+F)",
+    s.save("10_loft", "Loft (Shift+F)",
            [(1, "Edit mode, edge mode: click the cross-sections one after another"),
             (2, "The click order is the order of the loft"),
             (3, "Shift+F: a curved surface through all of them (Ctrl+Shift+F: ring back to the first)"),
@@ -660,7 +732,7 @@ def fill(h, s):
     h.key(Qt.Key_F)
     s.label(s.view_point([0.2, 0, 0.1]), "surface", "r")
     s.snap("Step 2 · F", CROP)
-    s.save("10_fill", "Surface from lines (F)",
+    s.save("11_fill", "Surface from lines (F)",
            [(None, "Edit mode, edge mode: select lines that close an outline (L selects connected lines)"),
             (None, "F builds a curve surface; an outline bent inwards becomes a fill surface"),
             (None, "The surface follows its lines: move the lines, the surface moves along"),
@@ -699,7 +771,7 @@ def insert_point(h, s):
     s.ring(s.view_point(where), 2, 18, at="r")
     s.label(s.view_point(where), "new point, selected", "b")
     s.snap("Step 2 · Ctrl+click on the line", crop)
-    s.save("11_insert_point", "Insert a point (Ctrl+click)",
+    s.save("12_insert_point", "Insert a point (Ctrl+click)",
            [(1, "Edit mode, point mode (key 1): line ends and corners show as points"),
             (2, "Ctrl+click on a line: a new point there, selected – drag it to reshape the line"),
             (None, "Ctrl+click on a point deselects it; hold S and drag: slide points along their line")],
@@ -728,7 +800,7 @@ def delete_point(h, s):
     h.key(Qt.Key_Delete, Qt.ControlModifier)
     s.label(s.view_point([0.0, 0, 0.0]), "straight bridge", "b")
     s.snap("Ctrl+Del · delete", crop)
-    s.save("12_delete_point", "Delete points (point mode)",
+    s.save("13_delete_point", "Delete points (point mode)",
            [(1, "Select a point (point mode, key 1)"),
             (None, "Del dissolves: the point is gone, the line keeps its shape"),
             (None, "Shift+Del removes: the line runs smoothly between the neighbours"),
@@ -756,7 +828,7 @@ def symmetry(h, s):
     out = s.widget_rect(_dock(h, "Outliner"), pad=-2)
     s.box(QRect(out.left(), out.top() + 145, out.width(), 100), 1, at="l")
     s.snap("", FULL)
-    s.save("13_symmetry", "Groups and generators: Symmetry",
+    s.save("14_symmetry", "Groups and generators: Symmetry",
            [(1, "Objects → Symmetry: a generator null; the selected objects go under it"),
             (None, "Draw one half – the other half appears live and updates while you draw"),
             (None, "Alt+G: plain group (null); Objects → Array: copies on a circle, line or path"),
@@ -832,7 +904,7 @@ def note_board(h, s):
     s.ring(s.view_point([2.4, 0, 0.0]), 5, 20, at="t")
     s.snap("Step 4 · octopus: the note also means similar parts", FULL)
     h.v.set_notes_mode(False)
-    s.save("14_note_board", "Notes (N) and the note board",
+    s.save("15_note_board", "Notes (N) and the note board",
            [(1, "Double-click in Notes mode: a note with a leader line to that part"),
             (2, "Camera button at the note: a picture of the view goes onto its board"),
             (3, "Bottom right: the board of the active note – pictures, videos, arrows"),
@@ -888,7 +960,7 @@ def hero_camera(h, s):
     s.label(QPointF(frame.left() + 30, frame.top() + frame.height() * 0.4), "turquoise frame", "r")
     s.snap("Step 2 · ticked: name it – turquoise frame", crop)
     h.v.set_notes_mode(False)
-    s.save("15_hero_camera", "Hero camera",
+    s.save("16_hero_camera", "Hero camera",
            [(1, "Tick “hero camera” at the top right of a screenshot on the board"),
             (2, "Give the camera a name (default Hero 1, Hero 2 …)"),
             (3, "A turquoise frame marks hero pictures"),
@@ -912,7 +984,7 @@ def brief_dialog(h, s):
     s.box(s.widget_rect(dlg.copy_prompt, pad=4, base=dlg), 5, at="l")
     s.snap("", widget=dlg)
     dlg.reject()
-    s.save("16_brief_dialog", "Export Sketch Brief (Ctrl+E)",
+    s.save("17_brief_dialog", "Export Sketch Brief (Ctrl+E)",
            [(1, "The task in one sentence"),
             (2, "Hints that apply only to this export"),
             (3, "Discuss only – nothing gets built"),
@@ -965,7 +1037,7 @@ def review_mark(h, s):
     finally:
         review.reviews_dir, review.AudioWriter = old
         h.v.set_notes_mode(False)
-    s.save("17_review_mark", "Review: talk your feedback",
+    s.save("18_review_mark", "Review: talk your feedback",
            [(1, "While recording, a click sets a numbered marker exactly there"),
             (2, "Mark tool (on at the start) – off: work normally, the recording goes on"),
             (None, "Review → Start Review: voice, camera and pointer are recorded"),
@@ -1014,7 +1086,7 @@ def shots(h, s):
     s.snap("Step 3 · shot note with camera: what happens in between", FULL)
     h.sc.timing.onion = False
     h.v.set_timing_mode(False)
-    s.save("18_shots", "Shots: what happens when",
+    s.save("19_shots", "Shots: what happens when",
            [(1, "Timeline: one row per flipbook layer; a drawing holds until the next one"),
             (2, "Shots panel: shot notes with text and camera positions"),
             (None, "Space+N in Shots: a flipbook layer; draw at any frame, O: onion skin"),
@@ -1025,10 +1097,10 @@ def shots(h, s):
 
 PICTURES = {"01_overview": overview, "02_pen_brush": pen_brush, "03_paint_mode": paint_mode,
             "04_free_mode": free_mode, "05_hold_shape": hold_shape, "06_new_plane": new_plane,
-            "07_edit_gizmo": edit_gizmo, "08_extrude": extrude, "09_loft": loft, "10_fill": fill,
-            "11_insert_point": insert_point, "12_delete_point": delete_point, "13_symmetry": symmetry,
-            "14_note_board": note_board, "15_hero_camera": hero_camera, "16_brief_dialog": brief_dialog,
-            "17_review_mark": review_mark, "18_shots": shots}
+            "07_draw_on_surface": draw_on_surface, "08_edit_gizmo": edit_gizmo, "09_extrude": extrude, "10_loft": loft, "11_fill": fill,
+            "12_insert_point": insert_point, "13_delete_point": delete_point, "14_symmetry": symmetry,
+            "15_note_board": note_board, "16_hero_camera": hero_camera, "17_brief_dialog": brief_dialog,
+            "18_review_mark": review_mark, "19_shots": shots}
 
 
 def main():

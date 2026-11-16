@@ -13,7 +13,7 @@
 
 ![Mule Create: modes, tools, viewport, outliner and status line](docs/handbook/01_overview.png)
 
-**[All releases](https://github.com/felixbfx/MuleCreate/releases)** · **[Introduction in pictures](docs/INTRODUCTION.md)** (18 pictures, two
+**[All releases](https://github.com/felixbfx/MuleCreate/releases)** · **[Introduction in pictures](docs/INTRODUCTION.md)** (19 pictures, two
 minutes) · **[Example scene](https://github.com/felixbfx/MuleCreate/releases/download/v0.99.255/Example_Alpaca_Monowheel.zip)** · Questions about Mule: give [`AI_HANDBOOK.md`](AI_HANDBOOK.md) to your AI and ask it.
 
 Mule Create (short: Mule) is a standalone program for technical sketching in 3D. You draw lines on planes that you
@@ -104,7 +104,7 @@ Review transcripts use [faster-whisper](https://github.com/SYSTRAN/faster-whispe
 
 ## Documentation
 
-- **`docs/INTRODUCTION.md`** – start here: 18 pictures of the main functions to click through
+- **`docs/INTRODUCTION.md`** – start here: 19 pictures of the main functions to click through
   (or open `docs/introduction.html` as a slide show).
 - **`AI_HANDBOOK.md`** – the complete reference, written for AI assistants. If you have a question about Mule, give
   this file to your AI (Claude, ChatGPT, Codex, …) and ask it. It covers every function, shortcut, workflow, the

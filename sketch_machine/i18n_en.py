@@ -1712,8 +1712,8 @@ EN = {
         'Open online',
     'Willkommen bei Mule Create':
         'Welcome to Mule Create',
-    'Möchtest du die Einführung in Bildern ansehen? 18 Bilder zu den wichtigsten Funktionen, etwa zwei Minuten.\n\nSpäter jederzeit: Hilfe → Einführung in Bildern.':
-        'Would you like to see the introduction in pictures? 18 pictures of the main functions, about two minutes.\n\nAny time later: Help → Introduction in Pictures.',
+    'Möchtest du die Einführung in Bildern ansehen? {n} Bilder zu den wichtigsten Funktionen, etwa zwei Minuten.\n\nSpäter jederzeit: Hilfe → Einführung in Bildern.':
+        'Would you like to see the introduction in pictures? {n} pictures of the main functions, about two minutes.\n\nAny time later: Help → Introduction in Pictures.',
     '▶  Einführung in Bildern':
         '▶  Introduction in pictures',
     '&Einführung in Bildern':

@@ -2,7 +2,7 @@
 
 # Mule Create – Introduction
 
-18 pictures of the most important functions, each from the real program. Click through with the links under each picture.
+19 pictures of the most important functions, each from the real program. Click through with the links under each picture.
 
 > Any question about Mule: give the file AI_HANDBOOK.md to your AI (Claude, ChatGPT, Codex …) and ask it – it describes every function, shortcut and workflow.
 
@@ -16,18 +16,19 @@
 4. [Free mode (Q) – drawing without a plane](#4-free-mode-q--drawing-without-a-plane)
 5. [Straight lines and shapes: hold still](#5-straight-lines-and-shapes-hold-still)
 6. [Own planes: Space+N](#6-own-planes-spacen)
-7. [Edit mode (Tab): select and transform](#7-edit-mode-tab-select-and-transform)
-8. [Extrude (X)](#8-extrude-x)
-9. [Loft (Shift+F)](#9-loft-shiftf)
-10. [Surface from lines (F)](#10-surface-from-lines-f)
-11. [Insert a point (Ctrl+click)](#11-insert-a-point-ctrlclick)
-12. [Delete points (point mode)](#12-delete-points-point-mode)
-13. [Groups and generators: Symmetry](#13-groups-and-generators-symmetry)
-14. [Notes (N) and the note board](#14-notes-n-and-the-note-board)
-15. [Hero camera](#15-hero-camera)
-16. [Export Sketch Brief (Ctrl+E)](#16-export-sketch-brief-ctrle)
-17. [Review: talk your feedback](#17-review-talk-your-feedback)
-18. [Shots: what happens when](#18-shots-what-happens-when)
+7. [Drawing on surfaces: lines shape, paint colours](#7-drawing-on-surfaces-lines-shape-paint-colours)
+8. [Edit mode (Tab): select and transform](#8-edit-mode-tab-select-and-transform)
+9. [Extrude (X)](#9-extrude-x)
+10. [Loft (Shift+F)](#10-loft-shiftf)
+11. [Surface from lines (F)](#11-surface-from-lines-f)
+12. [Insert a point (Ctrl+click)](#12-insert-a-point-ctrlclick)
+13. [Delete points (point mode)](#13-delete-points-point-mode)
+14. [Groups and generators: Symmetry](#14-groups-and-generators-symmetry)
+15. [Notes (N) and the note board](#15-notes-n-and-the-note-board)
+16. [Hero camera](#16-hero-camera)
+17. [Export Sketch Brief (Ctrl+E)](#17-export-sketch-brief-ctrle)
+18. [Review: talk your feedback](#18-review-talk-your-feedback)
+19. [Shots: what happens when](#19-shots-what-happens-when)
 
 ## 1. The window
 
@@ -106,13 +107,27 @@ You always draw onto a plane or surface. Space+N creates a new plane exactly whe
 - Draw on it like on paper; wheel or [ ]: move it along its normal
 - X / Y / Z: back to a ground plane; click a plane to make it the target
 
-[← Straight lines and shapes: hold still](#5-straight-lines-and-shapes-hold-still) · [Contents](#contents) · [Edit mode (Tab): select and transform →](#7-edit-mode-tab-select-and-transform)
+[← Straight lines and shapes: hold still](#5-straight-lines-and-shapes-hold-still) · [Contents](#contents) · [Drawing on surfaces: lines shape, paint colours →](#7-drawing-on-surfaces-lines-shape-paint-colours)
 
-## 7. Edit mode (Tab): select and transform
+## 7. Drawing on surfaces: lines shape, paint colours
+
+You can draw directly on surfaces and meshes. Lines drawn on a surface become its control lines and shape it; paint only colours it.
+
+![Drawing on surfaces: lines shape, paint colours](handbook/07_draw_on_surface.png)
+
+- **1** Click a surface, plane or mesh: it becomes the target (status line: Drawing on …)
+- **2** Pen or brush draws on it; a line from border to border becomes a control line of the surface
+- **3** Move the line or its points (Edit, point mode): the surface follows its lines
+- **4** Paint mode (S): colour lies flat on the surface – look and shading, never the shape
+- Lines build the form, paint decorates it
+
+[← Own planes: Space+N](#6-own-planes-spacen) · [Contents](#contents) · [Edit mode (Tab): select and transform →](#8-edit-mode-tab-select-and-transform)
+
+## 8. Edit mode (Tab): select and transform
 
 Tab switches to Edit mode. Select what you want to change, then T, R or E shows the gizmo to move, rotate or scale it.
 
-![Edit mode (Tab): select and transform](handbook/07_edit_gizmo.png)
+![Edit mode (Tab): select and transform](handbook/08_edit_gizmo.png)
 
 - **1** Move (T)
 - **2** Rotate (R)
@@ -121,13 +136,13 @@ Tab switches to Edit mode. Select what you want to change, then T, R or E shows 
 - Click selects, Shift adds, Ctrl removes; Ctrl while dragging snaps
 - Points (1) · edges (2) · surfaces (3) choose what you select
 
-[← Own planes: Space+N](#6-own-planes-spacen) · [Contents](#contents) · [Extrude (X) →](#8-extrude-x)
+[← Drawing on surfaces: lines shape, paint colours](#7-drawing-on-surfaces-lines-shape-paint-colours) · [Contents](#contents) · [Extrude (X) →](#9-extrude-x)
 
-## 8. Extrude (X)
+## 9. Extrude (X)
 
 Extruding pulls a copy of the selected lines away and builds walls between them – the quickest way from a drawn outline to a volume.
 
-![Extrude (X)](handbook/08_extrude.png)
+![Extrude (X)](handbook/09_extrude.png)
 
 - **1** Edit mode (Tab), edge mode (key 2)
 - **2** Select the lines – click, Shift adds, L: connected
@@ -135,77 +150,77 @@ Extruding pulls a copy of the selected lines away and builds walls between them 
 - **4** The copy follows; walls appear between the lines
 - **5** Status line: X/Y/Z axis · N normal · Ctrl snaps · click confirms · Esc cancels
 
-[← Edit mode (Tab): select and transform](#7-edit-mode-tab-select-and-transform) · [Contents](#contents) · [Loft (Shift+F) →](#9-loft-shiftf)
+[← Edit mode (Tab): select and transform](#8-edit-mode-tab-select-and-transform) · [Contents](#contents) · [Loft (Shift+F) →](#10-loft-shiftf)
 
-## 9. Loft (Shift+F)
+## 10. Loft (Shift+F)
 
 A loft is a curved surface through several cross-sections, like Skin in Houdini: draw the sections, select them in order, press Shift+F.
 
-![Loft (Shift+F)](handbook/09_loft.png)
+![Loft (Shift+F)](handbook/10_loft.png)
 
 - **1** Edit mode, edge mode: click the cross-sections one after another
 - **2** The click order is the order of the loft
 - **3** Shift+F: a curved surface through all of them (Ctrl+Shift+F: ring back to the first)
 - Closed sections give a tube, open ones a sheet; the surface follows its lines
 
-[← Extrude (X)](#8-extrude-x) · [Contents](#contents) · [Surface from lines (F) →](#10-surface-from-lines-f)
+[← Extrude (X)](#9-extrude-x) · [Contents](#contents) · [Surface from lines (F) →](#11-surface-from-lines-f)
 
-## 10. Surface from lines (F)
+## 11. Surface from lines (F)
 
 Surfaces always come from lines: select lines that close an outline and press F.
 
-![Surface from lines (F)](handbook/10_fill.png)
+![Surface from lines (F)](handbook/11_fill.png)
 
 - Edit mode, edge mode: select lines that close an outline (L selects connected lines)
 - F builds a curve surface; an outline bent inwards becomes a fill surface
 - The surface follows its lines: move the lines, the surface moves along
 - Alt+F forces a smooth curve surface from curved border lines
 
-[← Loft (Shift+F)](#9-loft-shiftf) · [Contents](#contents) · [Insert a point (Ctrl+click) →](#11-insert-a-point-ctrlclick)
+[← Loft (Shift+F)](#10-loft-shiftf) · [Contents](#contents) · [Insert a point (Ctrl+click) →](#12-insert-a-point-ctrlclick)
 
-## 11. Insert a point (Ctrl+click)
+## 12. Insert a point (Ctrl+click)
 
 Points are where you can grab a line. Ctrl+click on a line adds a point exactly there.
 
-![Insert a point (Ctrl+click)](handbook/11_insert_point.png)
+![Insert a point (Ctrl+click)](handbook/12_insert_point.png)
 
 - **1** Edit mode, point mode (key 1): line ends and corners show as points
 - **2** Ctrl+click on a line: a new point there, selected – drag it to reshape the line
 - Ctrl+click on a point deselects it; hold S and drag: slide points along their line
 
-[← Surface from lines (F)](#10-surface-from-lines-f) · [Contents](#contents) · [Delete points (point mode) →](#12-delete-points-point-mode)
+[← Surface from lines (F)](#11-surface-from-lines-f) · [Contents](#contents) · [Delete points (point mode) →](#13-delete-points-point-mode)
 
-## 12. Delete points (point mode)
+## 13. Delete points (point mode)
 
 Three ways to get rid of a point: dissolve it and keep the shape, remove it and smooth the line, or delete it together with its pieces.
 
-![Delete points (point mode)](handbook/12_delete_point.png)
+![Delete points (point mode)](handbook/13_delete_point.png)
 
 - **1** Select a point (point mode, key 1)
 - Del dissolves: the point is gone, the line keeps its shape
 - Shift+Del removes: the line runs smoothly between the neighbours
 - Ctrl+Del deletes: the pieces go, a straight line bridges the neighbours
 
-[← Insert a point (Ctrl+click)](#11-insert-a-point-ctrlclick) · [Contents](#contents) · [Groups and generators: Symmetry →](#13-groups-and-generators-symmetry)
+[← Insert a point (Ctrl+click)](#12-insert-a-point-ctrlclick) · [Contents](#contents) · [Groups and generators: Symmetry →](#14-groups-and-generators-symmetry)
 
-## 13. Groups and generators: Symmetry
+## 14. Groups and generators: Symmetry
 
 Generators work like in Cinema 4D: put objects under a Symmetry or Array null and Mule shows the copies live.
 
-![Groups and generators: Symmetry](handbook/13_symmetry.png)
+![Groups and generators: Symmetry](handbook/14_symmetry.png)
 
 - **1** Objects → Symmetry: a generator null; the selected objects go under it
 - Draw one half – the other half appears live and updates while you draw
 - Alt+G: plain group (null); Objects → Array: copies on a circle, line or path
 - Alt+C (Convert): turns the generator into real lines
 
-[← Delete points (point mode)](#12-delete-points-point-mode) · [Contents](#contents) · [Notes (N) and the note board →](#14-notes-n-and-the-note-board)
+[← Delete points (point mode)](#13-delete-points-point-mode) · [Contents](#contents) · [Notes (N) and the note board →](#15-notes-n-and-the-note-board)
 
-## 14. Notes (N) and the note board
+## 15. Notes (N) and the note board
 
 Notes are prompts in space: a short heading points at a part, and its board holds everything the AI should know about it. The octopus says which similar parts the same note also means.
 
-![Notes (N) and the note board](handbook/14_note_board.png)
+![Notes (N) and the note board](handbook/15_note_board.png)
 
 - **1** Double-click in Notes mode: a note with a leader line to that part
 - **2** Camera button at the note: a picture of the view goes onto its board
@@ -213,13 +228,13 @@ Notes are prompts in space: a short heading points at a part, and its board hold
 - **4** Type, paste or drop pictures into it; it is what the AI reads about this part
 - **5** Octopus: Shift+drag from the anchor (or right-click → add selection) – the note means these too
 
-[← Groups and generators: Symmetry](#13-groups-and-generators-symmetry) · [Contents](#contents) · [Hero camera →](#15-hero-camera)
+[← Groups and generators: Symmetry](#14-groups-and-generators-symmetry) · [Contents](#contents) · [Hero camera →](#16-hero-camera)
 
-## 15. Hero camera
+## 16. Hero camera
 
 Hero cameras are the views that matter most. Tick a screenshot on a note board as hero camera, and the AI looks through exactly this camera while it builds and reviews.
 
-![Hero camera](handbook/15_hero_camera.png)
+![Hero camera](handbook/16_hero_camera.png)
 
 - **1** Tick “hero camera” at the top right of a screenshot on the board
 - **2** Give the camera a name (default Hero 1, Hero 2 …)
@@ -227,13 +242,13 @@ Hero cameras are the views that matter most. Tick a screenshot on a note board a
 - The brief renders a clean picture and a USD camera from it
 - Without hero cameras the brief uses three standard angles
 
-[← Notes (N) and the note board](#14-notes-n-and-the-note-board) · [Contents](#contents) · [Export Sketch Brief (Ctrl+E) →](#16-export-sketch-brief-ctrle)
+[← Notes (N) and the note board](#15-notes-n-and-the-note-board) · [Contents](#contents) · [Export Sketch Brief (Ctrl+E) →](#17-export-sketch-brief-ctrle)
 
-## 16. Export Sketch Brief (Ctrl+E)
+## 17. Export Sketch Brief (Ctrl+E)
 
 The Sketch Brief is the hand-over to the AI: a folder with pictures, notes, the scene as USD and working rules. The dialog asks only for what the AI cannot read from the scene.
 
-![Export Sketch Brief (Ctrl+E)](handbook/16_brief_dialog.png)
+![Export Sketch Brief (Ctrl+E)](handbook/17_brief_dialog.png)
 
 - **1** The task in one sentence
 - **2** Hints that apply only to this export
@@ -242,13 +257,13 @@ The Sketch Brief is the hand-over to the AI: a folder with pictures, notes, the 
 - **5** Autoprompt: a ready sentence for the AI chat lands on the clipboard
 - Then choose a folder; start Claude Code or Codex in that brief folder
 
-[← Hero camera](#15-hero-camera) · [Contents](#contents) · [Review: talk your feedback →](#17-review-talk-your-feedback)
+[← Hero camera](#16-hero-camera) · [Contents](#contents) · [Review: talk your feedback →](#18-review-talk-your-feedback)
 
-## 17. Review: talk your feedback
+## 18. Review: talk your feedback
 
 Walk through the scene and talk, like in a review session. Mule records your voice and where you looked and pointed; the AI turns it into draft notes.
 
-![Review: talk your feedback](handbook/17_review_mark.png)
+![Review: talk your feedback](handbook/18_review_mark.png)
 
 - **1** While recording, a click sets a numbered marker exactly there
 - **2** Mark tool (on at the start) – off: work normally, the recording goes on
@@ -257,17 +272,17 @@ Walk through the scene and talk, like in a review session. Mule records your voi
 - Paste it into the AI chat yourself (Ctrl+V) – nothing is sent automatically
 - The AI then writes draft notes at the marked parts; you accept them
 
-[← Export Sketch Brief (Ctrl+E)](#16-export-sketch-brief-ctrle) · [Contents](#contents) · [Shots: what happens when →](#18-shots-what-happens-when)
+[← Export Sketch Brief (Ctrl+E)](#17-export-sketch-brief-ctrle) · [Contents](#contents) · [Shots: what happens when →](#19-shots-what-happens-when)
 
-## 18. Shots: what happens when
+## 19. Shots: what happens when
 
 Shots shows timing without animating: drawings per frame on flipbook layers, camera positions and notes about what happens between them.
 
-![Shots: what happens when](handbook/18_shots.png)
+![Shots: what happens when](handbook/19_shots.png)
 
 - **1** Timeline: one row per flipbook layer; a drawing holds until the next one
 - **2** Shots panel: shot notes with text and camera positions
 - Space+N in Shots: a flipbook layer; draw at any frame, O: onion skin
 - Nothing is animated – the notes say what happens in between
 
-[← Review: talk your feedback](#17-review-talk-your-feedback) · [Contents](#contents)
+[← Review: talk your feedback](#18-review-talk-your-feedback) · [Contents](#contents)

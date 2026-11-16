@@ -1,0 +1,3 @@
+*.sh text eol=lf
+*.bat text eol=crlf
+sketch_machine/brief_package/** -text

@@ -1,0 +1,11 @@
+# Exakt die Versionen, mit denen entwickelt und getestet wird (Windows und Linux gleich, Python 3.14).
+# Nicht ohne Test aktualisieren: PySide6 6.12.0 stürzte unter Linux mit Python 3.10 im Viewport ab
+# ("none_dealloc") – ab Python 3.12 ist dieser Fehler harmlos. Ausweichversion bei Problemen: 6.10.
+PySide6-Essentials==6.12.0
+PySide6-Addons==6.12.0  # QtMultimedia: Videos im Notizbrett
+numpy==2.5.3
+moderngl==5.13.0
+glcontext==3.1.0
+trimesh==5.1.1
+usd-core==26.8
+scipy==1.18.1

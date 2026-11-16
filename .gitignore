@@ -1,0 +1,38 @@
+.venv/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+*.egg-info/
+shot.png
+runtime/
+.venv.alt-*/
+
+# Testläufe (Bilder, Ergebnisse, lokale Referenzbilder)
+tests/_out/
+tests/_baseline/
+
+# Kurvennetz-Probelauf: übernommene Kopien von Testdateien (lokal)
+netz_probelauf/
+
+# Paket und Installer (packaging/)
+build/
+dist/
+
+# Private Arbeitsordner und lokale Einstellungen (nicht ins öffentliche Repo)
+.claude/
+.codex/
+.mcp.json
+.mcp.json.*
+Feedback/
+_lokal_vor_sync/
+referenzen/
+praesentation/
+testlauf_*/
+open_source/
+# lose Arbeitsszenen im Hauptordner (Testszenen gehören nach tests/scenes/)
+/*.sketch.json
+
+# Testläufe der Brief-Hooks (bash sketch_machine/brief_package/_claude/tests/run_tests.sh)
+sketch_machine/brief_package/_claude/tests/_runs/
+backups/

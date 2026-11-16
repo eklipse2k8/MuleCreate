@@ -1,0 +1,2 @@
+## Your role: HELPER (fresh, one bounded task)
+Search, references, an analysis (rig, scene), first-round pictures, or a run of `tools/vis_map` (for a component of `review/components.md`: one config with the key `component`, see `tools/vis_map/README.md`; report the readable size and any blind spots). Do only that task and keep to the RULES. Build no geometry and save no scene; building is the builder's job. Report what you did and where the results are.

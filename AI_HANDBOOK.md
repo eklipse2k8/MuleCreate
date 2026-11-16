@@ -1,0 +1,3778 @@
+# Mule Create – AI Handbook
+
+Complete reference for **Mule Create** (short: Mule; internal name Sketch Machine, Python package `sketch_machine`),
+written for AI assistants, not for people reading it front to back. State: Alpha 1, version v0.99.247, November 2026.
+The source of this file is `AI_HANDBOOK.md` in the Mule repository; it ships in the release packages.
+
+## How to use this handbook (for the AI)
+
+- **Purpose.** A user asks you about Mule ("how do I…", "why does…", "can Mule…"), or you work with the user and
+  Mule over MCP, or you rebuild a sketch from a Sketch Brief. Everything Mule can do, every shortcut, every workflow
+  the developer knows of, the brief format and all MCP tools are described here, so you do not have to guess.
+- **Answer in the user's language.** The handbook is English; answer in the language the user writes in.
+- **German UI.** Mule starts in German unless the user switched (View → Sprache / Language, takes effect after a
+  restart). This handbook uses the English UI names. When the user quotes a German name, or runs the German UI, look
+  it up in the appendix "UI glossary German → English" at the end and give the German name back to them.
+  Shortcuts are the same in both languages (German keyboards: Strg = Ctrl, Entf = Del, Umschalt = Shift).
+- **When the handbook says `[unverified]`**, the authors could not confirm that detail in the code; say so when it
+  matters for the answer.
+- **When you have the source code**, the `Code:` lines name the modules that implement a feature. The code is the
+  final authority; this handbook describes the program as of the version above.
+- **What is not here:** removed features. If a user describes something that is not in this handbook, it either
+  does not exist or came after this version – say that instead of inventing a way.
+- **Problems.** Mule is in alpha. If something does not work as described, it may be a bug: help the user collect
+  what chapter 6 lists under "Reporting a problem" and open an issue on GitHub.
+
+## Contents
+
+1. **Basics, concepts and the view** (§Basics): what Mule is, install and start, files and where Mule stores them,
+   the data model, the UI layout and all menus, camera and view, undo.
+2. **Drawing** (§Drawing): pen, brush, eraser, shapes, drawing planes and surfaces, free mode, snapping, colours,
+   import.
+3. **Edit mode, surfaces and objects** (§Edit): selection, gizmo, point and edge tools, building surfaces (fill,
+   curve surface, loft, extrude, curve nets), objects, groups, symmetry, array, outliner, cleanup.
+4. **Notes, note boards, Shots, Review and Recording** (§Notes, §Shots, §Review).
+5. **Sketch Brief, MCP server and working with an AI** (§Brief, §MCP): the brief export and folder, the
+   way-of-working package, review rounds, every MCP tool, other exports, recommended workflows, the workflow bible.
+6. **Troubleshooting, limits and the source code** (§Troubleshooting, §Source code).
+7. **Appendix: UI glossary German → English** (generated from the program's translation table).
+
+## Words used in this handbook
+
+- **Line / stroke**: what you draw with the pen. **Stroke object**: a container of lines (like a layer).
+- **Plane**: flat tracing paper in space (three infinite ground planes X/Y/Z plus your own planes).
+  **Drawing surface**: a curved surface (e.g. a loft) you can draw on.
+- **Surface**: an opaque face built from lines (fill surface, curve surface, loft); it follows its lines.
+- **Curve net**: the connected lines that shape a curve surface; lines are connected where they share a point.
+- **Null / group**: a transform parent (like in Cinema 4D); generators (symmetry, array) are nulls too.
+- **Note**: a heading in space with leader lines to the parts it means; **note board**: the board behind a note
+  (text, pictures, videos, painting, arrows). **Octopus** (German: Notizkrake, Krake): the extra leader lines of a note that say which similar
+  parts it also means.
+- **Hero camera**: a screenshot on a board marked as camera; the AI looks at the build through it.
+- **Sketch Brief (brief)**: the exported folder an AI builds from. **Artist**: the person who sketches.
+- **Way-of-working package**: the rules, roles and hooks the brief export copies into the folder (chapter 5).
+  **Level** (`scout`, `study`, `final`): how far a build round goes, from a quick blockout to finished detail.
+  **Unit**: one part of the build that is planned, built and reviewed on its own. **Gate** / **GATE STATUS**: the
+  hook that enforces the rules in a Claude Code session and reports its state. **Conductor**: the main chat that
+  never builds itself; it plans and hands units to agents in fixed roles (builder, referee, qc, engineer, …).
+- **Hold still**: at the end of a stroke, keep the pointer still for a moment; Mule then makes a straight line or a
+  clean shape. **Color-ID**: an image where each part has its own flat colour, so the AI can tell parts apart.
+
+# 1. Basics, concepts and the view
+
+## What Mule is
+
+**Mule Create** (short: Mule; internal name Sketch Machine, Python package `sketch_machine`) is a standalone program
+for technical sketching in 3D space with lines. The user sketches an object (a vehicle, a building, a prop …),
+annotates it with notes and reference pictures and exports a **Sketch Brief**: a folder with pictures, text, data
+and working rules from which an AI (Claude Code, Codex …) rebuilds the object procedurally in Houdini or Blender.
+Platforms: Windows (tested, packaged) and Linux (from source, hardly tested); macOS is not supported. License
+GPL-3.0; the name "Mule Create" and the logo are excluded from the license.
+
+Internally, settings, the scene format (`"format": "sketch-machine-scene"`) and the MCP server are still called
+"Sketch Machine". Users never need that name except for the registry key and the MCP server name `sketch_machine`.
+
+### Core idea
+- **The lines are the drawing.** Everything the brief treats as design intent is lines (pencil = graphite, brush =
+  color with oil texture) and the surfaces built from them.
+- **Planes are tracing paper.** Ground planes, own planes and drawing surfaces are only aids to draw on: a milky,
+  gridded "transparent paper" in space. Switch them off and you see the raw result.
+- **Surfaces come from lines and follow them.** Fill, loft, curve surface and extrude build surfaces from lines; when
+  the lines move, the surfaces follow (see §Edit).
+- **Notes are prompts.** A note is a short heading in space with leader lines to parts of the drawing and a note board
+  behind it (text, handwriting, pictures, videos, screenshots, arrows). Notes are local prompts for the AI
+  (see §Notes).
+- **The brief is the output.** Mule itself does not model the final object; it produces the brief, and an AI builds
+  from it (see §Brief). While Mule runs, the AI can also look into the open scene over MCP (see §MCP).
+
+### Typical end-to-end workflow
+1. Draw the object on ground planes and own planes (Draw mode, LMB; Space+N for new planes; Q for free drawing).
+   See §Drawing.
+2. Tidy up and build surfaces in Edit mode (Tab): select, transform (T/R/E), fill/loft/extrude, clean up.
+   Group with nulls, mirror with Symmetry, repeat with Array. See §Edit.
+3. Optionally import reference geometry (Ctrl+I, OBJ/USD) and draw on it. See §Drawing / §Edit.
+4. Add notes (N) with note boards: reference pictures with captions, screenshots, hero cameras. See §Notes.
+5. Optionally show timing with flipbook layers and shot cameras (Shots mode, prototype). See §Shots.
+6. Export the Sketch Brief (File → Export Sketch Brief…, Ctrl+E): assignment in one sentence, folder, done. Open
+   that folder in Claude Code or Codex. See §Brief.
+7. Iterate: talk feedback in a review (View → Review) and/or export a review round ("Builds on" in the brief
+   dialog) into the running AI chat. See §Review, §Brief, §MCP.
+
+## Installation and start
+
+### Windows package (recommended)
+- Unzip `Mule_Windows.zip` into a folder of its own and start `Mule\Mule.exe`. No Python, no installer, no admin
+  rights.
+- **SmartScreen:** the program is not signed. On first start Windows shows "Windows protected your PC": click
+  "More info" → "Run anyway" (German Windows: „Weitere Informationen“ → „Trotzdem ausführen“). If company policy
+  forbids it, the user must ask their IT.
+- Third-party licenses: `THIRD_PARTY_NOTICES.md` and the folder `licenses/` next to `Mule.exe`.
+
+### From source (Windows)
+- Python **3.14** (all packages are pinned in `requirements.txt`: PySide6-Essentials/-Addons 6.12.0, numpy,
+  moderngl, glcontext, trimesh, usd-core, scipy).
+- Once: `py -3.14 -m venv .venv`, then `.venv\Scripts\pip install -r requirements.txt`.
+- Start: `.venv\Scripts\python -m sketch_machine`, or double-click `start.bat` (it only starts
+  `.venv\Scripts\pythonw.exe -m sketch_machine`; it does not create the `.venv`).
+- After an update that adds packages, run the `pip install -r requirements.txt` line again.
+
+### From source (Linux)
+- `./start.sh`. On first start it uses [uv](https://docs.astral.sh/uv/) to put a standalone Python 3.14 into the
+  project folder (`runtime/python`) and builds `.venv` from `requirements.txt`. System Python is neither used nor
+  changed; no admin rights. Needs uv and internet once (uv without admin:
+  `curl -LsSf https://astral.sh/uv/install.sh | sh`); afterwards it starts offline, also for other users who can
+  read the folder. An older `.venv` is moved to `.venv.alt-<date>` (deletable). Missing new packages are installed
+  into the existing `.venv` on the next start (internet needed once).
+- Qt error "Could not load the Qt platform plugin xcb": install the system library `libxcb-cursor0`. Under Wayland,
+  if needed: `QT_QPA_PLATFORM=xcb ./start.sh`. Crashes print the exact location in the terminal
+  (`PYTHONFAULTHANDLER` is set).
+- Do not upgrade PySide6 without testing (6.12.0 crashed in the viewport under Linux with Python 3.10; harmless from
+  Python 3.12; fallback version 6.10).
+
+### Requirements and input devices
+- Graphics: **OpenGL 3.3** (NVIDIA or Mesa driver). Without it the viewport shows "OpenGL 3.3 not available" with
+  the error text instead of the scene.
+- Graphics tablet (Wacom): the pen acts like the mouse (tip = LMB, side buttons as mapped in the driver). Pressure
+  changes stroke width (pen, brush) or eraser circle size only if the pressure slider in the left bar is above 0
+  (default 0 = pressure ignored). With several monitors, map the tablet area to one monitor in the driver.
+
+### What happens at start
+1. Startup animation: the Mule logo draws itself in a circle, transparent around it, in front of the desktop. A
+   click or any key skips it; it times out after 8 s; switch it off with View → Startup animation (Ansicht →
+   Startanimation). If the animation file is missing, Mule starts without it.
+2. The main window opens. If Mule was started with a scene file as argument (double-click on a `.mule` file), that
+   scene loads right after the animation.
+3. The MCP server starts on `http://127.0.0.1:8770/mcp` (local only; a second Mule does not start a second server).
+   See §MCP.
+4. Windows only: Mule registers the `.mule` file association for the current user (HKCU, no admin rights) on every
+   start, pointing to the Mule that ran last (installed program or source copy).
+
+Command-line flag `--selftest <name>` exists for the automated tests (throwaway settings); not for users.
+
+Code: `sketch_machine/app.py` (`main`, `MainWindow`), `sketch_machine/startup.py`, `sketch_machine/assoc.py`,
+`sketch_machine/paths.py`, `start.sh`, `start.bat`.
+
+### Language
+- View → Sprache / Language → Deutsch | English (the menu name is the same in both languages). Applies after the
+  next start of Mule, including the in-app manual. A message box says so in both languages.
+- Default language is **German**. The environment variable `MULE_LANG=en` (or `de`) overrides the setting for one
+  run.
+- Not translated: internal names, the file format, and the artist's own notes. `README.md` and `GUIDE.md` are
+  English, `LIESMICH.md` and `ANLEITUNG.md` German.
+- The AI talks to the artist in the UI language (brief and MCP texts follow it).
+
+Code: `sketch_machine/i18n.py`, `sketch_machine/i18n_en.py` (German UI string → English).
+
+## Files and storage locations
+
+### Scene files
+- Extension **`.mule`** (file type "Mule scene"). Content is JSON. The older extension `.sketch.json` (up to
+  v0.99.187) still opens via File → Open… (filter "Mule scene (*.mule *.sketch.json)"); renaming it to `.mule` is
+  enough. Save as… appends `.mule` when no extension is typed.
+- One scene file contains everything except videos and imported geometry:
+  - ground planes and own planes (position, size, hidden state, projected picture, flipbook flag),
+  - nulls/groups and generators (kind, parameters, outliner color, brief binding level),
+  - stroke objects with all lines (points, per-point widths, pencil/brush style and color, corners, curve-net point
+    IDs, hidden state, Shots frame),
+  - surfaces (outline, kind, material, opacity, resolution, helper-surface flag, projected picture, frozen shape,
+    loft/net data),
+  - imported meshes as references (path **relative to the scene file**, USD prim path, transform, parent null),
+  - notes and their boards, the global note ("Project"), Shots data (timing, shot notes, cameras),
+  - all **pictures of the note boards, embedded** (base64, "like PureRef": one file holds all images),
+  - sun position and light steps, note size factor, the brief assignment (`brief_task`) and what was clarified with
+    the AI (`brief_clarified`),
+  - active plane / drawing surface / stroke object, and the viewport layout with every viewport's camera.
+- **Videos** on note boards are copied on save into a folder `videos` next to the scene file (they travel with the
+  scene folder). If copying fails (e.g. disk full), the scene is still saved and the video stays linked.
+- **Imported meshes** are not embedded. If a referenced file is missing on load, Mule warns ("Geometry missing")
+  and lists the files; the mesh stays in the scene marked as missing. USD without `metersPerUnit` counts as meters;
+  Z-up files are rotated to Y-up.
+- Very old scenes with a `<name>.assets` folder for pictures are still read.
+- Alpha: the scene format may change between versions; older scenes are not always supported. The user should copy
+  important scenes first.
+- Window title: `<file name>* – Mule Create` (`*` = unsaved changes; new scenes are "Untitled"). New, Open, Open
+  Recent and closing the window ask "Save changes?" (Save / Discard / Cancel) when there are unsaved changes.
+
+### Automatic backups
+- **On by default.** Every N minutes (File → Settings…, Ctrl+,: "Create backups automatically", "Time between
+  backups", default **10 min**, range 1–240) Mule writes a copy of the scene, but only if something changed since saving or since the
+  last backup. It never writes in the middle of a stroke (waits while a mouse button is held).
+- Location: folder **`backups`** next to the scene file; unsaved scenes go to `Documents/Mule/backups`. File name
+  `<scene>_YYYY-MM-DD_HH-MM-SS.mule` (opens by double-click). The newest **50** per scene are kept, older ones are
+  deleted.
+- A backup does not touch the scene: no save, the scene stays "unsaved", no video copies.
+- Open the folder: File → Open Recent → Open backup folder, or the button in Settings.
+- **Review backups:** before every sent review Mule saves the scene into **`review_backups`** next to the scene file
+  (Settings → Review: "Review backups per scene", default **20**, range 1–500; button "Open Review Backups"). See
+  §Review.
+- File → Open Recent lists the last 10 opened or saved scenes that still exist, plus "Clear list" and "Open backup
+  folder".
+
+### Settings, logs and other user data
+- Settings (all app preferences, window layout, recent files, language …) are stored with Qt `QSettings` under
+  organization/application "SketchMachine": on Windows the registry key `HKCU\Software\SketchMachine\SketchMachine`;
+  on Linux Qt's default config file (normally `~/.config/SketchMachine/SketchMachine.conf`). They include e.g. the
+  language, window and panel layout, chalkboard on/off, color view, Color Compress, pencil/chalk color, point
+  size, surface resolution, material scale, snap steps, pressure per tool, recent colors, outliner column widths,
+  backup options, startup animation, note board pinned.
+- User data folder ("Mule"): Windows `%APPDATA%\Mule`; Linux `$XDG_DATA_HOME/Mule`, i.e. normally
+  `~/.local/share/Mule`. It holds:
+  - `mule.log` – only in the packaged program (it has no console): all output, errors and crashes, **overwritten on
+    every start**. From source, output goes to the terminal instead. Attach `mule.log` to bug reports.
+  - `Aufnahmen` – input recordings (View → Recording; the folder name is German in both languages).
+  - `Reviews` – review recordings and transcripts (see §Review).
+  - `whisper_venv` – the optional speech-recognition environment (2–4 GB, set up from the Review menu; see §Review).
+  - in the packaged program also a writable copy of the workflow bible (`bible/sketch_machine_bible.md`) and the
+    place for the user's own MCP entries (`.mcp.json`, `.codex/config.toml`) that every brief export copies into
+    the brief folder (see §Brief, §MCP).
+
+Code: `sketch_machine/scene.py` (`to_dict`, `save`, `load`), `sketch_machine/backup.py`, `sketch_machine/paths.py`,
+`sketch_machine/assoc.py`, `sketch_machine/recorder.py`, `sketch_machine/review.py`, `sketch_machine/whisper_setup.py`.
+
+## Data model
+
+Units: world units = meters. Y is up. One Mule window holds one scene.
+
+### Scene
+Everything in one `.mule` file (see above). Undo/redo works on snapshots of the whole scene (see "Undo and redo").
+
+### Ground planes
+Three fixed planes through the origin, always present, cannot be deleted or renamed in a useful way:
+- **Ground (XZ)** – key Y (you look at it along the Y axis). Active in a new scene.
+- **Front (XY)** – key Z.
+- **Side (ZY)** – key X.
+
+When a ground plane is the only drawing target, it is drawn on beyond its rectangle (infinite, shown as a fading
+neutral grid). See §Drawing.
+
+### Own planes (helper planes)
+Planes the user creates: Space+N (or right-click → New Plane) makes a plane facing the camera, under the cursor
+(or at the depth of the selected lines). Named "Plane N". Moved along their normal with the mouse wheel, `[` `]`
+or Shift+RMB drag; transformed with the gizmo in Edit; key 4 reactivates the last own plane. They can carry a
+projected picture for tracing (outliner arrow → Load Picture / Project / Lock). In Shots, new planes are flipbook
+layers. Deleting a plane keeps the lines drawn on it. Own planes are listed in the brief as construction aids, not
+as geometry. See §Drawing.
+
+### Drawing surfaces, surfaces and helper surfaces
+- **Surface** (internally `SurfaceObject`): a surface built from lines – kinds fill, extrude, loft and patch (curve
+  surface). It has a display material (Paper, Fabric, Cardboard, Wood, Spray paint), an optional color tint (F in
+  Draw mode), transparency and a mesh resolution (outliner). It follows its lines when they move. Surfaces occlude
+  what lies behind them. See §Edit.
+- **Drawing surface:** whatever you draw on – the active plane, a surface or an imported mesh. Clicking one in Draw
+  mode makes it the drawing target (cool tint, strong outline, clear grid). With Multi (B) several at once. See
+  §Drawing.
+- **Helper surface** (outliner "Helper surface", right-click "Helper surface (for drawing on only)"): a surface
+  turned into a pure projection surface like a helper plane – no material, occludes nothing, shown/hidden together
+  with the drawing aids, listed under Planes in the outliner. It can be frozen (keeps its shape, follows no lines).
+
+### Stroke objects and lines
+- A **stroke object** (outliner category "Strokes") collects lines until a new one is created (Space+B or
+  right-click → New Stroke). New lines go into the active stroke object. Click a line to select and activate its
+  stroke object. Info column: number of lines.
+- A **line** (stroke, internally `Curve`): points with a width per point, style pencil or brush (brush has a color),
+  corners/inserted points ("knots"), and the drawing surface it was drawn on. Paint-mode strokes (S) are flat paint
+  on a surface, not editable lines. Single lines can be hidden (H in Edit, edge mode).
+- Pencil ↔ brush can be converted (right-click in Edit → Convert to brush stroke / Convert to pencil).
+
+### Curve net
+Lines share **points with their own identity** (net points): ends, corners and inserted points. Lines are connected
+where they reference the same point ID – not merely where they happen to touch. Snapping, splitting and fill
+additions create shared points; Cleanup → Merge/Weld connect more. The curve net is what surfaces, lofts and the
+brief's topology are built on. See §Edit.
+
+### Imported meshes
+Reference geometry from `.obj`, `.usd`, `.usda`, `.usdc`, `.usdz` (File → Import geometry…, Ctrl+I). Geometry is
+immutable; only its transform changes. USD is imported like Solaris: one mesh object per mesh prim, a null per group
+prim above it, all under a null named after the file (outliner category "Import"). Invisible prims, guides/proxies
+and empty groups are dropped. You can draw on meshes. Info column: triangle count. Saved as relative path + prim
+path. See §Drawing / §Edit.
+
+### Nulls, groups and generators
+Hierarchy like Cinema 4D. Menu Objects (Objekte):
+- **Null** (Alt+G, "Null (group selection)"): an axis cross that groups objects; everything under it moves with it.
+  Outliner category "Groups"; a null can get a color stripe (outliner right-click → Color) inherited by everything
+  below. Shift+G ungroups.
+- **Symmetry** ("Symmetry (mirror selection)") and **Array** ("Array (multiply selection)") are nulls that act as
+  generators: their content exists once, the mirror image or copies are instances until **Convert (real geometry)**
+  (Alt+C). Their settings appear as the first row under them in the outliner. See §Edit.
+
+### Notes and note boards
+- **Note:** a heading in space (always upright), with leader lines (anchors) to lines or fixed points; an anchor can
+  have "octopus" arms to further parts of the same kind. Created in Notes mode (N) by double-click. See §Notes.
+- **Note board:** behind every note – text, handwriting, pictures (with captions), videos (without sound),
+  screenshots of the scene, arrows. Shown in the Note panel (Local = the clicked note, Global = the scene's global
+  note "Project"). Pictures are embedded in the scene file.
+- **Review drafts:** dashed notes the AI creates from a review recording until the user accepts them (✓ Accept). See
+  §Review.
+
+### Hero cameras
+A screenshot on a note board with the "hero camera" check box ticked (top right of the picture, with a name field
+"Hero N"). Hero pictures get a turquoise frame. In the brief each becomes a clean render from exactly that camera, a
+USD camera and a color-ID image. See §Notes and §Brief.
+
+### Shots data (prototype)
+Flipbook layers (planes with drawings per frame), shot notes with camera positions, a timeline. Only in Shots mode.
+See §Shots.
+
+### Outliner
+Dock panel on the right ("Outliner", with a search field "Search …" that filters by name and keeps the parents).
+Selection is synchronized both ways with the viewport.
+- **Categories** (bold top rows): Groups, Planes, Import, Surfaces, Strokes. What lies in a null is shown under the
+  null, not in its category; a surface stands under the stroke object that owns it; helper surfaces stand under
+  Planes. Sorted by name with numbers as numbers ("Part 2" before "Part 10").
+- **Columns:** Name · Material (surfaces: click for the display material) · Brief (binding level for the brief:
+  Fixed – don't touch / Authoritative – refining allowed / Basis – execution open / Orientation; inherited levels
+  shown with "↳"; empty = as in the brief assignment; see §Brief) · Info (null kind and child count, line count,
+  triangle count, "· active", "⚠" when a surface uses border lines of other stroke objects) · eye (show/hide).
+  Column widths are draggable and saved per computer.
+- **Interaction:** click selects (Ctrl/Shift + click to extend), double-click renames, drag onto a null to parent,
+  drag onto a category or into empty space to unparent. The arrow in front of a surface opens its options (helper
+  surface, transparency, resolution, picture). Shift+click on an arrow expands/collapses everything below. Hidden
+  objects are greyed. Copy/paste while the mouse is over the outliner copies whole objects.
+- **Right-click menu** (on objects): Duplicate (with everything below) Ctrl+D, Delete (with everything below) Del,
+  Null / Symmetry / Array, Color, Ungroup Shift+G, Convert (real geometry) Alt+C, To top level, Expand/Collapse with
+  everything below, Expand all, Collapse all.
+
+Code: `sketch_machine/scene.py` (classes `Plane`, `Curve`, `StrokeObject`, `SurfaceObject` and subclasses,
+`MeshObject`, `NullObject`, `Note`), `sketch_machine/network.py` (curve net), `sketch_machine/generators.py`,
+`sketch_machine/outliner.py`, `sketch_machine/workspace.py` (state shared by all viewports).
+
+## User interface layout
+
+### Modes
+Four basic modes, shown as text buttons at the top left (Draw | Edit | Notes | Shots). Each mode has its own left
+bar and its own keys.
+- **Draw** (Zeichnen): pen, brush, eraser, paint mode; drawing targets. A = pen (A again: brush), D = eraser – both
+  always return to Draw from Edit or Notes. Esc in Edit returns to Draw. See §Drawing.
+- **Edit**: select points/edges/surfaces (1/2/3), transform, build surfaces, clean up. Tab toggles Draw ↔ Edit (as
+  in Blender); T/R/E and Alt+A also switch to Edit. See §Edit.
+- **Notes** (Notizen): N toggles. Notes, boards, octopus, review. See §Notes, §Review.
+- **Shots** (prototype): only via the Shots button (no key). Flipbook layers, shot notes, cameras, timeline. In
+  Shots only its own keys plus A/D work; leave via the Draw/Edit/Notes buttons. See §Shots.
+
+### Top bar (left part)
+- Mode buttons Draw, Edit, Notes, Shots.
+- **Cleanup** (only in Edit): menu with "Global – apply to the whole scene", a "Snap distance" slider (1 mm – 1 m,
+  default 2 cm, saved), and: Clean up: weld + merge · Weld (close gaps) · Connect ends and crossings · Merge (split
+  lines back into one) · Straighten nearly straight pieces · Dissolve inserted points · Remove duplicate lines ·
+  Delete tiny lines and points · Delete empty stroke objects · Reattach surfaces to their lines. The button glows
+  while Global is on. See §Edit.
+- **Review** (visible in Notes mode and while a review runs or is being sent; red with running time while
+  recording): menu Start Review · Mark · Undo last mark · Microphone ▸ · Set Up Transcription … · last review info ·
+  Open Reviews Folder. Next to it **Mark** (only during a review) and **Send Review** (changes to "Transcribing …",
+  "Claude is working …", "Ready – tell Claude"). See §Review.
+
+### Top bar (right part, global display switches)
+In this order:
+- **Show/hide notes** (note icon).
+- **Show/hide drawing aids** (planes icon): own planes, drawing aids and helper surfaces – and the ground planes. Off
+  = the raw result; you still draw on the active plane.
+- **X-Ray** – right-click: X-Ray opacity slider and Material scale slider.
+- **Wireframe** (sphere icon) – right-click: edge opacity.
+- **Show/Hide** (layers icon): check boxes Lines, Color lines, Paint, Surfaces; the button lights up while something
+  is hidden.
+- **Resolution of all surfaces** (mesh icon + slider, ×0.25 … ×4, applied on release, saved per computer): viewport
+  quality only, multiplies each surface's own resolution slider; the export has its own setting.
+- **Color view** (palette icon): off = everything in black and white.
+- **Chalkboard** (moon icon): dark viewport.
+
+### Left bar (tools, depends on mode)
+- **Draw:** Pen, Brush, Eraser · Paint mode (S), Free (Q), Multi (B), Magnet · Smooth slider (pen/brush only) ·
+  current color (click: color wheel with the last 8 colors) · pressure sensitivity slider for the current tool.
+- **Edit:** Move (T), Rotate (R), Scale (E) · Axis mode (Alt+A), Local, Align from view (Space+M cycles world /
+  local / view) · Select points (1), edges (2), surfaces (3) · in point and edge mode also Drag points: automatic /
+  always soft / always hard. The color field stays visible.
+- **Notes:** no tools in the left bar.
+- **Shots:** the Draw tools.
+See §Drawing and §Edit for each tool.
+
+### Inside the viewport
+- **Top left:** view name (Persp, Top, Front, Right, … or "Ortho"). With several viewports the current one has a
+  frame; an **X** at the top right of each viewport closes it (only when more than one).
+- **Top right:** the **axis gizmo** (see Camera and view).
+- **Right edge below the gizmo:** **light** button (light mode on/off) and **sun** button (edit the sun; sky disc
+  appears at the bottom right). Right-click on either: light steps.
+- **Bottom centre (main viewport only): status icons** – the active tool first (highlighted), then the switches
+  that are on. Draw: pen/brush/eraser + paint mode, Free, Multi, Magnet. Edit: value tool (hardness/smooth) or
+  gizmo tool, then the selection mode (point/edge/surface), then axis mode. Notes: the note icon.
+- **Free mode** shows a sea-green frame around the viewport while on.
+- **Right-click menu** (in the viewport): in Edit first "Selection to own object" (Ctrl+G) and Convert to brush
+  stroke / Convert to pencil; then New Plane (Space+N), New Stroke (Space+B), Loft through cross-sections (Shift+F),
+  Helper surface (for drawing on only), Delete all lines, Pen size in world units, Extruding creates surfaces, Free
+  mode: upright plane, Snap steps …, Smooth maximum …, Maximum stroke width …, Axis mode (Alt+A), Reset axis,
+  Delete selection (Del), Focus (Space+G, if something is selected), Split left/right, Split top/bottom,
+  Maximize / Show all viewports, Close viewport.
+- The **status bar** at the bottom of the window shows hints and messages (saved, backup written, imported N
+  triangles …); a red recording indicator appears there while View → Recording runs.
+
+### Panels (docks)
+- **Outliner** – right, always present.
+- **Note** – under the outliner, visible in Notes mode (or always, when pinned with 📌 in the panel or View → Note
+  Board in Every Mode). Scope buttons Local / Global. Can be undocked (e.g. on a second monitor).
+- **Shots** panel (right) and **Timeline** (bottom) – only in Shots mode.
+- Panels can be undocked, moved and closed; their layout is saved on exit.
+- **View → Reset workspace** (Ansicht → Arbeitsbereich zurücksetzen): outliner, Note, Shots, Timeline and the
+  toolbars docked back at their factory place, even if a panel was undocked or closed. The outliner is shown; Note,
+  Shots and Timeline then appear by mode as usual.
+
+### Menus (complete)
+German names in parentheses. Shortcuts as the program shows them.
+- **File (Datei):** New (Ctrl+N) · Open… (Ctrl+O) · Open Recent ▸ (recent scenes, Clear list, Open backup folder) ·
+  Save (Ctrl+S) · Save as… (Ctrl+Shift+S) · Import geometry… (Ctrl+I) · Export Sketch Brief… (Ctrl+E) ·
+  Export ▸ (Exportieren) Scene as USD… (Ctrl+Shift+E), Curves… · Settings… (Ctrl+,) (Einstellungen: backups,
+  review backups).
+- **Edit (Bearbeiten):** Copy (Ctrl+C) · Paste (Ctrl+V) · Duplicate (Ctrl+D) · Repeat duplicate (same offset)
+  (Ctrl+Shift+D) · Selection to new object (Ctrl+G) · Round corners (points or corners of edges) (Ctrl+B) · Ring
+  loft (last cross-section back to the first) (Ctrl+Shift+F). Over the outliner, Copy/Paste/Duplicate act on whole
+  objects; otherwise on the selection in the viewport. Undo/redo are not in this menu (keys only). See §Edit.
+- **Objects (Objekte):** Null (group selection) Alt+G · Symmetry (mirror selection) · Array (multiply selection) ·
+  Ungroup Shift+G · Convert (real geometry) Alt+C. The keys work in the viewport, not as menu shortcuts. See §Edit.
+- **View (Ansicht):** Chalkboard · Show/hide notes · Show/hide drawing aids · X-Ray · Wireframe · Light steps … ·
+  Startup animation (Startanimation) · Sprache / Language ▸ Deutsch, English · Pencil and Chalk line colors (two
+  swatches, ↺ = default colors) · Point size slider (25–300 %, size of points in Edit) · Color Compress slider ·
+  Note Board in Every Mode (Notizbrett in jedem Modus) · Reset workspace (Arbeitsbereich zurücksetzen) ·
+  Recording ▸ (Aufnahme) Start Recording, Also Start OBS, Open Recordings Folder · Review ▸ Start Review, Mark, Undo
+  last mark (Ctrl+Z while marking), Microphone ▸, Open Reviews Folder. See §Review for Review.
+- **Help (Hilfe):** Manual (Handbuch) F1.
+
+**Recording** (View → Recording → Start Recording): logs every input with timestamp and processing time to the
+`Aufnahmen` folder, for analysing one's own work; "Also Start OBS" starts/stops an OBS recording in sync (needs OBS
+WebSocket). Not the same as a review (no voice, no AI).
+
+### In-app manual
+Help → Manual or **F1**: a separate, non-modal window next to the drawing with tabs Start, Draw, Edit, Surfaces,
+Notes, Shots, View, Keys. It opens at the tab of the current mode. Language follows the UI language.
+
+Code: `sketch_machine/app.py` (`_build_menu`, `_build_toolbar`, `_build_view_menu`, `_sync_toggles`,
+`reset_workspace`), `sketch_machine/viewport.py` (`_context_menu`, `keyPressEvent`), `sketch_machine/vp/overlay.py`
+(axis gizmo, light buttons, status icons), `sketch_machine/manual.py`, `sketch_machine/manual_en.py`,
+`sketch_machine/ui.py`.
+
+## Camera and view
+
+### Navigation
+- **Orbit / pan / zoom:** hold Alt **or** Space, then LMB drag (orbit) / MMB drag (pan) / RMB drag (dolly/zoom).
+  Orbit turns around the point under the cursor where you start the drag. Works in every mode, also with the eraser.
+- **The mouse wheel does not zoom.** It moves the active plane along its normal in round steps (see §Drawing).
+  Ctrl+wheel changes pen size; in Edit edge mode Ctrl+wheel scales the width of the selected lines.
+- **Focus:** Space+G flies to the selection (planes: face-on; nulls: with everything below; otherwise the selected
+  object), or to the active drawing surface if nothing is selected. Also right-click → Focus.
+- **Home:** Space+H flies back to the default view of the origin (perspective).
+- Camera moves are animated flights.
+
+### Views and axis gizmo
+- **Space+1 / 2 / 3 / 4** (as in Houdini): Perspective / Top / Front / Right. Axis views are orthographic; orbiting
+  from an axis view returns to perspective; Space+1 restores the free view from before the last axis view.
+- **Axis gizmo** (top right): six bubbles, labelled X/Y/Z for the positive axes and unlabelled for the negative
+  ones. Click a bubble = view along that axis (orthographic); drag in the gizmo = orbit.
+- Switching to an axis view while a ground plane is the drawing target makes the ground plane that faces the view
+  active (message "Draws on: …"); own planes and surfaces stay active.
+- Inside a Shots camera there are no axis views (Esc leaves the camera first). See §Shots.
+
+### Several viewports
+- Right-click → **Split left/right** or **Split top/bottom**; **Close viewport** (or the X at the top right of a
+  viewport). Every viewport has its own camera; scene, selection and tool settings are shared. Keys act in the
+  viewport under the mouse; menus, toolbar and outliner act in the last used viewport.
+- **Space+F**: maximize the viewport under the mouse / show all again (also right-click → Maximize / Show all
+  viewports).
+- Layout and all cameras are saved in the scene file.
+
+### Light and dark viewport, colors
+- **Chalkboard** (moon icon or View → Chalkboard): dark viewport with chalk-colored lines; off = drawing paper with
+  pencil lines. Surfaces look the same in both. Saved as a setting.
+- **Pencil / chalk color:** View menu, two swatches (↺ resets). Saved.
+- **Color view** (palette icon): off shows everything in black and white. Saved.
+- **Color Compress** (View → Color Compress slider, display only, saved): makes grey tones (brush, surface tints)
+  readable against the background – on the chalkboard the darkest tone is lifted, on paper the lightest is
+  lowered; the order of tones stays. For colors only brightness is adjusted.
+- **Point size** (View menu, 25–300 %): size of points in Edit.
+
+### X-Ray, wireframe, occlusion
+- Normally surfaces and meshes occlude by their position in space: lines that belong to a surface (drawn on it,
+  outline, cross-section, border) stay visible from both sides; everything else behind is hidden exactly up to the
+  outline. Drawing aids occlude nothing (on a surface only a light 20 % glaze of the active plane).
+- **X-Ray** (icon): everything semi-transparent; front layer at the X-Ray opacity (default 60 %, right-click on the
+  icon), hidden parts softly at 40 % of that. Imported meshes show every layer (denser where several overlap). In
+  X-Ray, rectangle selection also catches hidden parts (see §Edit).
+- **Wireframe** (sphere icon, also View → Wireframe): in X-Ray adds the edges of imported meshes, including inner
+  ones (overlay like Blender); without X-Ray opaque meshes show no edges. USD shows the file's polygon edges, OBJ the
+  triangle edges without diagonals of flat faces. Edge opacity: right-click (default 25 %).
+- **Material scale** (right-click on the X-Ray icon): grain of the surface materials, finer ↔ coarser, display only,
+  saved.
+
+### Light mode
+- Light button below the axis gizmo: one invisible sun, display only (colors stay as they are). Faces toward the sun
+  are bright and sun-colored, faces away up to 50 % darker and slightly sky-blue, plus 25 % sky light. Surfaces,
+  lines and meshes cast and receive live shadows (45 % darker). Lines stay flat with a subtle light edge on the
+  sun side. Light color follows sun elevation (white above ~17°, golden to reddish below).
+- Sun button: sky disc at the bottom right – centre = straight overhead, rim = horizon; drag to place the sun.
+- **Light steps** (cel shading): right-click on the light or sun button, or View → Light steps …: slider from 3
+  steps (left) over 10 (middle) to smooth (right). Fewer steps also smooth small ripples of net surfaces.
+- Sun position and light steps are saved **with the scene**; light on/off is not part of the scene. See §Brief for
+  how the brief renders use light.
+
+### Showing and hiding
+- **Drawing aids** (planes icon or View → Show/hide drawing aids): own planes, drawing surfaces' aid display, helper
+  surfaces and the ground planes. Off = raw result. Display only; you still draw on the active plane.
+- **Show/Hide categories** (layers icon): Lines (pencil), Color lines (brush), Paint, Surfaces – each separately,
+  display only. Hidden categories cannot be selected (click, rectangle, double-click, L), nothing snaps to them
+  (also no starting point in Free mode) and the eraser leaves them alone.
+- **Notes** (note icon or View → Show/hide notes).
+- **Hide / isolate objects** (like Blender), in Draw and Edit (not in Notes): **H** hides the selection (objects; in
+  Edit also single lines), **Shift+H** isolates (hides everything else; a null keeps everything below it, a child
+  keeps its nulls), **Alt+H** shows everything again. The eye column in the outliner does the same per object (a
+  null's eye applies to everything below it). Hidden things are not selectable, do not snap and are not erased; a
+  hidden surface hides its paint too. Saved with the scene; one undo step. Ground planes cannot be hidden with H.
+- **Mesh transparency:** each surface has a Transparency slider in its outliner options (one undo step per drag).
+  For imported meshes there is no transparency control in the current UI; use X-Ray (with opacity) or Wireframe
+  with X-Ray instead.
+- **Hidden lines:** with drawing aids off, lines are shown truthfully wherever they are; surfaces (not drawing aids)
+  still occlude lines behind them unless X-Ray is on.
+
+Code: `sketch_machine/vp/navigation.py` (focus, home, axis views), `sketch_machine/camera.py`,
+`sketch_machine/views.py` (split/maximize/layout), `sketch_machine/vp/overlay.py`, `sketch_machine/vp/visibility.py`
+(H, Shift+H, Alt+H), `sketch_machine/light.py`, `sketch_machine/renderer.py`, `sketch_machine/theme.py`.
+
+## Undo and redo
+
+- **Ctrl+Z** undo, **Ctrl+Shift+Z** or **Ctrl+Y** redo (keys in the viewport; not in the Edit menu).
+- Every scene-changing operation is one step (a snapshot of the whole scene). Up to **150** such steps are kept.
+- **Selection changes are steps of their own** (light, no scene copy) and do **not** count against the 150; undoing
+  an operation also restores the selection from before it.
+- Continuous gestures are merged into one step: moving a plane with the wheel or `[` `]`, dragging a surface's
+  transparency slider, scaling line widths with Ctrl+wheel (within about a second), a gizmo drag.
+- Also undoable: hide/isolate/show, coloring surfaces (F), hero-camera tick, captions, notes, Shots data, accepting
+  review drafts (and Ctrl+Z after a review import takes all its drafts back at once). In Draw mode, Ctrl+Z after
+  clicking into empty space brings back the cleared Multi set.
+- Not undo steps: display switches (X-Ray, chalkboard, drawing aids, layers, light on/off, resolution slider),
+  app settings, and the brief assignment stored in the scene (`brief_task`, `brief_clarified`).
+- During a review with Mark on, Ctrl+Z removes the last marker instead (see §Review).
+
+Code: `sketch_machine/scene.py` (`checkpoint`, `checkpoint_selection`, `undo`, `redo`, `UNDO_LIMIT`).
+
+## Keys used everywhere (summary)
+- A / D – Draw (pen↔brush / eraser) · Tab – Draw ↔ Edit · N – Notes · Esc – back to Draw from Edit · F1 – manual.
+- Alt or Space + LMB / MMB / RMB – orbit / pan / zoom · Space+1…4 – Persp/Top/Front/Right · Space+G – focus ·
+  Space+H – home · Space+F – maximize viewport.
+- Ctrl+S save · Ctrl+Shift+S save as · Ctrl+O open · Ctrl+N new · Ctrl+I import · Ctrl+E brief · Ctrl+Shift+E USD ·
+  Ctrl+, settings.
+- Ctrl+Z / Ctrl+Shift+Z (Ctrl+Y) – undo / redo · H / Shift+H / Alt+H – hide / isolate / show all.
+- Draw-specific keys: see §Drawing; Edit-specific: see §Edit; Notes: see §Notes; Shots: see §Shots.
+
+# 2. Drawing (Draw mode)
+
+Draw mode is the default state of Mule. It puts lines and paint into the scene. Edit mode (Tab) selects and changes
+them; Notes mode (N) and Shots/Timing are covered in their own sections. `Esc` always returns to Draw mode, and so do
+`A` and `D` from Edit or Notes mode.
+
+Mule's basic model: **the drawing is the lines.** Planes, surfaces and imported meshes are drawing targets ("tracing
+paper"). You always draw onto a target. The exception is Free mode, which draws between existing things in space.
+
+Code: `sketch_machine/viewport.py` (mouse/key handling, stroke finish), `sketch_machine/vp/drawing.py` (pen width,
+smoothing, pressure, shapes, Multi), `sketch_machine/workspace.py` (defaults of all tool settings),
+`sketch_machine/app.py` (left tool bar).
+
+## Tools and the left bar
+
+### Left bar in Draw mode
+From top to bottom:
+- **Tools:** Pen, Brush, Eraser.
+- **Switches** that change how the tools behave: Paint mode, Free, Multi, Magnet.
+- **Tool options:** the Smooth slider (pen and brush only), the current colour swatch (always visible, in every
+  mode except Notes) and the Pressure sensitivity slider. The pressure slider has a separate value for each tool.
+- Small icons at the bottom of the main viewport show what is in effect: the highlighted tool plus the switches that
+  are on (Paint mode, Free, Multi, Magnet).
+
+The **right-click menu in the viewport** holds the drawing settings that are not in the bar:
+- New Plane (Space+N)
+- New Stroke (Space+B)
+- Pen size in world units (check box)
+- Free mode: upright plane (instead of facing the camera)
+- Snap steps …
+- Smooth maximum …
+- Maximum stroke width …
+- Delete all lines
+
+Other entries in that menu (Loft, Extruding creates surfaces, Axis mode, Split …) belong to the Edit, Surfaces and
+View sections.
+
+Code: `sketch_machine/app.py` (rail, `_sync_toolbar`), `Viewport._context_menu` in `sketch_machine/viewport.py`.
+
+### Pen
+- **What:** the default tool. It draws graphite pencil lines, which show as chalk on the dark Chalkboard viewport.
+  Pen lines are full lines: you can select them, they snap and weld, and they can be filled, lofted and extruded.
+  Pencil lines are meant for construction. Colour never applies to them.
+- **How:** press `A`. In Draw mode, `A` toggles between pen and brush. From the eraser, Edit or Notes mode, `A` brings
+  back whichever of pen or brush you used last.
+- Each pen line belongs to a stroke object (see §New stroke objects) and remembers the surface it was drawn on.
+
+### Brush
+- **What:** draws exactly like the pen: same width, smoothing, snapping, pressure and the same line type. The
+  difference is the look: the line uses the current colour with an oil-brush texture (bristle grooves, frayed edges).
+  Brush lines are full lines too, not paint.
+- **How:** `A` while the pen is active, or the brush icon.
+- **Recolour later (Edit):** select the lines, pick a colour and click **Apply** under the colour wheel. Only brush
+  lines change colour; pencil lines stay as they are.
+- **Convert:** in Edit, right-click → **Convert to brush stroke (current color)** or **Convert to pencil**. Shape,
+  points, connections and width are kept.
+
+### Eraser
+- **What:** cuts lines and paint where you drag. A partly erased line splits into the remaining pieces. Drawing
+  surfaces, planes and meshes are never erased.
+- **How:** press `D` or click the eraser icon, then drag with LMB. `A` returns to the pen or brush, `Tab` goes to Edit.
+  `Alt` stays camera navigation.
+- **Modifiers:**
+  - Plain drag erases lines and paint.
+  - `Ctrl` erases lines only and leaves paint alone. You can switch this on or off in the middle of a drag.
+  - `Ctrl+Shift` held when you start the drag deletes every touched line completely.
+- **Size:** `Ctrl`+wheel or `Ctrl`+RMB drag. Range 4–400 px, default 24 px. The size is in screen pixels.
+- **Only visible lines are erased.** Lines behind meshes or surfaces are spared unless X-Ray is on.
+- **How far it erases (depth):** the eraser does not cut through the whole space. Each step finds the frontmost thing
+  under the eraser circle: a line, paint, a surface or a mesh. Only lines inside a sphere around that point are erased.
+  The sphere has the circle's size at that depth, and between two steps the connection of both spheres counts. If
+  nothing is under the circle, the last depth stays in effect, so short gaps are bridged. Planes do not occlude, but
+  paint lying on a plane counts as a hit.
+- **Hold `P`** to erase through everything, with no depth limit.
+- Hidden objects and hidden layers (lines, color lines, paint) are not erased.
+- One whole erase drag is one undo step.
+
+Code: `sketch_machine/vp/eraser.py` (`_erase`, `_erase_reach`, `_erase_occlusion`).
+
+### Paint mode
+- **What:** pen and brush lay down paint instead of lines. Paint strokes are "dead":
+  - They lie flat on the surface. Seen at a grazing angle they get narrower, and their round ends are flat discs.
+  - They cannot be selected or edited and take part in nothing: no snapping, welding, filling or lofting.
+- **How:** press `S` in Draw mode, or use the Paint mode button in the left bar. `S` again turns it off. If the eraser
+  is active when you turn paint mode on, the last pen or brush comes back.
+- **Behaviour:**
+  - Paint sticks to its surface and deforms with lofts and fill surfaces. The eraser cuts it.
+  - Overpainting is clean: the newest stroke is on top, in a fixed paint order.
+  - Double-clicking a surface or plane in Edit selects the paint on it as well.
+  - Free mode always creates real lines, even while paint mode is on.
+- **On imported meshes:** paint lies flat on the mesh surface, facing the side it was painted from. It is lifted off
+  the surface by 30 % of its stroke width so it does not vanish into the mesh.
+- In the Sketch Brief, paint is marked as paint and listed in order (see §Brief). In Shots/Timing, pen and brush
+  always paint (see §Timing).
+- Gotcha: in Edit mode, `S` does something else (hold `S` to slide points).
+
+Code: `sketch_machine/vp/visibility.py` (`set_paint_mode`), `_painting` in `sketch_machine/vp/display_lists.py`, paint
+handling in `Viewport.mouseReleaseEvent`.
+
+### Smooth drawing
+- **What:** a "lazy string". The pen tip hangs on a string behind the cursor and only moves once the cursor is farther
+  away than the string radius, which gives calm, flowing lines.
+- **How:** use the **Smooth** slider in the left bar (0 = off, the default). At 100 %, the radius equals
+  "Smooth maximum" pen radii. The default is 8; change it with right-click → **Smooth maximum …**, which is saved.
+  The radius is relative to the pen size. In world-unit mode it is measured at the depth of the tip.
+- **Gotchas:**
+  - On release, the stroke ends at the pen tip, not at the cursor.
+  - Snapping at the end is checked at the tip. The end-connection rule also uses the place under the cursor as a hint.
+
+Code: `_smooth_radius`, `_pull_tip`, `smooth_dialog` (`sketch_machine/vp/drawing.py`, `sketch_machine/viewport.py`).
+
+### Pen size and stroke width
+- **Change the pen size:** `Ctrl`+wheel (×1.15 per notch) or `Ctrl`+RMB drag. A circle shows the size for about
+  1 s, at the depth of the surface under the cursor.
+- **Two size modes,** toggled with right-click → **Pen size in world units**:
+  - **World units** (default, on): a fixed width in metres. Default 0.03 (3 cm). Minimum 0.0005, maximum is the
+    "Maximum stroke width".
+  - **Pixels** (off): the stroke looks the given number of pixels wide at the moment you draw it (1–80 px, default
+    4 px). After that it behaves like a 3D object with a fixed world width.
+- **Maximum stroke width:** right-click → **Maximum stroke width …**. Default 50 m, up to 5000 m. It caps both the pen
+  size and later width scaling. Lowering it below the current pen size shrinks the pen. The value is saved.
+- **Scale existing widths afterwards.** Ratios along each line are kept, and scrolling within one second is one undo
+  step:
+  - In Draw mode, `Ctrl+Shift`+wheel or `Ctrl+Shift`+RMB drag scales **all lines in the scene**.
+  - In Edit mode (edge mode), `Ctrl`+wheel or `Ctrl`+RMB drag scales the selected lines and sub-edges.
+- The status line shows the running factor, for example "Line width × 1.21 – 14 lines".
+
+Code: `_scale_pen`, `_widths_for`, `_width_targets`, `_scale_widths` in `sketch_machine/vp/drawing.py`; defaults in
+`sketch_machine/workspace.py`.
+
+### Pressure sensitivity and tablet taps
+- **Pressure:** set it with the slider in the left bar (pen icon with a swelling stroke). Each tool has its own value,
+  saved per computer.
+  - 0 (default) ignores pressure.
+  - 1 maps the lightest touch to 10 % and the firmest to 200 % of the pen size.
+  - Pen and brush apply it to the stroke width along the stroke, including the live preview. The pressure curve is
+    lightly smoothed.
+  - The eraser applies it to the size of the eraser circle at each moment of the drag (the cursor ring keeps the
+    set size).
+  - With a mouse, the width is always 100 %.
+- **Tablet taps:** a short tap with the stylus counts as a click and makes no mini-stroke. A tap is less than about
+  10 px of wobble within 0.25 s; a mouse click allows only 4 px. Stylus strokes shorter than 3 px on screen are
+  discarded. If such a tap lands on another drawing surface, it activates that surface.
+- Tablet input arrives as normal mouse events; Mule only records the pressure. All tools work the same with mouse or
+  stylus.
+
+Code: `tabletEvent` in `sketch_machine/viewport.py`; `_pressure_factor` and `_click_px` in
+`sketch_machine/vp/drawing.py`; constants `PRESSURE_MIN/MAX`, `TABLET_*` in `sketch_machine/vp/common.py`.
+
+## Straight lines and shapes (hold still)
+
+### Hold still → straight line or shape
+- **How:** while drawing, hold the pen still. "Still" means moving no more than 4 px for 0.25 s. Usually you do this
+  at the end of a stroke, but any pause during the stroke triggers it. Mule then replaces the stroke drawn so far with
+  a recognised shape, or with a straight line from the start point.
+- **Adjusting before release:** until you release, the mouse adjusts the result.
+  - Straight line: the end point follows the cursor.
+  - Circle: the radius follows the cursor.
+  - Rectangle: the corner opposite the cursor stays fixed and the cursor sets the other one. `Ctrl` makes a square.
+  - Arc: the end point follows the cursor.
+- The status line reports, for example, "Circle detected – mouse: size · Ctrl: square · release: done".
+
+### Which shapes are recognised
+A stroke counts as **closed** when its start and end are closer than 20 % of its size.
+- **Circle** (closed):
+  - Recognised when the stroke is roughly round: width/height ratio above 0.55, no kink sharper than 60°, and an RMS
+    deviation from the radius under 14 %.
+  - Slightly oval drawings become an exact circle. Ellipses are deliberately not recognised.
+  - Result: one closed line.
+- **Rectangle** (closed):
+  - Needs at least three visible corners, and all four corners must actually be drawn; that is how it differs from a
+    circle.
+  - Orientation: if the stroke lies within 5° of an axis of the drawing plane, the rectangle snaps to that axis. This
+    is how a rectangle on the ground drawn in perspective comes out right. Otherwise the stroke's own direction is
+    used, so rotated rectangles are possible. The screen orientation is never used on a plane.
+  - Result: **four separate lines** meeting at shared corner points.
+- **Arc** (open):
+  - The stroke must bulge at least 4.5 % of its chord and fit a circle (RMS deviation under 8 % of the radius).
+  - The start and end snap to lines and points like a normal stroke (Magnet on). In Free mode the end snaps to points
+    and lines at any depth.
+  - Result: one line.
+- **Straight line:** any open stroke that is nearly straight or fits no arc.
+- **Gotcha:** a closed stroke that is neither a circle nor a rectangle (for example a triangle) gives no shape. It
+  falls back to a straight line from the start to the cursor. Draw polygons as separate straight strokes.
+
+### Angle snapping for straight lines
+- Hold `Ctrl` while dragging a straight line. The end rotates around the start in "Snap steps" increments (default
+  10°). 0° points straight up on screen, measured in the drawing plane, so vertical and horizontal lines come out
+  exactly.
+- On meshes and in Multi mode, the angle is measured on screen.
+- With `Ctrl` on an arc, the arc end snaps in the same angle steps around its start.
+- Change the step with right-click → **Snap steps …** → "Rotate and straight lines". The same value is used for
+  rotating with the gizmo, and it is saved.
+- Without `Ctrl`, the end of a straight line snaps to points and lines (see §Snapping while drawing).
+
+### Shapes and straight lines on meshes and in Multi mode
+- On a mesh or surface target, and in Multi mode, the shape is built in an imagined plane facing the camera through
+  the middle of the stroke. It is then projected from the camera onto the mesh or the surfaces in the set. Where the
+  projection misses, the shape is split into several lines.
+- **A straight line on a mesh:**
+  - By default it is projected onto the surface and follows it. It stops where it leaves the active mesh.
+  - Hold `P` when you release for a true 3D straight line between the two surface points, cutting through space.
+
+Code: `sketch_machine/shapes.py` (`recognize`, `adjust`, `polylines`; thresholds at the top);
+`_straighten`, `_recognize_shape`, `_update_shape`, `_update_straight` in `sketch_machine/vp/drawing.py`; `HOLD_MS`,
+`HOLD_PX` in `sketch_machine/vp/common.py`; `_snap_line_end`, `_snap_screen` in `sketch_machine/vp/snapping.py`.
+
+## Drawing targets: planes, surfaces, meshes
+
+### The active target
+- You always draw on the **active** plane, surface or mesh. It is drawn tinted, with a strong outline and a clear grid
+  (sea-green/aqua scheme). Clickable surfaces show a desaturated tint and inactive planes a faint hint. The outline of
+  the active surface also shows faintly through everything.
+- **Activating a target:** short click on a plane, surface or mesh.
+  - In Draw mode, a click only means "draw here". It activates the target (status "Drawing on: <name>"), selects
+    nothing and shows no gizmo.
+  - A line counts for the click only if it is exactly under the cursor (3 px). Clicking a line makes its stroke
+    object the target for new lines (see §New stroke objects).
+  - `Shift`+click and `Ctrl`+click still add to or remove from the selection.
+  - Activating is an undo step: `Ctrl+Z` returns to the previous target.
+- **Other planes in front do not block** drawing on the active target, and they do not shade strokes on it. In Multi
+  mode, an unselected mesh in front does block, except with X-Ray.
+- **Planes are infinite:** a plane accepts strokes beyond its visible rectangle. This applies to base planes and own
+  planes alike, as long as the plane is the only target. A base plane continues as a subtle neutral grid that fades
+  with distance. An own plane is still displayed only as its rectangle.
+- **Spatial feedback:** while drawing on an own plane (not on base planes), a small circle of its grid lights up around
+  the pen tip, more strongly outside the rectangle.
+- **Base planes:** Ground (XZ), Front (XY) and Side (ZY), all through the origin. They cannot be deleted or renamed.
+  You can move them along their normal.
+- **Hide drawing aids:** the icon at the top right hides own planes, drawing surfaces and base planes so you see the
+  raw result. Drawing still goes onto the active target.
+
+### Choosing a base plane: X / Y / Z, key 4
+- Each key picks a plane by the axis you look along to see it:
+  - `X` = Side (ZY)
+  - `Y` = Ground (XZ)
+  - `Z` = Front (XY)
+- `4` activates the **last active own plane**. It never picks a flipbook plane. With no own plane yet, the status line
+  says to create one with Space+N.
+- In Multi mode, `X`/`Y`/`Z` add the base plane to the set or remove it.
+- `Space+1…4` (views) also switch the plane. If a base plane was active, the base plane facing the new view becomes
+  active; own planes and surfaces stay active. See §Camera.
+- Gotcha: in Edit mode `X` is Extrude and `1`/`2`/`3` are the component modes. The plane keys only work in Draw mode.
+  They also work in Notes mode.
+
+### New plane from the camera: Space+N
+- **How:** `Space+N`, or right-click → **New Plane**. You get a new plane facing the camera, using the camera's
+  right/up axes. It is named "Plane N".
+- **Where it is placed:**
+  - If lines are selected, at the depth of their centre. In axis views this is the only way to choose front or back.
+  - Otherwise at the point under the cursor (on a line, plane or mesh).
+  - Otherwise at the orbit distance.
+  - If the cursor is outside the viewport, the viewport centre is used.
+- **Size:** 60 % of the image height, rounded to a round number.
+- The new plane becomes **active but not selected**, so no gizmo gets in the way of drawing. The status line reads
+  "<Plane> – draw; mouse wheel or [ ] moves it, click selects it". Selection is cleared.
+- In Shots/Timing, `Space+N` creates a flipbook plane instead (see §Timing).
+- To rotate or scale a plane freely: select it in Edit mode and use `T`/`R`/`E` (see §Edit).
+
+### Moving the active plane: wheel, [ ], Shift+RMB
+- The mouse wheel or `[` / `]` moves the active plane along its normal in **round steps**: 0.1, 0.2, 0.5, 1, 2, 5 …
+  The step size depends on the camera's distance to the plane. Steps land on multiples of the step, so the plane ends
+  at even heights like 3.0 rather than 2.87.
+- `Shift`+RMB drag moves it continuously (40 px per step).
+- The status line shows "Plane: <name> (offset …)".
+- Wheel notches within one second are one undo step.
+- **Limits:**
+  - Only planes move this way. On a surface or mesh target the wheel does nothing (status hint).
+  - Flipbook planes move only with the gizmo in Timing.
+  - Camera zoom is Alt/Space+RMB, not the wheel.
+
+### Drawing on own planes; deleting planes
+- An own plane is tracing paper: lines drawn on it belong to that plane.
+- **Delete a plane:** select it in Edit mode (click), then `Del`, or use the Outliner. The lines on it stay.
+- Gotcha: `Del` in Draw mode never deletes planes, surfaces, meshes or nulls, because Draw mode does not show them as
+  selected. It only deletes selected lines and stroke objects.
+- A picture can be projected onto a helper plane or surface: open the arrow in front of it in the Outliner →
+  **Load Picture**, **Project** (from the current camera), **Lock**. See §Pictures.
+
+### Drawing on surfaces and meshes
+- Surfaces (fill, curve, loft) and imported meshes are drawing targets like planes. Activate one with a click.
+- **Freehand on a mesh or surface:** the stroke follows the surface under the cursor.
+  - **Leaving the edge:** the stroke ends only about 10 px beyond the edge, so short dropouts and silhouette grazes are
+    bridged. If it ends outside, it is trimmed at the edge of the active surface on release.
+  - **Brief detours:** a stroke may wander onto an adjacent surface or mesh if it comes back to the active one. The
+    piece on the neighbour becomes a line of the neighbour surface, with a shared point at the border.
+  - **Starting outside** the active surface: the stroke begins exactly where it reaches the surface.
+  - Straight lines stay entirely on the active surface.
+- **Straight lines on meshes:** projected by default; true 3D with `P` held at release (see §Straight lines).
+- **Lines over a shared border:** a line that crosses the border line between two surfaces is split there. Each piece
+  belongs to the surface it lies on, so a line never runs past the border of its surface.
+- Lines drawn onto a surface or loft become part of its curve network and shape it. See §Surfaces.
+- The mesh opacity slider is at the top right (shown when no tool option needs the space). The semi-transparent mesh
+  toggle (cube icon) and X-Ray are covered in §View.
+- Missing mesh files cannot be drawn on.
+
+### Multi: drawing on several surfaces at once (B)
+- **What:** several targets at once. The set can hold planes, surfaces and meshes, and the frontmost hit under the pen
+  counts. When a stroke crosses gaps or moves from one surface to another, it splits into separate lines. Pieces that
+  touch at a surface change get a shared point on the border line.
+- **How:** press `B` or click the Multi icon. **Default: off** (only the active surface; a click switches it).
+  - Turning Multi on starts the set with the selected drawing surfaces, or else the active one.
+  - Each click on a plane, surface or mesh adds it to the set or removes it. The last one clicked is active and is
+    what the wheel, `[ ]` and `F` use.
+  - `X`/`Y`/`Z` toggle base planes in the set.
+  - Clicking empty space clears the set; `Ctrl+Z` brings it back.
+  - A dashed amber frame around the viewport shows that Multi is on.
+- **Behaviour:**
+  - With only one surface in the set, the stroke is drawn exactly as in single mode, with shapes in the plane and so
+    on. Planes in a multi set count only within their grid rectangle unless the plane is the only one.
+  - Shapes and straight lines are projected from the camera onto the set (see §Straight lines).
+  - `F` colours every surface in the set (see §Colours).
+- The set is independent of the selection and is kept when you switch to Edit.
+- Gotcha: a forgotten Multi set colours or draws on more surfaces than intended. Watch for the amber frame.
+
+Code: `sketch_machine/vp/surface_ops.py` (`activate_preset`, `activate_last_custom`, `colorize_surfaces`);
+`sketch_machine/vp/navigation.py` (`new_plane`, `_plane_step`); `_shift_plane` and `set_multi_mode` in
+`sketch_machine/vp/drawing.py`; `sketch_machine/vp/picking.py` (`_multi_samples`, `_toggle_multi`, `_mesh_line`);
+`sketch_machine/vp/overlay.py` (`_draw_plane_spot`).
+
+## Free mode (Q)
+
+### Drawing without a plane
+- **What:** draws in space between existing things, without a drawing plane. Pen and brush only; the eraser works as
+  usual.
+- **How:** press `Q` or click the **Free** button. A sea-green frame surrounds the viewport while it is on, and `Q`
+  again turns it off.
+- **Starting a stroke:** start on a **line** or a **surface** (fill, curve or loft). The start point lights up as a
+  ring under the cursor.
+  - Mule then draws in an imagined plane through that point facing the camera.
+  - Starting on empty space, a plane or an imported mesh body does not work. You get "Free mode: start the stroke on a
+    line or a surface (Q: off)". Lines drawn on a mesh are valid start points.
+- **Snapping to points:**
+  - With Magnet on, every point (line ends, corners, inserted points) shows as a small green ring.
+  - Starting on a point starts exactly there. Starting in the middle of a line gives that line a shared point there;
+    the line stays one line.
+  - A point under the cursor (10 px, any depth) takes priority over a line.
+- **Ending a stroke:** a green dot shows where the stroke will dock. It can dock to a point under the cursor (10 px) or
+  to a line (12 px, which creates a new point there), at any depth, including far in front of or behind the start.
+  - When the end snaps, the whole stroke is laid onto the plane through start and target that best faces the camera.
+    On screen it looks the same as drawn; in space it connects both points without a kink.
+  - If the connection points almost along the view direction, only the last third of the stroke bends softly to the
+    target.
+  - Use this for straight lines and arcs between existing points.
+- **Shapes:** hold still as usual. A recognised arc in Free mode snaps its end to points and lines at any depth.
+- **Behaviour:**
+  - Multi is suspended for the stroke. Paint mode is ignored, so Free mode always makes real lines.
+  - Connections follow the same rule as every stroke (see §Snapping while drawing).
+
+### Upright plane
+- Right-click → **Free mode: upright plane (instead of facing the camera)**. The imagined plane through the start point
+  is then vertical, turned towards the camera, so dragging upwards draws truly vertical even when looking down at an
+  angle.
+- When the camera looks steeply down (view direction more than about 58° below the horizon), the camera-facing plane is
+  used as before.
+- This is a prototype switch and is not saved per scene.
+
+Code: `sketch_machine/vp/free_draw.py` (`_free_anchor`, `_begin_free`, `_free_end_snap`, `_free_span`, `_blend_end`).
+
+## Snapping while drawing and how strokes connect
+
+### Snapping on planes, surfaces and meshes
+- With **Magnet** on (horseshoe button in the left bar, **default on**), the start and end of a pen or brush stroke snap
+  to what belongs to the current drawing target:
+  - Plane: points and lines in it.
+  - Surface: points and lines on it, plus the points of its neighbours on a shared border.
+  - Multi: all surfaces in the set.
+  - Mesh: points of the lines drawn on it.
+- These snap points (line ends, corners, inserted points) show as small green rings. Rings are not shown in paint mode
+  or during a gizmo drag.
+- **What snaps:**
+  - A point under the cursor within 10 px takes priority, and the stroke end bends onto exactly that point. It is the
+    same point, not a second one.
+  - Otherwise a nearby line within 12 px snaps, and a new shared point is created there (a T-junction).
+  - Lines in front of, behind or passing through the target do not count. Neither does anything that is only close on
+    screen but far away in space.
+- The snap radius is in screen pixels: generous from far away, precise up close. The Cleanup snap distance, in metres,
+  is separate (see §Edit/Cleanup).
+- **Magnet off:** nothing snaps, you draw freely. The symmetry mirror-plane snap also needs the magnet.
+- **Symmetry:** stroke ends near the mirror plane of a symmetry you are drawing into land exactly on the plane, so the
+  seam closes. The stroke is mirrored live while you draw. See §Generators.
+- Paint never snaps.
+
+### The connection rule after each stroke
+After release, one rule connects the finished stroke. It does not matter how the stroke was made.
+1. Pieces of the same stroke that meet at a surface change get a shared point on the border line between the surfaces.
+2. Ends where the stroke left a surface or came from outside are extended to the border line.
+3. All other ends (Magnet on): if a point (7 px) or a visible line (12 px, measured in space at the end's depth) is that
+   close, the end lands exactly there as a shared point or T-junction. A stroke closing on its own start stays closed.
+4. Crossings with lines on the same plane or surface get shared points. Lines that only appear to cross on screen are
+   left alone.
+
+Connected means "shares a point". This is the basis of loops, fills and the curve network (see §Edit, §Surfaces). New
+lines get their corners (kinks of 30° or more) as points when you draw them.
+
+Code: `sketch_machine/vp/snapping.py` (`_surface_snap_points`, `_end_snap`, `_draw_snap`, `_resolve_stroke`,
+`_connect_new_crossings`, `_split_over_borders`); `_mirror_snap` in `sketch_machine/vp/nulls.py`; `set_magnet` in
+`sketch_machine/vp/free_draw.py`.
+
+## Where new lines go: stroke objects
+
+### Stroke objects
+- Every line belongs to a **stroke object** ("Stroke N" in the Outliner). New lines always go into the **active stroke
+  object**. If there is none, Mule creates one.
+- **Making a stroke object active:**
+  - In Draw mode, click one of its lines. The status line reads "New lines go into: <name>".
+  - Or click it in the Outliner.
+- **New, empty stroke object:** `Space+B`, or right-click → **New Stroke**. The status line reads "New stroke object
+  "<name>" in "<null>" – drawing goes into it now". It is placed in the group you are working in:
+  - in the selected null, if exactly one null is selected;
+  - otherwise in the null of the currently active stroke object, for example inside a Symmetry.
+- **Surfaces never receive new strokes.** A line drawn on a surface goes into the active stroke object and records the
+  surface as its drawing surface.
+- **Split lines off later:** in Edit, `Ctrl+G` moves the selected lines into a new stroke object; drawing continues in
+  the previous one. See §Edit/Organize.
+- A Symmetry or Array created without a selection gets an empty stroke object that becomes the drawing target. See
+  §Generators.
+- **Delete all lines** (right-click) empties every stroke object in the scene in one undo step. The stroke objects
+  themselves remain.
+
+Code: `new_stroke` in `sketch_machine/vp/surface_ops.py`; `Scene.new_stroke`, `Scene.add_curve` in
+`sketch_machine/scene.py`; `_activate` in `sketch_machine/vp/selection.py`.
+
+## Colours
+
+### The shared colour
+- There is **one current colour**. It is used by the brush and by surface colouring (`F`).
+- **Picking a colour:** the colour swatch in the left bar is always visible except in Notes mode. Click it to open the
+  colour wheel:
+  - The ring sets the hue; the square sets saturation (left to right) and brightness (bottom to top).
+  - The popup also shows the **last 8 colours**, remembered globally.
+  - For greys, use the left edge of the square.
+- In Draw mode, picking a colour changes nothing in the scene. It only sets the colour for the next brush stroke or
+  `F`.
+- In Edit mode, the popup has an **Apply** button that colours everything selected in one undo step: surfaces are
+  tinted and brush lines get the stroke colour. Pencil lines stay as they are. `Shift`+click on Apply resets the
+  selected surfaces' tint. See §Edit.
+- **Display-only colour options:**
+  - **Color view** (top right, next to the moon icon) shows everything in black and white when off.
+  - **Color Compress** (View menu) adjusts only brightness for colours.
+  - The pencil and chalk line colours are two swatches in the View menu.
+  - See §View.
+- Default colour: a dark graphite grey (RGB about 0.24/0.23/0.22).
+
+### Colouring surfaces in Draw mode (F)
+- `F` in Draw mode tints the active surface, or every surface in the Multi set, with the current colour. The material
+  texture stays and is only tinted. Status: "<names>: colored".
+- `Shift+F` in Draw mode removes the tint and returns to the plain material.
+- One undo step.
+- **Limits:** only surfaces (fill, curve, loft) can be tinted. Planes and imported meshes cannot; helper surfaces have
+  no material. With no surface active, the status line says to click a surface first.
+- Gotcha: in Edit mode `F` creates a surface and `Shift+F` creates a loft. Only Draw mode colours.
+
+Code: `sketch_machine/colorpick.py` (wheel, popup, Apply); `colorize_surfaces` in `sketch_machine/vp/surface_ops.py`;
+`set_paint_color` in `sketch_machine/vp/drawing.py`.
+
+## Lines Mule creates itself
+
+### Auto-generated lines and their width
+Some operations create real lines:
+- loft side lines, extrude edges, new cross-sections when splitting a loft, rounding, the bridge when dissolving or
+  deleting points, connecting, closing gaps, and the seam when converting a symmetry.
+
+These lines take the stroke width of the lines they connect at the connection points and blend in between by arc
+length. They are normal lines and can be edited like drawn ones. Details are in §Surfaces and §Edit.
+
+Code: `widths_through`, `widths_between` in `sketch_machine/components.py`.
+
+### Topology rule: no double line between the same points
+- Loft and extrude never leave a second line between the same two points. A duplicate created by the operation is
+  merged with the existing line, and surfaces and lofts follow the existing one. New points that lie exactly on
+  existing points are welded to them.
+- Existing lines are never touched or deleted by this rule. It checks only the lines the operation just created.
+- It runs automatically after loft and extrude. Duplicates you **draw by hand** are not merged automatically; use Edit →
+  Cleanup → remove duplicate lines (see §Edit/Cleanup).
+
+Code: `sketch_machine/topology.py` (`consolidate`), called from `_consolidate_new` in
+`sketch_machine/vp/surface_ops.py`.
+
+## Importing geometry as a base to draw on
+
+### Import geometry (Ctrl+I)
+- **How:** File → **Import geometry…** (Datei → Geometrie importieren…) or `Ctrl+I`. Several files can be picked at
+  once. Drag-and-drop into the 3D viewport is not supported.
+- **Formats:** `.obj` (loaded via trimesh, without materials) and `.usd`, `.usda`, `.usdc`, `.usdz`. Anything else gives
+  "Format not supported". FBX is not read.
+- **Units and axes (USD):** a Z-up stage is converted to Mule's Y-up. `metersPerUnit` is applied only when the file
+  explicitly authors it; otherwise 1 unit = 1 m. USD `displayColor` is used for display.
+- After import, the object is selected and the camera focuses on it. The status line reports the triangle count and,
+  for USD hierarchies, the number of meshes.
+- An imported mesh is a drawing target: click it, then draw on it (see §Drawing on surfaces and meshes). Paint on it
+  sits flat on its surface.
+
+### USD hierarchy mapping ("as in Solaris")
+- **One mesh prim** in the file: a single mesh object named after the file. No null is created.
+- **Several mesh prims:**
+  - One mesh object per visible mesh prim, named after the prim.
+  - One **null** per group prim above it (Xform, Scope …), placed and oriented at the prim's world transform. Mirrored
+    transforms get a right-handed handle.
+  - Everything sits under a top null named after the file, placed at the bottom centre of the bounding box.
+  - The structure appears in the Outliner under **Import**. A null that has only imported content below it is listed
+    there instead of under Groups.
+- **Dropped:** invisible prims, prims with guide or proxy purpose, empty groups (no visible mesh below) and meshes
+  without triangles. Instance proxies are included.
+- Each part can be hidden, shown, selected and moved on its own. The eye of a null applies to everything below it.
+- **Saved in the scene:** per mesh, the file path (relative to the scene file, absolute if on another drive) and the
+  prim path. The geometry is not copied into the scene. On load, each file is opened once. A missing file gives a
+  warning listing it, and the mesh is then not drawable. The Sketch Brief names the prim path (see §Brief).
+
+Code: `import_geometry` in `sketch_machine/app.py`; `import_mesh` in `sketch_machine/vp/surface_ops.py`;
+`Scene.import_mesh`, `Scene._import_usd_tree` in `sketch_machine/scene.py`; `sketch_machine/geometry.py` (`load`,
+`load_obj`, `load_usd`, `usd_tree`, `_open_stage`, `_shown`).
+
+## Quick key reference (Draw mode)
+- `A` pen ↔ brush · `D` eraser · `S` paint mode · `Q` free mode · `B` Multi · Magnet: button only
+- `X` / `Y` / `Z` side / ground / front plane · `4` last own plane · `Space+N` new plane · `Space+B` new stroke object
+- Wheel, `[` `]`, `Shift`+RMB drag: move the active plane
+- `Ctrl`+wheel or `Ctrl`+RMB drag: pen size (eraser size with the eraser) · `Ctrl+Shift`+wheel: width of all lines
+- Hold still 0.25 s: straight line or shape · `Ctrl`: angle steps or square · `P` at release: 3D straight line on a mesh
+  · `P` held with the eraser: erase through everything
+- `F` colour surface · `Shift+F` reset colour · `Tab` Edit · `Esc` back to Draw mode
+- Camera: `Alt` or `Space` + LMB/MMB/RMB (see §Camera)
+
+# 3. Edit mode, surfaces and objects
+
+This section covers everything done in **Edit** mode: selecting points, edges and surfaces, transforming them,
+the point tools, building surfaces from lines, and organising the scene into objects, groups and generators.
+Drawing itself (pen, brush, eraser, Free mode, Multi, snapping while drawing, the connection rule for new strokes)
+is described in §Draw; notes in §Notes; the Sketch Brief in §Brief; display options (X-Ray, light, chalkboard,
+layers) in §View.
+
+Basic model to keep in mind:
+
+- A **line** (curve) is a polyline with per-point widths. Lines live in **stroke objects**.
+- Lines are **connected only when they share a point** (same point ID) – never because they lie close together.
+  Shared points are set explicitly (drawing rule, V-snap, Cleanup weld, loft/extrude, fill gap rule).
+- **Surfaces** are built from lines and are the *result* of their lines. Moving lines reshapes the surface;
+  moving a surface moves its lines. The only exception are frozen helper surfaces.
+- **Nulls** group objects; **Symmetry** and **Array** are nulls that act as generators (live instances).
+
+## Entering Edit mode and the edit view
+
+### Switching modes
+- `Tab` toggles Draw ↔ Edit (as in Blender); also the "Draw | Edit" switch at the top left.
+- `Esc` in Edit always returns to Draw (if Hardness/Smooth is on, the first `Esc` only turns that tool off).
+- `A` / `D` (pen/brush, eraser) also leave Edit and return to drawing.
+- `T` / `R` / `E`, `Alt+A`, Paste and Duplicate switch into Edit automatically, because the gizmo only exists there.
+- Draw mode only shows what is being drawn on (active colour); Edit only shows what is selected. Consequently `Del`
+  in Draw mode never deletes (invisibly) selected planes, surfaces, meshes or nulls – only selected lines.
+
+### What the edit view shows
+- Points are shown **only for the active object** (plus all selected stroke objects and everything under selected
+  nulls). Clicking a line makes its stroke object active. If several objects were selected and you then click a
+  point, the points of all of them stay visible until objects are selected anew or Edit is left.
+- Point mode: points as small symbols; size via View → Point size (Ansicht → Punktgröße), 25–300 %, also applies in
+  edge mode. Edge mode: points as small dots in stroke colour.
+- Connected points (shared points, corners, inserted points) are drawn **filled**; open line ends as a **ring**.
+- Points hidden behind surfaces are not shown (X-Ray: all).
+- Edge mode: all lines glow faintly (10 % of the selection colour); surface mode: all surfaces slightly tinted.
+- **Outer lines of surfaces** (outline of a fill surface, border of a curve surface, for an open loft the first/last
+  cross-section and the side lines; tubes have none) are drawn **petrol** in Edit (chalkboard: light turquoise) –
+  they belong to the surface. Selected ones use the selection colour.
+- Whatever a click would select is highlighted under the cursor.
+
+Code: `sketch_machine/vp/component_edit.py` (`_active_strokes`, `_draw_points`), `sketch_machine/vp/selection.py`
+
+## Selection
+
+### Click, Shift, Ctrl, rectangle
+- Click replaces the selection, `Shift`+click adds, `Ctrl`+click removes; click into empty space clears everything.
+  Outliner: `Ctrl`/`Shift`+click as usual in list widgets.
+- Drag = rectangle selection, by mode: point mode – points inside; edge mode – touched lines or sub-edges, plus
+  planes (at their border) and meshes; surface mode – surfaces, planes and meshes whose outline touches the
+  rectangle. Occluded parts are only caught with X-Ray.
+- Planes and meshes are clickable in every component mode; drawing surfaces only in surface mode.
+- Nulls are clickable via their axis cross in the viewport in every mode.
+- Clicking a symmetry/array **copy** selects its generator (Edit: line copies in any mode, surface copies in surface
+  mode), as in Cinema 4D.
+
+### Component modes 1 / 2 / 3
+Keys `1` points · `2` edges · `3` surfaces (in Edit; in Draw mode `X`/`Y`/`Z` and `4` select planes instead), or the
+three icons in the left toolbar ("Select points (1)", "Select edges (2)", "Select surfaces (3)"). Default: edges.
+
+- **Point**: line ends and corners. A corner is a kink of 30° or more, detected once (at drawing time or first use)
+  and stored on the line; corners are never re-detected, so a dissolved corner does not come back.
+  Points inserted with `Ctrl`+click on a line are points too.
+- **Edge**: a line without corners, or the piece between two points (a "sub-edge").
+- **Surface**: drawing surfaces (fill, curve, loft), plus planes and meshes.
+- Switching converts the selection (as in Houdini): edge → its points; points → the edges whose two ends are
+  both selected; surface → its lines; to surface mode: points drop out, and every surface whose defining lines
+  are *all* selected is added (so "select all lines, press 3, duplicate" takes the surfaces along).
+
+### Sub-edges and line operations
+Line operations on selected sub-edges – `X`, `F`, `Shift+F`, `Alt+F`, `Del`, copy, `Ctrl+G`, `Ctrl+B` – first split the
+line at the points of the selected pieces so the operation gets real lines (same undo step). `Esc` during an
+extrude undoes that split. `Shift+F` (loft) is the exception: a selected piece stands for the whole line, which is
+not split.
+
+### Double-click: other object, loop, surface with its lines
+In point or edge mode:
+- Double-click on **another object** (line, surface, mesh) makes it the edited one: selected in viewport and
+  Outliner, active, its points appear. For a surface the stroke objects of its lines come along (the one with the
+  most lines becomes active); for a frozen helper surface only the surface itself. Status: "Now editing: …".
+- Double-click on the **edited object**:
+  - on a line: the **smallest loop** through it (double-click again: next loop). The loop runs only over real
+    connections (shared points), never over gaps that merely look small on screen. Outlines that are already
+    filled are skipped. Pieces up to a T-junction become sub-edges.
+  - on a drawing surface (no line exactly under the cursor): the surface with all lines lying on it (shown as points
+    in point mode, edges in edge mode; Outliner marks their stroke objects) – transformable together.
+  - on a plane: the plane with the lines and paint on it (fixed ground planes: only the lines).
+- Lines count for a double-click only when exactly under the cursor; next to a line the double-click is meant for
+  the surface.
+In surface mode a double-click selects the surface together with its lines.
+
+### Select connected (L, Shift+L, Ctrl+L)
+Connected = shares a point (ends, crossings, T-junctions), never by position. Without a selection nothing happens.
+In point mode it works via the points' lines and converts back to points.
+- `L`: everything connected, within the own stroke object.
+- `Shift+L`: across object boundaries.
+- `Ctrl+L`: loop following the flow of the net (like an edge loop): at a 4-edge crossing straight on, at a 2-edge
+  point around the corner; stops at T-junctions, stars (3 or 5+ edges) and free ends. Partially chosen lines are
+  selected as sub-edges.
+
+### Hide and isolate
+`H` hides the selection (objects; in Edit also single lines), `Shift+H` isolates, `Alt+H` shows all; eye in the
+Outliner. Hidden things are not selectable, not snapped to, not erased; hiding a surface hides its paint. Saved
+with the scene, one undo step. Hidden objects do not go into the Sketch Brief (see §Brief).
+
+Code: `sketch_machine/vp/selection.py` (`_band_select`, `jump_to_object`, `select_loop`, `_select_linked`,
+`_select_flow_loop`), `sketch_machine/vp/component_edit.py` (`set_component`, `_convert_selection`,
+`_materialize_segments`)
+
+## Transform gizmo
+
+### Translate / Rotate / Scale
+- `T` translate, `R` rotate, `E` scale; also the Move/Rotate/Scale icons in the left toolbar (clicking the active
+  icon again turns the gizmo off). Gizmo style as in Houdini: arrows (T), rings (R), cubes (E).
+- Two-axis squares between two axes (T and E): move in that plane / scale both axes equally.
+- Purple outer ring (R): rotates around the view direction.
+- Uniform scale (E, centre): drag right/up = larger.
+- Choosing T/R/E ends Hardness (K) and Smoothing (J).
+- What moves: selected objects, lines, sub-edges and points. A null moves everything under it. A surface moves all
+  its lines (see "Moving a surface moves its lines"). Fixed ground planes 1–3 never move.
+
+### Pivot
+- The common pivot of a selection is the centre of its bounding box on first use; afterwards it travels with
+  translations (rotate/scale leave it in place). A new selection or undo recomputes it.
+- A selected null's axis cross is the pivot (like the object axis in Cinema 4D).
+
+### Axis mode (Alt+A)
+- `Alt+A` or the "Axis mode" icon in the left toolbar (also right-click → Axis mode): the gizmo moves (T) or rotates
+  (R) **only the pivot**, not the selection. Turning it on switches to Edit and to T if the tool was Scale.
+- Hold `V` while dragging the pivot: it snaps to line ends, line middles, plane corners and plane centres.
+- The custom pivot holds as long as the selection stays; right-click → Reset axis (Achse zurücksetzen).
+- On a single selected null, axis mode moves/rotates only the null; the objects under it stay put (this is how
+  a symmetry plane or array pivot is placed).
+
+### Transform space: world / local / camera
+`Space+M` cycles world → local → camera (view). Two toolbar icons: "Local" and "Align from view". Applies to move,
+rotate and scale. Planes always scale in their own axes.
+
+### Mirroring by scaling
+Drag a scale arrow (E) past the pivot to the other side: negative factors mirror. This mirrors the selection
+itself; for a mirrored copy duplicate first (`Ctrl+D`), or use the Symmetry generator (see "Symmetry generator"). With `Ctrl` the factor snaps in
+scale steps, which reaches exactly −100 %. Also works on the two-axis squares. A factor of exactly 0 is skipped
+(no flattening).
+
+### Snapping steps (Ctrl)
+- Hold `Ctrl` while transforming: rotate in 10° steps, scale in 10 % steps, move in 1 unit steps (move snaps the
+  offset from where the drag started, along the gizmo axes). `Ctrl+Shift`: tenth steps. `Ctrl` can be pressed or
+  released mid-drag and takes effect immediately.
+- The same steps apply to extrude length (`X`), round corners (`Ctrl+B`: tenth of the move step) and straight lines
+  while drawing (angle step).
+- Set the steps: right-click in the viewport → Snap steps … (dialog "Snap steps (Ctrl)": Rotate and straight lines
+  °, Scale %, Move units). Stored per computer.
+
+### Point-to-point snapping (V)
+- Hold `V` while dragging with the Translate gizmo: the line end of the selection that is nearest to the target
+  snaps onto a line end, line middle, plane corner or plane centre under the cursor (screen-pixel radius).
+  On an axis arrow it moves only along that axis; on a two-axis square it jumps onto the target.
+- **Snapped means connected**: on release the ends at the target become a shared point.
+- Source candidates are the ends of selected whole lines and of selected stroke objects. `[unverified]` whether
+  V-snap also works when only points are selected (the code collects sources only from lines/objects).
+- Example: put a chair leg exactly at the seat corner.
+
+### Welded vs detached moving (Alt)
+- By default moving selected lines drags welded neighbours: lines on top of each other move together, and lines
+  whose ends are welded to the moved ones deform along.
+- Moving points/sub-edges is **soft**: the line deforms up to the neighbouring points (straight pieces stay
+  straight); connected line ends at the same place move along.
+- Hold `Alt` **while dragging** (pressing Alt at the start would orbit the camera): only the selection moves,
+  welded neighbours stay and the connections are released. Can be toggled mid-drag.
+- With `Alt` on a surface: paint and the lines on it stay behind and detach.
+
+### Drag-points mode: Auto / Soft / Hard
+Left toolbar in point and edge mode ("Drag points: automatic / always soft / always hard"):
+- Auto (default): soft/hard is read from the shape – how strongly the line kinks at the point (up to 15° soft, from
+  45° hard, smooth blend in between).
+- Soft: the dragged point is always round. Hard: always a kink at the point.
+- The deformation runs to the neighbouring points: at soft neighbours without kink, at hard ones straight.
+- While dragging, surfaces that change are shown at half resolution (same shape, coarser net); full on release.
+
+Code: `sketch_machine/gizmo.py`, `sketch_machine/vp/selection.py` (`transform_target`, `_move_snap`,
+`_pivot_snap_point`, `set_axis_mode`), `sketch_machine/viewport.py` (`_snap_step`, `snap_dialog`, `_toggle_space`,
+`_set_free_move`), `sketch_machine/components.py` (`ComponentGroup`)
+
+## Point and edge tools
+
+### Insert point
+Point mode, `Ctrl`+click on a line (not on an existing point): inserts a point and selects it. `Ctrl`+click on a
+point deselects it.
+
+### Dissolve, remove, delete points (Del / Shift+Del / Ctrl+Del)
+Point mode, with points selected:
+- `Del` **dissolves**: the lines keep exactly their shape. Corners and inserted points just lose their handle; at a
+  joint of two line ends the two lines become one continuous line (also on the border of a curve surface – the
+  surface stays as it is). Crossings, T-junctions and open ends are not dissolved (hint).
+- `Shift+Del` **removes**: the line is re-run smoothly between the neighbouring points (no kink at soft neighbours;
+  spikes and bumps vanish); two line ends become one line. Crossings, T-junctions and open ends are refused.
+- `Ctrl+Del` **deletes**: the pieces up to the neighbouring points disappear. A curve or fill surface whose border
+  ran through the point takes the outline that is still closed via its lines; otherwise a straight line bridges the
+  two neighbouring points (also without a surface; not at crossings). If the line shaped a surface, the straight
+  bridge keeps shaping it, as if the line had been straight before.
+- In edge/surface mode `Del` deletes the selected lines/objects (see "Delete").
+
+### Slide points (S)
+Point mode: hold `S` and drag – the selected points glide along their line; the line keeps exactly its shape.
+Lines attached there (T-junction) follow softly. Line ends do not glide. `Esc` cancels.
+
+### Rotate and scale points
+- Rotating or scaling selected points with the gizmo also works on a **single point**: the lines rotate/stretch
+  around it and blend out softly to the neighbouring points (neighbours stay). The point stores this as `orient`
+  (quaternion) and `pscale`, saved and exported as point attributes `primvars:orient` / `primvars:pscale`.
+- Scaling **several** points (E) changes only their positions; their pscale and the line around each point stay.
+
+### Hardness (K)
+Hardness = the angularity of lines; it is **read from the shape, not stored**: a point is as hard as the line kinks
+there (up to 15° soft, from 45° fully hard, smooth in between).
+- `K` turns the tool on/off (key only; same key, `Esc` or `Tab` turns it off). In surface mode it switches to edges.
+- Click points or edges, then drag: left = rounder, right = more angular. A small slider next to the cursor shows
+  the resulting hardness. `Ctrl`: tenths; digits `0`–`9`: 0.0–0.9; mouse wheel: small steps (each notch one undo
+  step); click/`Enter` confirms, right-click/`Esc` cancels.
+- `Shift+K` fully hard (each side straight onto the point), `Alt+K` fully soft. Point and neighbours stay in place.
+- Point mode: all lines through the point. Edge mode: the lines crossing the edge at its points (or continuing it)
+  kink there – the edge itself stays and becomes a hard crease.
+- Line ends and corners shared by several lines are not shaped (hint).
+- With the tool on, squares mark angular points (stronger = harder).
+- Effect on surfaces: a surface creases along a line where the lines crossing it kink, proportionally up to the next
+  point (a crease can start hard and end soft); without a crossing line there is no crease. Loft curve surfaces
+  are split at a hard cross-section (exact crease); extrude splits at corners.
+- Light: at a crease each side gets its own shading (normals averaged only across ≤15° kinks, blended to 45°).
+- Brief: `primvars:hardness` per line point (see §Brief).
+
+### Smooth (J)
+Edge mode only (`J` on/off, key only; switches to edge mode). Click edges and drag as with K. First small wobbles
+disappear, then the large arcs; fully smoothed, each edge is a straight line between its two points (whole lines
+piece by piece between their points). The points – and what hangs on them – stay; surfaces shaped by the line
+follow.
+
+### Round corners and edge bevel (Ctrl+B)
+`Ctrl+B` (Edit → Round corners; Bearbeiten → Ecken abrunden) with points or edges selected:
+- **Round corners**: on selected points, or on all corners of selected edges. Example: a rectangle of four lines –
+  the ends are shortened and joined with arcs; a corner in the middle of a line is replaced by an arc; at an outline
+  corner the fill surface follows the arc.
+- **Edge bevel** (as in Blender): selected edges at corners where three or more lines meet (box edges): the edge is
+  replaced by two edges in the adjacent sides, joined at both ends by a quarter arc. At 3-line corners the
+  neighbouring lines are shortened; with more lines the neighbours are split and the corner remains for the rest.
+  Selected points at such corners: all lines shortened, neighbours joined with arcs. If fill surfaces are attached,
+  they are re-hung onto the new edges and the rounding gets a drawing surface (loft or corner surface); a pure
+  wireframe gets no surface.
+- Mouse away from the start point = size (distance along the legs, at most just under half the edge). `Ctrl` snaps
+  (step = 1/10 of the move step). `F` toggles round ↔ straight chamfer. Click confirms, `Esc`/right-click cancels.
+- Line ends without a partner do not count as corners.
+
+### Line width of selected lines
+Edge mode: `Ctrl`+mouse wheel or `Ctrl`+RMB drag scales the width of the selected lines and sub-edges (ratios within
+the line stay, one undo step). In Draw mode `Ctrl+Shift`+wheel/RMB drag scales all lines of the scene.
+
+### Pencil ↔ brush
+Right-click in Edit → "Convert to brush stroke (current color)" / "Convert to pencil": shape, points, connections
+and width stay.
+
+Code: `sketch_machine/vp/surface_ops.py` (`delete_selection`, `dissolve_points`, `remove_points`, `delete_points`),
+`sketch_machine/netedit.py`, `sketch_machine/vp/point_tools.py` (K, J, S), `sketch_machine/vp/component_edit.py`
+(`start_bevel`, `_insert_point`), `sketch_machine/components.py` (`Bevel`, `EdgeBevel`, sharpness constants)
+
+## Building surfaces
+
+All surface commands work in Edit on the selected lines (edge mode is typical). The lines stay lines; the surface
+is for drawing on and for the Brief. A new surface is selected and made the active drawing surface.
+Topology rule for loft and extrude: they never create a second line between the same two points – a duplicate is
+merged with the existing line (surfaces follow it), and new points exactly on existing ones are connected.
+Existing lines are never altered by this.
+
+### Surface from lines (F)
+`F` in Edit is **the one surface command**: from the selected lines a **curve surface** is created (even grid,
+any number of sides). If its grid would fold – outline kinked inwards such as an L, U or star shape – a **fill
+surface** (triangle mesh, takes any shape) is created instead; the status line says so. This is decided once at
+creation; afterwards the surface stays what it is (both bend with their lines).
+- Gap rule (also for `Alt+F`): connected is what shares a point; every gap in the outline is closed. Gap shorter
+  than 2 % of the shorter line: the ends become a shared point (meeting in the middle; an already connected end
+  stays, the lines bend softly on their last piece). Otherwise a real straight line bridges the gap. One undo step;
+  the status line reports bridges and joined points.
+- Fails with a message if the lines branch (more than two lines at a point) or enclose no area.
+- Fill surface behaviour: follows its outline (mean-value coordinates). Lines running from border to border (both
+  ends connected to the outline) are net lines and shape it exactly and round; all other real lines on it then bend
+  it tautly in between. It never moves real lines; paint sits on the deformed surface. If the outline is broken or
+  deleted, the surface keeps its last shape.
+- Tip: double-click a line to select its loop, then `F`.
+- In **Draw** mode `F` does something else: tints the active surface(s) with the current colour (see "Colour").
+
+### Forced curve surface (Alt+F)
+Like `F`, but always a curve surface (Coons patch, like "Network Surface" in Rhino) from the selected border
+curves – smooth and curved. Gap rule as with `F`; with three curves the longest is split in the middle. Fails if the
+curves do not form a closed outline.
+
+### Curve net – how curve surfaces behave
+Every curve surface (from `F`, `Alt+F` or an open loft) is the result of its lines:
+- **Net lines** are real lines on it that run from one border side to the opposite one and are connected to the
+  border at both ends (across and along); where they cross, they share a point. They define the rest shape (Gordon
+  surface: loft across + loft along − the surface through their intersections; without net lines the Coons patch of
+  the border). Each net line lies exactly on a grid row/column; the grid follows the lines.
+- A new line from border to border becomes a net line immediately (grid is re-laid, everything on the surface keeps
+  its place).
+- All other lines on it bend the surface smoothly between the net lines (lift a crossing and the surface bulges).
+- Grid points on border and net lines are bound to fixed places on their line (dragging a point only moves the grid
+  points there); where another line joins, a grid point lies exactly on the shared point.
+- Creases: if lines crossing a net line kink there, the surface is split along it (exact crease) – see Hardness.
+- A stroke across a shared border line is split there; each piece belongs to its surface.
+- The surface never moves real lines; paint on it deforms with it.
+- Strongly distorted grids are redistributed after a drag (shape stays).
+
+### Loft (Shift+F)
+Curved drawing surface through cross-sections (like "Skin" in Houdini). Edit, `Shift+F` or right-click → Loft
+through cross-sections.
+- Select at least two cross-sections: lines (connected pieces = one cross-section; a selected sub-edge stands for
+  its whole line) and/or drawing surfaces (their outline – only in surface mode). A cross-section must not branch.
+- Order = selection order (click the lines one after another). Only items added in one move (rectangle,
+  double-click) share a rank and are ordered by position.
+- Alignment is automatic; cross-sections are connected by smooth curves (two cross-sections: straight; three or
+  more: curved). Closed cross-sections give a **tube**, open ones a **sheet**.
+- Side edges (open) or longitudinal lines (closed, same rule as extrude) become real lines, plus longitudinal lines
+  at points of the first cross-section with a kink of 5° or more or with a connection.
+- Hard points of the first cross-section (kink ≥ 15°) split all cross-sections; each piece becomes its own curve
+  surface (square cross-sections: four walls; closed: only from two hard points, otherwise a tube; not for rings),
+  joined at the cross-sections by shared points.
+- An **open loft** becomes a curve surface right away: border = first and last cross-section + the two side lines;
+  the middle cross-sections are net lines and shape it exactly (blended circular arcs: points on a circle give the
+  circle, on a straight line the line; three cross-sections a round arc, no tent).
+- **Tubes and rings** stay loft surfaces; their longitudinal lines are also net lines (closed Gordon surface, from
+  three longitudinal lines crossing every cross-section at a shared point): pulling a longitudinal line bulges the
+  tube round to the neighbouring lines, seam stays smooth.
+- Deleting a cross-section drops it from the loft (from three cross-sections).
+- Display: inactive ochre, active like any drawing surface. Copies take their lines along.
+
+### Ring loft (Ctrl+Shift+F)
+Like `Shift+F`, but the last cross-section lofts back to the first without a kink at the seam (e.g. a circumferential
+profile from four cross-sections); also runs longitudinally around without a seam – four circles around an axis
+give a round torus. At least three cross-sections. Menu: Edit → Ring loft.
+
+### Split loft (Alt+D)
+- Whole loft selected (surface mode): a new cross-section between every pair of adjacent cross-sections, exactly on
+  the surface.
+- Two or more adjacent cross-sections selected: only between them (ring: last and first count as neighbours).
+- New cross-sections are real lines; the loft runs through them (shape stays) so they can be moved specifically;
+  things drawn on it stay in place. On an open loft (curve surface) the new line runs on the surface from side to
+  side and is connected to border and longitudinal lines – a net line.
+
+### Extrude (X)
+- Select lines, press `X`: the extrusion starts immediately. Mouse = length, `Ctrl` = length in move steps
+  (`Ctrl+Shift` tenths), `X`/`Y`/`Z` = world axis, `N` = normal (default: the drawing plane's normal, or the best-fit
+  plane of the lines; same direction as the last extrude if the selection is its copy). Click confirms,
+  `Esc`/right-click cancels.
+- Result: normal lines – the offset copy and connecting lines at the ends, at every point with a kink ≥ 5° or with an
+  attached line, at corners and every ~90° of curvature (a circle gets 4, two of them on the silhouette) – and side
+  surfaces, built like a loft from original and copy.
+- At hard points (point kink ≥ 15°, corners ≥ 30° away from points) the wall is split: each piece between two hard
+  connecting lines is its own curve surface (a rectangle gives four flat walls, a box stays angular); soft
+  connecting lines only shape the surface. A smooth closed ring becomes a tube.
+- Right-click → "Extruding creates surfaces" (on by default) – off: lines only.
+- Connected selected lines count as one. The copy stays selected: `X` again pulls on in the same direction.
+- **Extrude a surface** (surface mode, `X`): the selected curve/fill surfaces move up with their lines and paint onto
+  the copy of their outline; the original border lines stay below as a base ring (neighbouring surfaces stay
+  attached). Side walls only at the border of the selection, with the surface's material. Tubes and lofts cannot be
+  extruded this way.
+
+### Tube
+There is no separate tube tool. A tube is a loft through closed cross-sections (`Shift+F`), or the result of
+extruding a smooth closed ring (`X`); a ring loft (`Ctrl+Shift+F`) closes it longitudinally too.
+
+### Moving a surface moves its lines
+Selecting a surface (fill, curve surface or loft) and moving it with the gizmo moves all its lines – border/outline,
+cross-sections, side and net lines, the lines on it and its paint. A neighbouring surface sharing a line deforms
+along. Exception: frozen helper surfaces move only themselves. `Alt` while dragging: paint and lines stay and detach.
+Duplicating a surface takes the same net along.
+
+### Mesh resolution by curvature
+The displayed mesh of a surface is as fine as its shape needs – independent of its size, its computation grid and
+the point count of its lines. A flat surface gets few triangles (a flat fill surface only its border), a tight
+curve many: the mesh deviates at most 1/1000 of the surface size from the shape and kinks at most 10° between
+pieces. Display only; shape, border, paint and connections are untouched. Fine-tuning:
+- per surface: Resolution slider in the Outliner (×0.25 … ×4, saved, also used in export);
+- globally: Resolution icon in the top bar (viewport quality, ×0.25 … ×4, per computer), multiplies every surface's
+  slider, recomputed on release. The export has its own resolution setting (see §Brief / USD export).
+
+Code: `sketch_machine/vp/surface_ops.py` (`do_surface`, `do_patch`, `_close_outline`, `_do_fill`, `do_loft`,
+`divide_loft`), `sketch_machine/vp/tools.py` (extrude), `sketch_machine/extrude.py`, `sketch_machine/extruding.py`,
+`sketch_machine/loft.py`, `sketch_machine/patch.py`, `sketch_machine/patchnet.py`, `sketch_machine/netsurf.py`,
+`sketch_machine/fill.py`, `sketch_machine/scene_surfaces.py`, `sketch_machine/topology.py`
+
+## Surfaces as objects: material, colour, options
+
+### Material
+Surfaces are opaque objects with a display-only material, graphic rather than photographic: Paper (default),
+Fabric, Cardboard, Wood, Spray paint. Procedural, seamless, triplanar; each surface has its own texture offset;
+the texture moves with the surface. Grain: 90 % global material scale (right-click the X-Ray icon), 10 % surface
+size. Set via the Material dropdown in the Outliner; with several surfaces selected the dropdown of one selected
+surface sets all selected ones. Helper surfaces have no material.
+
+### Colour in Edit (Apply)
+In Edit, picking a colour changes nothing in the scene. Only the **Apply** button under the colour wheel colours
+everything selected – surfaces (tint, texture stays) and brush lines (stroke colour) – in one undo step. Pencil lines
+are not recoloured (convert them via right-click first). `Shift`+click on Apply resets the tint of the selected
+surfaces to their material.
+Draw mode alternative: `F` tints the active surface (or all surfaces in the Multi set) with the current colour,
+`Shift+F` resets it.
+
+### Surface options (Outliner, arrow in front of the surface)
+- **Helper surface**: only a projection surface to draw on, like a helper plane – tracing paper look, hides nothing,
+  hidden with the drawing aids, no material; listed with the planes. Also via right-click → Helper surface (for
+  drawing on only). It is **frozen**: lines drawn on it or pulled away do not change it; it moves only via
+  double-click + gizmo, its lines stay. Turned off again, it re-attaches to its lines if it and all its lines are still
+  in place, otherwise it keeps its shape. Lines drawn on it do not belong to it.
+- **Transparency** (0 = opaque).
+- **Resolution** (×0.25 / ×1 / ×4, see above).
+- Load Picture (project a reference picture onto the surface) – see §Draw/pictures.
+
+### Occlusion by depth
+What is in front is decided only by position in space (not by order or zoom). Strokes belonging to a surface (drawn
+on it, outline, cross-section, border curve) stay visible on it from both sides; everything else behind it – strokes,
+surfaces, drawing aids, also behind meshes – is hidden right up to the outline. Drawing aids hide nothing (on a
+surface only a light 20 % glaze of the active plane). X-Ray: front semi-transparent, hidden parts faint.
+
+Code: `sketch_machine/vp/surface_ops.py` (`set_surface_material`, `colorize_surfaces`, `set_surface_aid`,
+`set_surface_opacity`, `set_surface_resolution`), `sketch_machine/vp/edit_ops.py` (`apply_color`),
+`sketch_machine/outliner.py` (`_surface_options`), `sketch_machine/theme.py` (`MATERIALS`)
+
+## Objects
+
+### Stroke objects
+- New lines go into the **active stroke object**. A short click on a line (or a click in the Outliner) makes its
+  object active.
+- New empty stroke object: `Space+B` or right-click → New Stroke; it lands in the selected null or the null of the
+  active stroke object, and drawing continues into it.
+- Surfaces belong to the stroke object of their lines (owner) and are listed under it in the Outliner (if they sit in
+  the same null). A ⚠ in the Info column means the surface uses border lines from other stroke objects.
+
+### Move lines into a new stroke object (Ctrl+G)
+- Edit, select lines, `Ctrl+G` (Edit → Selection to new object, or right-click): the lines go into a new stroke object
+  (e.g. to separate podium, tower, band); drawing continues in the previous one. Objects that become empty vanish.
+- Surfaces follow their lines: a surface whose defining lines (border, outline, cross-sections, longitudinal lines)
+  **all** move belongs to the new object afterwards, with its paint – whether or not it was selected. If only part of
+  its lines moves, it stays.
+- If other objects are selected as well (e.g. a mesh), the new stroke object and they go together into a new null,
+  located in the hierarchy where the lines' object was.
+- Several whole stroke objects selected (no line selection): `Ctrl+G` merges them into the first (Outliner order,
+  its name and place stay); all their surfaces then sit under it.
+- Rename: double-click in the Outliner.
+
+### Nulls / groups (Alt+G, Shift+G)
+As in Cinema 4D:
+- `Alt+G` (Objects → Null) creates a null at the centre of the selection and puts the selected objects under it
+  (strokes, surfaces, meshes, other nulls). Listed under "Groups" in the Outliner, collapsible.
+- Drag in the Outliner to reparent: onto a null = under it; next to an object = into the same null; onto a category
+  = top level. Right-click → To top level.
+- Moving the null moves everything below (pivot = the null); in axis mode (`Alt+A`) only the null moves.
+- Eye on a null hides everything below; `Del` deletes it with its content; `Shift+G` (Objects → Ungroup) dissolves it
+  (objects stay, one level up, without instances). Copying takes the whole subtree.
+- A surface made from lines lands in the null of its lines; a new stroke object in the null of the active one.
+- Nulls whose content is only imported meshes (e.g. a USD hierarchy) are listed under "Import".
+
+### Symmetry generator
+Objects → Symmetry (mirror selection), or Outliner right-click.
+- The objects below are mirrored as a live **instance** (display only; you edit the original).
+- Mirror plane = a plane of the null (ZY mirrors X – default, XZ mirrors Y, XY mirrors Z). Position: world origin, or
+  position and rotation of the selected null / the null the selection lies in (same for Array). Move/rotate it with
+  axis mode on the generator.
+- One side is kept (default: the side the content lies on): whatever crosses the plane is **cut** there – lines,
+  surfaces (exactly on the plane, no seam line) and paint; meshes are only mirrored.
+- Outliner row under the generator: on/off, Plane (ZY (X) / XZ (Y) / XY (Z)), Keep (+ side / − side). Selected, it
+  shows the plane dashed with a tick towards the kept side.
+- Stroke ends near the plane snap exactly onto it (Magnet on, when drawing into a symmetry), so the seam closes.
+  While drawing into a symmetry the stroke is mirrored live and its plane is faintly visible.
+- Created without a selection, it gets an empty stroke object that is drawn into from now on; surfaces from these
+  lines land under it too.
+
+### Array generator
+Objects → Array (multiply selection). Copies of the objects below as instances; the original always stays where and
+as it is. Outliner settings:
+- Mode: **Circle (around Y)** – Count over Angle ° around the null's Y axis (360° = evenly all round);
+  **Linear** – Offset X/Y/Z per copy in the null's axes; **Along line** – select a line (Edit, edge mode), then
+  "from selection" for Line and optionally Up line: copies evenly along the line, the null mapped onto each point
+  (x = direction of travel, y = up towards the up line, else the null's Y axis carried along). If the null sits on the
+  line start, the original is the first copy.
+- Count (default 6), Rotation ° (copy k rotated by k × angle about up), Random rot. (0–1: up to ±180°) and
+  Random offs. (0–1: up to ± content size) with per-axis X/Y/Z toggles, Seed (randomness depends on seed and copy
+  number – more copies do not reshuffle).
+- Interpenetration is not resolved. Generators can be nested (symmetry inside array …); each acts on the result
+  below it. Each can be switched on/off in the Outliner (off: nothing cut or multiplied; Convert ignores it; the
+  Brief notes `enabled: false`).
+
+### Convert (Alt+C)
+`Alt+C`, Objects → Convert (real geometry), or Outliner right-click: the selected symmetry/array (or those inside
+selected nulls), including all generators inside, from inner to outer, become real lines and surfaces; the
+generator becomes a plain null with original and copies below. One undo step.
+- Symmetry: lines are split at the plane, pieces on the mirror side vanish (objects entirely over there too); a curve
+  or fill surface crossing the plane gets a real seam line (its intersection with the plane; lines on it get a shared
+  point there) and is rebuilt from the new outline – loft tubes and surfaces that would fall into several parts stay
+  whole (message). The mirrored half shares the lines on the plane with the original; points on the plane are
+  welded.
+- Array: each copy becomes its own object (nothing welded); orient rotates with the copy (mirror: unchanged).
+
+### Copy, paste, duplicate, repeat duplicate
+- `Ctrl+C` / `Ctrl+V` / `Ctrl+D` (Edit menu). Mouse over the Outliner: whole objects. In the viewport: lines go into
+  the active stroke object (Duplicate: into their own); duplicated together with surfaces (e.g. a whole wing): into a
+  new object per source, next to it in the same group, so copy and original stay separate.
+- Pasted at the same place, selected, Translate gizmo active (until something else is selected, then back to the
+  previous tool).
+- **Copying a surface = its subgraph**: border/outline, cross-sections, side lines, lines and paint on it, material
+  and colour. The copy is connected within itself like the original, but not to the original.
+- A copy counts only once moved: if you turn to something else (other selection, `Esc`, drawing, another `Ctrl+D`)
+  while it still lies exactly on the original, it disappears – no duplicate lines. Until placed it is welded only to
+  itself (moving an edge drags its sides), afterwards to everything.
+- `Ctrl+Shift+D` (Repeat duplicate): duplicate again and move by the same offset as last time – `Ctrl+D`, move the
+  copy, then `Ctrl+Shift+D` as often as needed (e.g. storeys).
+- Outliner right-click: Duplicate (with everything below) / Delete (with everything below).
+
+### Delete
+`Del` (right-click → Delete Selection): deletes selected objects and selected lines. Deleting planes and drawing
+surfaces keeps the lines on them. Fixed ground planes cannot be deleted. In point mode `Del` acts on points (see
+above). Right-click → Delete all lines clears all lines of the scene.
+
+Code: `sketch_machine/vp/edit_ops.py` (copy/paste/duplicate, `group_selection`, `_merge_strokes`),
+`sketch_machine/vp/nulls.py` (`create_null`, `dissolve_null`, `convert_generators`), `sketch_machine/generators.py`,
+`sketch_machine/arrays.py`, `sketch_machine/convert.py`, `sketch_machine/clipboard.py`
+
+## Outliner
+
+Columns: **Name | Material | Brief | Info | eye**.
+- Categories: Groups, Planes, Import, Surfaces, Strokes. Under nulls and in categories items are sorted by name,
+  types mixed, numbers as numbers ("001_x" before "002_y", "Part 2" before "Part 10").
+- **Name**: double-click to rename. Icons distinguish null, symmetry, array.
+- **Material**: dropdown per surface (see above).
+- **Brief**: click sets the binding level for the Sketch Brief on meshes, surfaces and nulls – Fixed (don't touch),
+  Authoritative (refining allowed), Basis (execution open), Orientation, or "As in the assignment / null above".
+  With the object selected it applies to all selected. A null passes it on to everything below (inherited values
+  shown faint with ↳). Saved; in the Brief as exceptions to the assignment (see §Brief).
+- **Info**: line count for stroke objects, triangle count (or "missing") for meshes, "Null/Symmetry/Array · n" with
+  the number of children for nulls, "Helper surface", "· active", ⚠ for surfaces using foreign border lines.
+- **Eye**: hide/show (`H`; `Alt+H` shows all). On a null it applies to everything below.
+- Header dividers are draggable (widths stored; too wide: horizontal scrolling).
+- Search field above: shows matches with their groups.
+- Right-click on a null → Color: a strip on the left and a tint in the background for everything below, until a null
+  with its own colour takes over (saved with the scene).
+- `Shift`+click on an arrow (or right-click → Expand/Collapse with everything below) expands/collapses the subtree;
+  Expand all / Collapse all.
+- Clicks in the Outliner leave the list in place; a selection made in the viewport scrolls the list to it.
+- Right-click also offers Null / Symmetry / Array from the selection, Convert, Ungroup, To top level.
+
+Code: `sketch_machine/outliner.py`
+
+## Cleanup menu
+
+"Cleanup" button at the top, only in Edit. Acts on the selection; tick **Global – apply to the whole scene** to act
+on everything (the button then glows orange). Without selection and without Global: hint, nothing happens.
+- **Snap distance** slider (space distance, 1 mm – 1 m, logarithmic, default 2 cm, stored per computer): how close
+  ends (or an end and a line) must be for gap closing, welding and merging to connect them – independent of zoom.
+  (Snapping while drawing stays in screen pixels.)
+- **Clean up: weld + merge**: first weld, then merge.
+- **Weld (close gaps)**: ends close to each other onto one point; loose ends close to a line exactly onto it (the line
+  is split there). With points selected: exactly those – close ones each become one point, including corners in the
+  middle of lines and points already joining several lines; the other ends of their lines stay.
+- **Connect ends and crossings**: applies the drawing connection rule to existing lines (older scenes, crossings
+  after moving/extruding, between different surfaces).
+- **Merge (split lines back into one)**: pieces that continue without a kink (< 15°) at a node with exactly two ends
+  become one line.
+- **Straighten nearly straight pieces**, **Dissolve inserted points**, **Remove duplicate lines**, **Delete tiny lines
+  and points**, **Delete empty stroke objects**, **Reattach surfaces to their lines**.
+
+Code: `sketch_machine/vp/cleanup_ops.py`, `sketch_machine/cleanup.py`, `sketch_machine/app.py` (`_build_cleanup_menu`)
+
+## Quick key reference (Edit)
+
+- `1` `2` `3` points / edges / surfaces · `T` `R` `E` move / rotate / scale · `Alt+A` axis mode · `Space+M` space
+- `Ctrl` snap steps (`Ctrl+Shift` tenths) · `V` (hold) point snap · `Alt` (hold while dragging) detached move
+- `L` / `Shift+L` / `Ctrl+L` connected · `H` / `Shift+H` / `Alt+H` hide / isolate / show
+- `Ctrl`+click insert point · `S` (hold) slide · `K` hardness (`Shift+K` / `Alt+K`) · `J` smooth · `Ctrl+B` round/bevel
+- `Del` / `Shift+Del` / `Ctrl+Del` dissolve / remove / delete points
+- `F` surface · `Alt+F` curve surface · `Shift+F` loft · `Ctrl+Shift+F` ring loft · `Alt+D` split loft · `X` extrude
+- `Ctrl+C` / `Ctrl+V` / `Ctrl+D` / `Ctrl+Shift+D` · `Ctrl+G` new object / merge · `Alt+G` null · `Shift+G` ungroup ·
+  `Alt+C` convert · `Space+B` new stroke object
+
+# 4. Notes, note boards, Shots, Review and Recording
+
+This section covers everything that carries the artist's *intent* next to the geometry: notes in 3D space, the
+note boards behind them (PureRef-like), the Shots mode (timing prototype), the Review mode (spoken feedback that
+an AI turns into draft notes) and the input Recording. How notes and boards end up in the Sketch Brief is owned by
+§Brief; the MCP tools the AI uses on notes and reviews are owned by §MCP.
+
+## Notes mode
+
+### What a note is
+- A note is a **local prompt**: a short heading placed in 3D space, always upright (Y up), drawn in a thin font
+  with brackets at the top left and bottom right. Behind every note sits a **note board** (text, pictures, videos,
+  painting – see "Note boards").
+- By default the heading turns around Y to face the camera. Once rotated (R), it stays fixed.
+- Notes lie on top of the drawing and are visible in every mode. Toggle with the icon **Show/hide notes**
+  (top right toolbar; also in the View menu).
+- Notes and leader lines are occluded by surfaces and meshes like any line (same occlusion map). In Notes mode
+  occluded parts stay faintly visible; X-Ray shows everything.
+- Text is rendered antialiased and never shrinks below a minimum on-screen size when far away.
+- A small dot at the top right of a note means its board has content.
+- Code: `sketch_machine/note_tool.py` (viewport tool, drawing, octopus), `sketch_machine/notes.py` (geometry,
+  leader lines, relinking), `sketch_machine/scene.py` (`Note`, `NoteAnchor`, `NoteMember`).
+
+### Entering and leaving
+- Mode button **Notes** (Notizen) in the mode bar at the top (third of Draw · Edit · Notes · Shots), or `N`.
+  `N` again or `Esc` (with nothing selected) returns to Draw. `A`/`D` also return to drawing.
+- The manual (F1) opens on the Notes tab when pressed in Notes mode.
+
+### Creating a note
+- **Double-click on a line**: new note offset up and to the right of the click point, already attached to the line
+  with one leader line.
+- **Double-click in empty space**: free note under the cursor, at the depth of the line that is nearest on screen.
+  If a drawing surface or mesh under the cursor is closer to the camera than that line, the note sits on that
+  surface. With no lines at all: depth of the camera pivot.
+- Type the heading immediately; `Enter` finishes. Clicking away with no text keeps the note with the placeholder
+  name "Note" (Notiz) – position first, label later. `Esc` discards an empty new note.
+- A single click in empty space only deselects the active note; it does not create one.
+- New notes take the size last used.
+
+### Leader lines and what they attach to
+- Leader lines are right-angled: from the nearer lower corner of the note horizontally at the note's height to
+  above/below the target, then vertically down/up to it (`notes.leader`).
+- A note can have **several** leader lines (anchors). Add one by dragging from the **ring at the bottom left
+  corner** of the note, or `Ctrl`+drag from the note itself, onto:
+  - a **line** (anywhere on it; near an end it snaps to the end point) – the anchor stores the line id and the
+    fraction `t` of its arc length, so it **moves with the line**;
+  - a **point on a surface** (drawing surface / mesh) – stored as a fixed world point; it does **not** follow if the
+    surface is later moved.
+- The front-most surface under the cursor wins: a line behind a surface does not count; a line on or in front of a
+  surface only counts if it is exactly under the cursor.
+- Drag the dot at the end of a leader line to re-target it. Dropping it into empty space, or `Del` on the dot,
+  detaches it. Right-click on the dot → **Detach** (Verbindung lösen). Right-click on the note → **Detach all**
+  (Verbindungen lösen) removes all leader lines.
+
+### Notes that move with lines
+- A line anchor sits at a fixed fraction of its line's length; the note itself follows its **first** connection.
+- When a line is split (cleanup, extrude, edge edits, Edit operations that split and move in one step), anchors
+  are re-linked by position to the piece that now lies at the old anchor point (tolerance `RELINK_TOL` = 0.02 world
+  units).
+- When the line is deleted, the leader line stays as a **dashed** line (anchor `lost`). The brief reports such
+  anchors as open points (see §Brief).
+
+### Note octopus (Notizkrake)
+Purpose: a note usually points at one example; the octopus says which parts of the same kind are meant too (the
+other hoses, panels, legs …).
+- **Ways to add arms** (all store the same thing: a list of "also meant" parts per anchor, no duplicates):
+  1. Click a note (with several leader lines: click the anchor point), then `Shift`+click parts in the viewport.
+     `Shift`+click again removes a part. `Ctrl`+`Shift`+click adds the **null** (group) containing the clicked
+     part – one arm for the whole group.
+  2. Click the anchor point (it becomes the selected anchor and shows its arms), then `Shift`+drag from it onto
+     another part (line, surface or mesh; not planes or helper surfaces). `Shift`+drag only works from the
+     already-selected anchor; the first `Shift`+click on an unselected anchor just selects it.
+  3. For many parts: select them first (objects, nulls = one arm for everything inside, or single lines), then
+     right-click the anchor point → **Add selection to octopus**. If the note has only one leader line, the same
+     entry is in the note's own right-click menu.
+- **Display**: when the note is selected, anchors with an octopus are magenta, slightly larger and have a soft
+  ring. A click on such an anchor point shows its arms (curved, magenta); a second click hides them. If the note's
+  label is behind the camera (camera close to the parts), the clicked anchor's point and arms stay visible.
+- **Remove**: `Del` on the ring at an arm's end, or right-click it → **Remove from octopus**; at the anchor →
+  **Clear octopus**.
+- Arms on lines move with the line (relinked by position after splits). Symmetry/array copies cannot be clicked:
+  the arm hangs on the original and the copies are implied. Deleted parts stay as dashed arms and are listed in
+  the brief dialog under "Check before export" (see §Brief).
+- Every change is one undo step and saved in the scene.
+- **Glow**: with a note selected (Notes mode) all connected parts glow magenta – surfaces with a hint of magenta and
+  a magenta outline, meshes tinted, lines magenta; a null lights everything inside it. The part at the end of a
+  leader line glows stronger (for a line anchor: only that line), octopus parts weaker; symmetry/array copies glow
+  too. A click on an anchor point (without dragging) selects only that anchor (magenta ring): then only its part and
+  arms glow. Click the note or `Esc`: all again.
+- In the brief each anchor lists its parts as "also meant", and `brief.json` has `part_notes` (part → notes that
+  reach it). Details: §Brief.
+
+### Moving, rotating, resizing, deleting
+- **Move**: drag the note (`Shift`: vertical only).
+- **Rename**: double-click the heading, `F2`, or right-click → **Edit heading**.
+- **Rotate**: `R` (with the note selected or under the cursor) or right-click → **Rotate**: move the mouse left/right,
+  `Ctrl` = 15° steps, click or `Enter` = done, `Esc`/right-click = cancel. After rotating the note is fixed
+  (no longer follows the camera).
+- **Rotate with the camera**: right-click → **Rotate with the camera** (on/off) switches back to camera-facing.
+- **Size**: right-click → **Small / Medium / Large / Very large** (line height in world units 0.22 / 0.35 / 0.55 /
+  0.9).
+- **Note size of the scene**: right-click → **Note size of the scene: × n** – a factor on all note sizes of this
+  scene (presets ×1, 2, 5, 10, 25, 50, 100, or **Own value …** 0.01–10000), saved with the scene. Use it for large
+  scenes where notes are too small.
+- **Delete**: `Del` (note under cursor or active), or right-click → **Delete**. `Del` over an anchor dot or an arm
+  ring removes only that.
+- Other right-click entries: **Open note board**, **View to note board (picture)** (in Shots: **New camera
+  (screenshot onto the board)**).
+- Buttons that appear when hovering a note: **⤢** (open the board large) and below it the **camera button**
+  (insert the current view into the board). The ⤢ button stays while the cursor is near.
+
+### Local note, global note (project note)
+- **Local** note = a note in space, tied to parts via leader lines and octopus.
+- **Global** note = the note of the whole scene (internal title "Project"): project info, moodboard, general
+  prompts. It has no position in space. It is reached via the **Global** button at the top of the **Note** panel.
+  In the Sketch Brief it appears as the **project note**. Rule of thumb: what always applies to the object goes into
+  the Global note; what applies to one export only goes into the export dialog's notes (see §Brief).
+- Local ↔ Global switching is the **Local | Global** toggle at the top of the Note panel (only in the docked panel,
+  not in the large overlay).
+
+## Note boards
+
+### Opening a board
+- In Notes mode, the **Note** panel (dock below the Outliner) shows the clicked note: heading, text, pictures –
+  directly editable. Changes are committed to the note when you switch notes or click into the viewport (one undo
+  step per change).
+- The panel docks like any panel (drag its title bar, e.g. below the viewport) or floats (e.g. on a second
+  monitor); its position is saved. **View → Reset workspace** (Ansicht → Arbeitsbereich zurücksetzen) puts it back.
+- **⤢ on the note in the viewport** (or right-click → Open note board) opens the board large and semi-transparent
+  over the viewports (the sketch shines through). `Esc` or ✕ closes it; the content is kept.
+- **⤢ in the panel** maximizes the board over the whole program window (`Esc`: back).
+- Empty panel text: "click a note in the viewport". Boards use the dark interface style regardless of the
+  viewport's paper/chalkboard mode.
+- Code: `sketch_machine/note_board.py` (`NoteBoard`, `BoardView`, item classes, `render_board`).
+
+### Pinning a board
+- **📌** in the Note panel, or **View → Note Board in Every Mode** (Ansicht → Notizbrett in jedem Modus): the panel
+  stays visible while drawing, painting and in Edit – use it as a reference board (also floating on a second
+  monitor).
+
+### Navigation and editing on the board
+- Zoom: mouse wheel or `Alt`+RMB drag. Pan: MMB drag or `Alt`+LMB drag. `F`: frame everything.
+- **Scale** a selected picture/text: drag a corner (opposite corner stays) or `Ctrl`+wheel (when not painting).
+- `Del`: delete selected items. `Ctrl+Z` / `Ctrl+Y`: undo/redo in the **same history as the 3D view**.
+- Pictures always lie **below** strokes and text (you paint on them).
+- Hint line at the bottom of the board lists the keys.
+
+### Text
+- Double-click in empty space (also inside a backdrop): new text block, type immediately. Double-click a text to
+  edit it. `Esc` ends editing.
+- `Ctrl+V` with text on the clipboard pastes it as a text block.
+
+### Pictures
+- `Ctrl+V` pastes pictures (also a picture copied in a web browser; if the clipboard holds only a picture link,
+  Mule downloads the picture, timeout 8 s). Drag image files in (png, jpg/jpeg, webp, bmp, gif).
+- New pictures are shown at most 520 board units on the long side; the original is kept.
+- Pictures are stored **inside the scene file** (like PureRef: one file contains everything; images without
+  transparency as JPEG). Deleted pictures are no longer saved. Older scenes with a `<scene>.sketch.assets` folder
+  still load and embed the pictures on the next save.
+- A missing picture shows a dashed "Picture missing" placeholder.
+
+### Captions
+- Right-click a picture → **Caption …** / **Edit caption …**: one sentence on what the picture stands for here
+  (shape, detail, material, mood, function) and what matters ("only the hinge on the left – the photo's proportions
+  do not apply"), not a retelling of the picture. If the board already says it, the caption just refers to it.
+- Shown as a grey line under the picture (scales with it). Applies to **the same image file on all boards** of the
+  scene. One undo step.
+- Rule: every reference picture should get one. Missing captions are listed by the brief as open points
+  (screenshots excepted); the AI proposes captions in its first round and the artist confirms. Export works without.
+- Via MCP (`set_image_captions`) a caption can also name the parts the picture belongs to (hard link picture ↔
+  part, stored as object ids). See §MCP and §Brief.
+
+### Videos
+- Drag a video file in (mp4, mov, m4v, webm, mkv, avi). It behaves like a picture with a preview frame (arrows,
+  caption, backdrops, scaling) plus a play button / `Space` to play (muted, looping, only one video at a time) and
+  a timeline bar to scrub. Right-click → **Add still to the board** inserts the current frame as a picture.
+- The video file is **never inside the scene file**: on save a copy goes into `videos/` next to the scene (relative
+  path; pass scene and folder on together). Same name and size counts as the same file; otherwise the copy gets a
+  free name (`name_2.mp4` …).
+- Needs QtMultimedia (part of PySide6-Addons); without it videos cannot be read.
+- If the file is missing, the preview stays and the brief names it as an open point. In the brief each video gets
+  an overview sheet of six frames with timestamps; the AI reads more frames only on request (MCP `video_frames`,
+  see §MCP).
+- Code: `sketch_machine/video.py`.
+
+### Camera button: view into the board (screenshots)
+- The **camera button** – on the note in the viewport (below ⤢), at the top of the board, or right-click the note →
+  **View to note board (picture)** – inserts the current view as a picture: the viewport as it looks now, but
+  without gizmo, selection, notes, drawing aids (planes, helper surfaces, axis crosses) and bars.
+- The picture remembers its camera: **double-click** it to fly back to that view. The brief states camera position
+  and view direction.
+- **Retake**: **↻** at the top right of a screenshot (visible when selected or hovered) retakes it from its stored
+  camera; `Shift`+click retakes it from the current viewport view. **↻ at the top of the board** retakes all missing
+  screenshots (file lost), or all if none is missing. The new image keeps the old aspect ratio, size and position
+  (strokes on it still fit); X-Ray, wireframe and light are taken as currently set (nothing of that is stored with
+  the picture). One undo step. Pasted pictures without a camera cannot be retaken.
+
+### Hero cameras (screenshot check box)
+- A screenshot (a picture with a stored camera; not pasted pictures, not Shots camera pictures) shows a check box
+  **hero camera** at its top right, next to ↻ (visible when selected or hovered; scales with the picture, at most a
+  quarter of its width). Below it a small name field (click the name to rename; default "Hero N" with the lowest
+  free number in the scene; duplicates get `_1`, `_2` …).
+- Hero pictures have a turquoise frame. Saved with the note; one undo step.
+- Effect: the brief renders a clean image (`views/hero_*.png`) plus a Color-ID image per hero camera and writes the
+  camera into `scene.usd`; without any hero screenshot the brief uses three neutral default angles. Details of
+  these files and of `set_hero_prompt`: §Brief and §MCP.
+
+### Painting on the board
+- **✎** at the top of the board or `A` (pen), `D` (eraser; `Ctrl`+`Shift`+eraser: whole strokes), `Esc` or ✎ again:
+  off.
+- Pen colors: the dots at the top – **Ink** (follows the board's text color), Red, Blue, Green, Orange, and **Own
+  pen color (color wheel)**. Clicking a color turns the pen on.
+- Size and pressure as in the 3D view. Brush width on the board is the same at every zoom (`Ctrl`+wheel /
+  RMB-drag while painting); `Ctrl`+`Shift`+wheel / RMB-drag changes the width of the strokes on the board
+  (selected ones, else all).
+- Shape recognition as in the 3D view: hold still at the stroke end → circle, rectangle, arc or straight line; the
+  mouse sets the size (`Ctrl`: square / angle steps); release: done.
+- Strokes are separate items: when not painting, select, move, `Del`.
+- A pause of 0.5 s after the last stroke commits the strokes (one undo step).
+
+### Arrows from text to picture areas
+- After painting, the board briefly (2.5 s) shows what the stroke connects – only if it connects something;
+  writing and doodling in empty space stays silent. A **selected** stroke shows its result permanently, including
+  "unclear".
+- Rules (`board_links.stroke_link`):
+  - **Caption → picture/screenshot** ("link"): the end closer to a text block (within 30 board units) is the start;
+    the tip belongs to the picture it lies on (or the nearest text/picture within reach). The tip's place in the
+    picture is stored as `uv` (0..1 from top left).
+  - **Picture → picture** ("image", e.g. reference photo → screenshot); the tip is placed on the screenshot.
+  - **Mark**: a closed stroke (circle, frame) or a stroke lying entirely on one picture.
+  - Strokes shorter than 25 board units (arrowheads, ticks) do not count.
+- Board-only: no 3D assignment is made (arrows often just indicate a direction; the AI reads text and image).
+- Arrows created by the AI (MCP `dictate_note`, `insert_images`) are arrow items that **follow** their text and
+  picture when those are moved.
+- Code: `sketch_machine/board_links.py`.
+
+### Backdrops
+- **Backdrop** (`B` or ▭ at the top of the board): a titled frame around the selected items (without selection: in
+  the middle), slightly darker than the board. Type the title immediately; double-click the title to change it.
+  Dragging the tab (title bar) moves everything inside; dragging inside the frame draws a selection box; corners
+  resize; `Del` deletes only the frame.
+- **Auto backdrops** (`Shift+B` or right-click ▭): frames around everything that lies close together and is not yet
+  in a backdrop (at least two items); title = first text inside. Groups whose frame would enclose an item of another
+  group become one backdrop.
+
+### Copy between boards
+- Select items (pictures, videos, texts, strokes, backdrops) → `Ctrl+C` copy or `Ctrl+X` cut → `Ctrl+V` in another
+  board (Global ↔ Local, Local ↔ Local; also via right-click **Copy / Cut / Paste**). The arrangement is kept, the
+  top-left corner lands at the cursor, the pasted items are selected; one undo step each.
+- A **copy** is an ordinary picture: no second hero camera, no Shots camera binding. On **cut**, the hero camera
+  (and in Shots boards the camera binding) moves along. After a cut-paste, pasting again makes a copy.
+- A single copied picture is also put on the system clipboard as an image (for other programs); copied texts as
+  plain text.
+- Pictures that are not in the current scene's assets are skipped on paste (message says how many).
+
+### How board content is read in the brief (short)
+- Every board with content is exported as one image (`notes/board_N#.png`) so the AI sees annotations over the
+  pictures, and additionally split into **sections**: a backdrop is a section with its title; items in no backdrop
+  are grouped by proximity (frames at most 120 board units apart). Each section lists texts in reading order,
+  pictures, and painted arrows as **P#** ("caption → place in picture"); marks and unclear strokes are only counted.
+  Strokes belong to the section of their target (else of their source).
+- Full details: §Brief. Code: `board_links.sections`, `note_board.render_board`, `render_region`.
+
+## Shots mode (timing prototype)
+
+### What it is
+- The fourth mode button **Shots** (intern "timing"). Purpose: communicate **what happens when** (size, shape and
+  camera over time) without animating. Mule has **no keyframe animation**: a drawing holds until the next drawing
+  of its layer; a camera position holds until the next position of that camera. Nothing is interpolated in Mule.
+  What should happen in between is written in shot notes.
+- Enter with the **Shots** button (no default key). `Tab` returns to Draw. In Shots the timeline (bottom) and the
+  **Shots** panel (right) are shown.
+- On entering, free mode and multi mode are switched off; only painting (pen/brush/eraser) exists. Normal notes
+  rest; shot notes are a separate list (normal notes are not shown in Shots and vice versa).
+- Code: `sketch_machine/timing.py` (data, pure), `sketch_machine/timing_ui.py` (timeline),
+  `sketch_machine/vp/timing_view.py` (viewport: flipbook rendering, cameras, viewfinder), shot boards in
+  `sketch_machine/note_board.py` (`ShotRow`), export in `sketch_machine/timing_export.py`.
+
+### Flipbook layers (flipbook planes)
+- `Space+N` in Shots creates a flipbook layer: its own plane type (never becomes a normal plane) with its own
+  stroke object.
+- It is a rigid object: move/rotate/scale only in Shots with `T` / `R` / `E` (gizmo at the active flipbook layer;
+  same key again or `Esc` removes the gizmo) – including the drawings of all frames. Mouse wheel, `[ ]` and
+  `Shift`+RMB do **not** move it.
+- Paintable only in Shots, and in Shots you can only paint on flipbook layers (otherwise a hint). Pick the layer by
+  clicking its name in the timeline.
+- Outside Shots it is visible with the drawing of the current frame but fully locked: not activatable, not
+  erasable, greyed out in the Outliner (not selectable, deletable, renamable or re-parentable), no Edit gizmo.
+- Deleting a flipbook layer (in Shots) deletes its drawings. Leaving Shots restores the previous drawing surface.
+- **Drawings**: painting or erasing at a frame works in that frame's drawing. If the frame has none, the drawing
+  currently held is first copied to this frame (keep painting: the pose stays, you erase and add; the earlier
+  drawing stays unchanged).
+- **Onion skin** (`O` or check box): previous drawing at 30 % opacity, next one only hinted (12 %).
+- In a shot camera there are no axis views (`Esc` first).
+- Flipbook strokes are **not** part of lines in the brief or the curve export; only the camera pictures show them.
+
+### Timeline
+- Frames start at 1001 (default range 1001–1100, 24 fps; first/last frame and fps editable). Current frame spin box.
+- Keys: `←`/`→` one frame; `Shift`+`←`/`→` first/last frame; `↑`/`↓` next/previous drawing; `Alt+A` play/stop
+  (every frame is shown, none skipped).
+- One row per flipbook layer with diamonds (hollow = empty drawing); a camera row at the top shows the positions of
+  the selected (or looked-through) camera. Click a layer name: paint there. Drag a diamond: change timing (refused
+  if a drawing already exists at the target). Right-click a diamond: delete.
+- Buttons **Empty drawing** (the layer is empty from this frame on) and **Delete drawing** (the held drawing; the
+  previous one then applies). Slider **Camera size**: size of all camera symbols.
+- Performance: all drawings live in one renderer buffer; a frame change only selects ranges (no re-upload).
+
+### Shot notes
+- Shot notes work like notes: heading in space, leader lines and octopus, a board behind. They have **no time
+  range** – they apply to the whole timeline and belong to flipbook layers.
+- Double-click: create a shot note (on a stroke of the drawing currently shown: attached to it – ends do not snap;
+  otherwise on a point of a flipbook plane). Click a shot note: its board appears in the **Shots** panel. Drag: move;
+  drag the ring: leader to more layers; `Del`: delete; `F2`/`R` as for notes.
+- The **Shots** panel is a note board with **Local | Global**: Local = the clicked shot note; **Global** = the shot
+  note for all shots (what the animation is about).
+
+### Shot cameras
+- Cameras are created **only as a screenshot**: the camera button on the shot board (🎥) or on the shot note in the
+  viewport, or right-click the note → **New camera (screenshot onto the board)**. It always creates a new camera in
+  that note from the current view: outside a camera with the viewport's focal length; while looking through a
+  camera, as a variant of it (inherits focal length, color, symbol size). Default color, image format 16:9.
+- **Every position is a picture on the board**, with a settings bar below it: color (categories), name (click to
+  rename), "from F…" (frames this position holds; click: jump to its first frame; right-click: change), **👁** look
+  through, **⟲** change position, **➜** new position from the current frame, focal length slider.
+- **The board is authoritative**: deleting a position's picture deletes the position; deleting the last picture
+  deletes the camera; a camera belongs to the note on whose board its pictures lie (`timing.sync_boards`).
+- **Look through**: double-click the camera symbol in the viewport or its picture, or 👁 → viewfinder in camera
+  color with name, mm and frame; follows the positions when playing. `Esc` leaves the camera (asks if the view was
+  changed and not committed). Click a symbol: select the camera (and its note); a pale position jumps to its frame.
+- Positions are set **only from inside**: orbit/pan/zoom move just the view; **⟲** gives the view to the position
+  valid here (no move); **➜** adds a new position from the current frame (camera move, new picture, inherits focal
+  length).
+- Focal length slider 8–600 mm keeps the framing; `Alt`: plain zoom. mm are shown for a 36 mm wide sensor at 16:9.
+- Right-click a camera picture: **Look through the camera**, **Rename camera …**, **Position from frame …**,
+  **Symbol size** (×0.25 … ×4), caption, copy/cut. ↻ retakes the picture.
+- Viewport: a pyramid per camera; other positions pale with a dashed move line. Never in exported/clean images.
+- Cameras run in parallel over the whole timeline (no cuts; a note may ask for an edit).
+- Everything is saved in the scene (pictures embedded); normal undo.
+
+### Export of Shots (timing_export.py)
+- Brief dialog (`Ctrl+E`) and USD dialog (`Ctrl+Shift+E`) show **Shot cameras:** only if shot cameras exist:
+  "stepped – as in Mule (each position holds until the next)" or "linear between the positions (make it smooth
+  afterwards in your 3D software)". The choice is stored in the scene.
+- **USD**: `scene.usd` gets a Scope `/sketch/shots` with one Camera per shot camera: `xformOp:translate` (eye),
+  `xformOp:orient` (quaternion, same hemisphere for clean interpolation), `focalLength` as time samples;
+  `horizontalAperture` 36 mm, `verticalAperture` 20.25 mm; primvars `sketch_name`, `sketch_note`,
+  `sketch_interpolation`. Stepped adds an extra time sample one frame before each new position. The layer header
+  gets `startTimeCode`/`endTimeCode`/`timeCodesPerSecond`/`framesPerSecond`.
+- **Brief**: only if something happens in Shots (a shot camera, a flipbook drawing, or a shot note with board
+  content – empty notes and unpainted layers do not count), `brief.md` gets "## Shots – what happens when" (global
+  shot note, per shot note S1, S2 …: text, layers, board image, cameras with positions/focal lengths/eye and their
+  pictures; flipbook layers with drawing frames and empty-from frames); `brief.json` → `shots`; fresh pictures per
+  camera at its positions and at the drawing changes of its note's layers (`shots/<cam>_F<frame>.jpg`, at most 24
+  per camera, thinned evenly); board images `shots/SG_board.jpg`, `shots/S<k>_board.jpg`. See §Brief for the rest.
+
+## Review
+
+### What it is for
+Walk through the scene and talk feedback like in a review session. Mule records the voice and **where the artist
+looked and pointed**; afterwards an AI (via MCP) turns it into **draft notes** in the open scene, which the artist
+checks and accepts. No video is recorded: Mule knows the camera at every moment and re-renders any moment cleanly.
+- Code: `sketch_machine/review.py` (recording, marks, sender, transcript reading), `sketch_machine/review_transcribe.py`
+  (standalone transcription script), `sketch_machine/whisper_setup.py` (setup dialog), draft bar in
+  `sketch_machine/note_board.py` (`_make_review_bar`), UI in `sketch_machine/app.py`.
+- Not to be confused with **review rounds** (feedback on a running brief build, `review_round.py`) – see §Brief.
+
+### Starting and stopping
+- **View → Review → Start Review** (Ansicht → Review → Review starten), or the **Review** button in the mode bar
+  (menu: Start/Stop Review, Mark, Undo last mark, Microphone, Set Up Transcription …, last review, Open Reviews
+  Folder). No keyboard shortcut (deliberately).
+- The Review button and **Send Review** are visible in Notes mode (not in Shots) and in every mode while a review is
+  recording or being sent. While recording the button is red with the running time ("● Review m:ss").
+- **Stop Review** ends the recording (then transcription starts in the background). **Send Review** also ends it
+  (see below).
+- Microphone: system default, or pick another in **Review → Microphone** (saved). 16 kHz mono 16-bit if the device
+  supports it, else its preferred format. Without a microphone the review still records the log.
+
+### What is recorded
+- Voice (`ton.wav`) and, every 100 ms: camera (only on change), mouse position (fraction of the view), what lies
+  under the cursor when it rests (≥ 350 ms), selection, open/active board.
+- The artist's own changes during the review (compared every 5 ticks): new notes, board growth (pictures, texts,
+  strokes, new title), deleted notes, new/deleted lines – the AI builds on them.
+- Marks (see below).
+
+### Mark tool
+- Button **Mark** (Markieren) next to "Review", on by default when a review starts (also in the Review menu).
+- A dashed ring follows the cursor, magenta if something would be hit; the status bar names the part.
+- **Click** sets a mark: view image (`marke_N.jpg`), camera, and exactly what lies there (curve, object, point). The
+  click does not reach the active tool. Navigate with `Alt` or held `Space` as usual; clicks with modifiers pass
+  through.
+- **Ctrl+Z while marking takes back the last mark** – it does *not* undo the scene. Menu: **Undo last mark**.
+- Mark button off = work normally; the recording continues.
+- Placed marks show as magenta pins with numbers in the viewport until the review ends (grey ring with "?" if
+  nothing was hit).
+
+### Board markers
+- A click on a picture on an open board (panel or overlay) while marking is a **board marker**: which board, which
+  picture, where in it (`uv`), plus its caption. The AI puts that picture with an arrow into the note of the part
+  being discussed; it also stays on its original board.
+
+### Where draft arrows go
+Pointers in drafts are only placed where something was really shown: a mark within 4 s; otherwise a spoken
+"hier/dort/here/there" (Whisper word times) while cursor and camera are still; otherwise a briefly resting cursor;
+otherwise no arrow rather than a guessed one. Drafts: as few notes as possible, as many as needed – one per part or
+area, bullet groups, one picture per spot.
+
+### Sending a review
+- **Send Review** (button next to "Review"): stops the recording, transcribes (if needed), backs up the scene into
+  `review_backups/` next to the scene file, and puts a sentence on the clipboard ("Review is ready: „<name>“ –
+  please make drafts from it." in Mule's language). Paste it into the AI chat.
+- Button states: **Transcribing …** → **Ready – tell Claude** (click again: copy the sentence again) → **Claude is
+  working …** (spinning, while MCP review tools are being called; turns off after 2 minutes without calls, or on
+  click). Without a running review, Send Review uses the newest review.
+- Drafts appear **all at once live in the open scene** (MCP `review_notes`, one `Ctrl+Z` removes them all); nothing
+  is saved automatically – the artist saves after checking. Mule does not start the AI itself; any MCP-capable AI
+  can use the same tools. Alternative without Send: after stopping, tell the AI "Turn the last review into notes".
+- AI side (owned by §MCP): `review_read` (transcript + pointing trail), `review_moment` (look at a moment),
+  `review_note` (one draft), `review_notes` (all drafts at once).
+
+### Draft notes and accepting them
+- Drafts have **dashed brackets** in the viewport. Their board shows a bar "Review draft · m:ss · „original
+  sentence“" with:
+  - **▶ Listen**: plays that part of the recording (from 1 s before to 1 s after the passage; click again: stop).
+  - **✓ Accept**: the draft becomes a normal note (one undo step).
+- Unaccepted drafts are listed by the brief as an open point.
+- Claude never changes notes on its own except its own review drafts (see §MCP for `edit_note`).
+
+### Review backups
+- Before the first draft of a review (and on Send Review) Mule backs up the open scene to `review_backups/` next to
+  the scene file (unsaved scene: `Documents/Mule/review_backups`); once per review and scene.
+- **File → Settings… → Review** (`Ctrl+,`): **Review backups per scene** (default 20, range 1–500; older ones are
+  deleted) and **Open Review Backups**.
+
+### Review folders and files
+- One folder per review: `<user folder>/Reviews/<scene>_<YYYY-MM-DD_HHMMSS>/`; user folder = `%APPDATA%/Mule` on
+  Windows, `~/.local/share/Mule` (or `$XDG_DATA_HOME/Mule`) on Linux. **Review → Open Reviews Folder**.
+- Files:
+  - `ton.wav` – voice, 16-bit.
+  - `protokoll.jsonl` – one JSON line per event, `t` = seconds since start (same clock as the audio), `typ` one of:
+    `start`, `kamera` (vp, target, dist, rot, ortho, w, h), `maus` (vp, x, y as 0..1), `ziel` (curve, obj, point,
+    x, y), `auswahl` (ids), `notiz`, `marke` (n, bild, x, y, curve, obj, point), `brettmarke` (n, bild, brett, x, y,
+    datei, uv, unterschrift), `marke_weg` (n), `notiz_neu`, `brett`, `notiz_weg`, `linien`, `linien_weg`, `ende`.
+  - `marke_<n>.jpg` – view (or board) image at each mark.
+  - `review.json` – header (scene, start, duration, number of marks, audio present), written at the end.
+  - `transkript.json` – `{model, language, duration, segments: [{start, end, text, words: [[word, start, end]]}]}`.
+  - `transkript_fehler.txt` – traceback if transcription failed; `transkript.laeuft` – lock while transcribing.
+
+### Transcription with faster-whisper
+- Runs locally after the review ends, in its own process (Mule stays usable): `review_transcribe.py <folder>
+  [model] [language]`, using standard library, numpy and faster_whisper only. Model **large-v3-turbo** (fixed in
+  code; no UI setting), language auto-detected, word timestamps on, VAD filter on, beam size 5.
+- Tries the **GPU** first (CUDA, float16; on Windows the CUDA DLLs from the pip packages are made findable), and
+  falls back to the **CPU** (int8) – much slower, but in the background.
+- If the transcript is missing when the AI asks for it, the MCP server transcribes it on demand (timeout 30 min).
+
+### Setting up Whisper
+- On the first review without Whisper Mule asks once: **Set Up …** / **Later** / **Don't ask again** (the review
+  records anyway). Any time: **Review menu → Set Up Transcription …** (shows "Transcription set up ✓ – set up
+  again …" once found).
+- Needs once an installed **Python 3.10–3.13** (from python.org; tick "Add python.exe to PATH"). Mule finds it via
+  the `py` launcher (3.12, 3.13, 3.11, 3.10) or `python3`/`python` on PATH (Microsoft Store placeholders are
+  ignored). Without Python the dialog explains this and offers "Look for Python again".
+- Steps (separate processes, Mule stays usable, cancellable): create `<user folder>/whisper_venv`
+  (`%APPDATA%/Mule/whisper_venv`); `pip install faster-whisper` (with an NVIDIA GPU – detected by `nvidia-smi` – also
+  `nvidia-cublas-cu12` and `nvidia-cudnn-cu12==9.*`); download the model (~1.6 GB). Together about 2–4 GB. On
+  success Mule stores the setting `whisper_python`.
+- Advanced: Mule looks for a Python with faster-whisper in this order: environment variable `SM_WHISPER_PYTHON`,
+  setting `whisper_python`, the setup venv, `~/mcp/whisper_venv`, and finally Mule's own Python if faster_whisper is
+  importable there (not in the frozen package).
+- Whisper is not part of the release package.
+
+## Recording
+
+### What it is for
+Evaluating one's own work and Mule's responsiveness: every input with a timestamp and its computing time, plus hangs
+– optionally in sync with an OBS screen recording. Not related to Review (no audio, no AI drafts).
+- Code: `sketch_machine/recorder.py`.
+
+### How
+- **View → Recording → Start Recording / Stop Recording** (Ansicht → Aufnahme). **Also Start OBS** (check box,
+  saved, default on) starts and stops the OBS recording too. **Open Recordings Folder**.
+- OBS: needs OBS 28+ with its WebSocket server switched on (OBS: Tools → WebSocket Server Settings). Mule reads port
+  and password itself from OBS's `plugin_config/obs-websocket/config.json`. The moment OBS reports "recording runs"
+  is logged as `t`, so video and log line up frame-accurately.
+- A recording label is shown in the status area while recording.
+
+### Log format
+- Folder per recording: `<user folder>/Aufnahmen/<YYYY-MM-DD_HHMMSS>/`.
+- `protokoll.jsonl`, one line per event, `t` = seconds since start, `typ`:
+  - `start` (wann, version, szene, obs, bildschirm), `ende`;
+  - `taste` (taste, mods, ziel, modus, dauer_ms), `klick` (knopf, x/y in target, gx/gy global, ziel, modus,
+    dauer_ms), `loslassen` (knopf, ziel, gezogen_px, dauer_ms), `doppelklick`, `rad`;
+  - `aktion` (menu, toolbar or shortcut: text, dauer_ms), `modus` (base state/tool changed);
+  - `haenger` (ms, letzte_eingabe, modus, wo = Mule functions the main thread was stuck in, bild);
+  - `obs` (zustand, info).
+- `dauer_ms` = time until the event loop is free again (processing including the immediate redraw). A hang is
+  logged when a 50 ms tick arrives ≥ 150 ms late; from 1 s a small window image `haenger_<nnn>.png` (640 px wide) is
+  saved.
+- Text typed into input fields is **not** recorded (only that typing happened).
+
+# 5. Sketch Brief, MCP server and working with an AI
+
+This section is for the AI that will often rebuild the sketch itself. It covers the Sketch Brief export, the
+working-method package copied into it, review rounds, the clarified answers, the MCP server with all of its tools,
+the other exports (USD, curves) and the recommended end-to-end workflows. Note boards, hero-camera screenshots,
+captions and the review recording are described in their own sections (see §Notes, §Review); here only their effect
+on the brief and the AI tools is covered.
+
+Basic facts every reader needs:
+- Units: 1 unit = 1 m, Y is up, everywhere (brief, brief.json, scene.usd, curves JSON).
+- Ids: **H#** groups (nulls, incl. symmetry and array generators), **M#** imported meshes, **F#** surfaces,
+  **S#** stroke objects, **L#** lines, **G#** connected line groups, **N#** notes, `project` = the project note
+  (Global note), **P#** arrows on a note board section. The same ids appear in `brief.md`, `brief.json`, the
+  pictures in `views/`, the prim names in `scene.usd` and the MCP tool results. Ids are assigned per export and
+  **can shift between exports**; names and USD paths stay. Review rounds list shifted ids.
+- **Hidden objects are not part of any brief or export** (eye off in the Outliner, also when hidden through a
+  null above). The curve export is the only one with an option to include hidden objects.
+- The brief is written **as a prompt, not a finished spec**: existing geometry is the starting point, sketches show
+  intent rather than dimensions, notes often mean similar or mirrored parts too.
+
+Code: `sketch_machine/brief.py` (analysis, pictures, brief.md/brief.json, export), `sketch_machine/brief_dialog.py`
+(dialog, autoprompt), `sketch_machine/brief_v4.py` (package, project.md, work folder), `sketch_machine/review_round.py`,
+`sketch_machine/brief_ai.py` (clarified answers), `sketch_machine/mcp_server.py`, `sketch_machine/usd_export.py`,
+`sketch_machine/curve_export.py`, `sketch_machine/app.py` (`export_brief`, `export_brief_to`,
+`_export_review_round`, `export_usd`, `export_curves`).
+
+## Sketch Brief export
+
+### Starting the export
+- Menu **File → Export Sketch Brief…** (Datei → Sketch Brief exportieren…), shortcut `Ctrl+E`. Works in every mode.
+- Mule first analyses the scene (wait cursor), then opens the dialog **Sketch Brief – Assignment**
+  (Sketch Brief – Auftrag). After **Export**, a folder picker asks for the **parent folder** (it starts in the
+  folder of the scene file); Mule writes into `<chosen folder>/<scene name>_brief`. The scene name is the file name
+  without extension, `skizze` for an unsaved scene.
+- Exception: when **Builds on** points to an existing brief, there is no folder picker – the export becomes a review
+  round inside that brief (see §Review rounds).
+- The dialog values are stored in the scene (`scene.brief_task`), so the scene becomes "unsaved" when they change.
+  Save the scene afterwards to keep them.
+- Alternative without dialog: the MCP tool `export_brief` (uses the stored assignment, never a focus).
+
+### Dialog fields (top to bottom)
+- **Assignment in one sentence:** (Auftrag in einem Satz) – the goal of this export. Optional. Without it (and
+  without notes) the brief says "the first round works out the goal from the notes".
+- **Notes on this export:** (Hinweise zu diesem Export) – multi-line. Valid **only for this export** and placed in
+  the brief as "Artist's notes for this task", ranked **above notes in the scene**; the AI must name conflicts.
+  What always holds for the object belongs in the Global (project) note instead.
+- **Builds on:** (Baut auf) – read-only path with **Choose …** and **×**. Empty = normal export, a new brief.
+  Set to the brief folder in which a chat is already working = the export becomes a **review round** there. Picking a
+  folder inside `review_rounds/` is resolved to the brief folder. A grey line below says where round N will go, or
+  that the folder holds no `brief.json`. Disabled while "Discuss only" is ticked (but remembered).
+- **Type:** **Discuss only – build nothing** (Nur besprechen – nichts bauen). Writes the old "Core" style brief
+  (see below) with no package, no hooks, no work folder.
+- **Look pre-stage: first generate images from the hero cameras, then build** (Look-Vorstufe). Disabled with
+  "Discuss only". Adds the section "Look images (before building)" to `brief.md` and a line to `project.md`: write one
+  image prompt per hero camera from the brief, get the artist's OK (prompts already approved with `set_hero_prompt`
+  are listed and need no new OK), generate 2–3 variants per camera with the clean hero picture as structure input,
+  save as `gen/<camera>_a.png`, `gen/<camera>_b.png` …, **never orthographic views**, the artist picks, build only
+  after that. Precedence afterwards: sketch geometry > notes > generated images.
+- **Shot cameras:** (Shot-Kameras, only visible when the scene has Shots/timing cameras) – "stepped – as in Mule"
+  or "linear between the positions". Stored with the scene; also used by the USD export. See §Shots.
+- **Scope:** (Umfang, only visible when objects are selected) – **build only the selection (N object(s)) – the rest
+  of the scene is context**. Unticked by default, so a forgotten selection never narrows the brief. A selected null
+  includes everything below it. Effects: section "Focus – what to build" in `brief.md`, extra pictures
+  `views/focus_<view>.png` (focus highlighted, context X-ray), `sketch:focus = 1` on the focused prims in
+  `scene.usd`, the round map in `project.md`, and notes whose anchors all lie outside the focus move to
+  `context.md` (build briefs only).
+- A grey info line: scope of the round, kinds of work, binding level, tools and way of working are **not asked in
+  the dialog** – the AI clarifies them in the first round from the notes.
+- **Clarified with the AI:** (Geklärt mit der KI, only visible when there are clarified answers) – "N points (and a
+  summary) – in every export (+N in history)", buttons **View** (shows summary, question → answer, history) and
+  **Delete** (toggles to **Keep**; deletion happens only when you press Export).
+- **Check before export (N):** (Vor dem Export prüfen) – a live list of what the scene leaves open: the same "open
+  points" as in the brief (missing pictures, reference pictures without caption, board sections without text,
+  hand-drawn strokes not connected to anything, notes without leader line or with leader lines into empty space,
+  deleted "also meant" parts, missing mesh files, unchecked review drafts), plus "no assignment sentence and no
+  notes – the AI does not know the goal" and "Look pre-stage ticked – no note names mood, style or material
+  direction" (keyword check, skipped when the notes contain pictures). Advisory only; export is always possible.
+  Fix things in the scene, not in the dialog.
+- **Autoprompt – on the clipboard after export (Ctrl+V in the chat)** (remembered between sessions), with a text
+  field below. The text is generated from the current settings and follows them until you type in it yourself;
+  after export it goes to the clipboard with the real folder path. The text is in the UI language. Three variants:
+  - build brief: "This session must run in the brief folder …; start your first message with the GATE STATUS block
+    …; read conductor.md, project.md and brief.md and do the first round as conductor.md describes … building
+    starts only after I confirm … propose captions … store with set_image_captions … write_clarified"; with Look
+    pre-stage an added sentence about `set_hero_prompt`;
+  - discuss only: "read brief.md and do the first round as described in the Core … look at the scene with
+    scene_brief … write_clarified … captions";
+  - review round: "Review round N for … is in …; not a new brief and not a new run … read review.md completely and
+    open every picture … same rules, same level".
+- Buttons: **Export**, **Cancel**, **Clear** (Leeren: everything to "not specified" – the brief then has no
+  assignment).
+
+Gotcha: if a build run is already going in the target (a file `work_<name>/review/gate/agents.log` exists), Mule
+asks "Run in progress": rules, roles and hooks stay as they are, only content and pictures (brief.md, project.md,
+views, notes) are rewritten.
+
+### What is written to the brief folder
+Build brief (default) – all files relative to `<scene>_brief/`:
+- `brief.md` – the content: scene, notes, components (see next heading). In a build brief it starts with a short
+  pointer to `conductor.md`, `rules.md`, `levels.md`, `roles/` and `project.md`.
+- `brief.json` – the same, structured and complete (keys include `task`, `focus`, `bindings`, `cameras` with
+  `eye/target/up/direction/fov_vertical_deg/aspect/orthographic_height/id_image/id_parts`, `id_colors`,
+  `part_notes` (every part with the notes and captioned pictures that reach it), `notes`, `project_note`,
+  `hierarchy` (with mirror/array data and exact copy matrices), `objects`, `surfaces`, `meshes`, `lines`, `groups`,
+  `planes`, `clarified`, `shots`). Per-surface, per-line and per-line-group details are only here.
+- `project.md` – the project document, rewritten on every export: goal of this round and the five "done" criteria,
+  level (default `study`), round map table (artist's word · ids · rig joint · how binding – from the focus and the
+  Outliner "Brief" column), binding levels (fixed · authoritative · basis · guide, otherwise "by kind of mark"),
+  hero cameras, tools of the artist, delivery, precedence (sketch and notes > photos > generated images), the
+  path of the workflow bible, the task sentence and export notes, and "First round – pictures to open" with counts.
+  What Mule does not know it names as a matter for the first round.
+- `context.md` – only with a focus: notes whose anchors and "also meant" parts all lie outside the focus (intent
+  only, no work lines). Removed on re-export when no longer needed.
+- `views/` – overview pictures `persp.png`, `top.png`, `front.png`, `right.png`, `back.png`: no drawing aids,
+  framed on all visible geometry, top-level groups labelled, orthographic ones cropped to the geometry (at most 3:1),
+  with scale bar and caption. `views/clean/<view>.png` – the same without labels, caption and scale (image input,
+  side-by-side). `views/focus_<view>.png` with a focus.
+- `views/hero_*.png` – one clean picture per **hero camera** (screenshots on note boards with the tick "hero camera";
+  file name from the camera name, prefixed `hero_`). Without own hero cameras: three neutral standard angles
+  `hero_1_high`, `hero_2_high_opposite`, `hero_3_low` (marked as defaults; project.md then asks the AI to propose
+  hero cameras). The same cameras are in `scene.usd` under `/sketch/cameras` and in `brief.json`.
+- `views/hero_*_ids.png` – **Color-ID** per hero camera, same camera and size: every visible mesh and surface flat in
+  its own colour, symmetry/array copies in the colour of their original, black = nothing or lines only (lines and
+  paint are not in it), no shading, no anti-aliasing. Read exact pixel values (e.g. with Python); colour → part via
+  `brief.json` `id_colors` and per camera `cameras[].id_parts`.
+- `views/note_N#_k.png` – one picture per leader line k of note N#: the hit object whole and highlighted (a line: the
+  line coloured), the note's label with a stroke to the spot. Camera: first from the note's own direction, otherwise
+  around it – the first direction where at least half of the object is unobstructed; if every direction is poor,
+  X-ray (marked "(X-ray)" in brief.md).
+- `notes/` – every picture of every board (original file names as stored in the scene), `notes/board_N#.png` (whole
+  board, so the AI sees hand-drawn marks over pictures), `notes/board_project.png` for the project note, and
+  `notes/board_N#_k.png` section pictures: each backdrop the artist drew is a titled section, everything else is
+  grouped by proximity; each section picture is rendered large enough that the smallest text is readable.
+- `videos/` – reference videos of the boards plus `videos/<name>_overview.jpg` (a few frames with timestamps).
+- `shots/` – only with Shots (timing prototype): frames through each shot camera; brief.md gets a Shots part.
+- `scene.usd` – the scene as USD exactly as "Export scene as USD" (resolution 0.25 × viewport), same ids, notes with
+  the paths of their pictures in this folder.
+- The package (see §Way-of-working package): `rules.md`, `levels.md`, `conductor.md`, `roles/*.md`, `CLAUDE.md`,
+  `.claude/agents/*.md`, `.claude/hooks/*`, `.claude/hooks/gate.conf`, `.claude/settings.json`,
+  `.claude/package_version`.
+- `.mcp.json` (Claude Code) and `.codex/config.toml` (Codex) – MCP entries so an AI session started in the brief
+  folder has the same tools: always `sketch_machine` (`http://127.0.0.1:8770/mcp`), plus every server in the
+  `.mcp.json` / `.codex/config.toml` of the repo (from source) or of `%APPDATA%/Mule` (installed program – put your
+  own entries, e.g. Houdini or Blender MCP, there). Entries already in the brief folder stay; only these servers are
+  set. Such a session has the tools but neither the repo nor any project memory.
+- `clarified_history.md` – only when clarified answers were replaced or dropped.
+- Next to the brief folder: the **work folder** `work_<name>/` (from `boat_brief` → `work_boat`) with `review/`,
+  `export/`, `tools/vis_map/` (visibility map: `vis_blender.py` for Blender alone, with `--selftest`; or
+  `vis_export.py` + `vis_map.py` for Houdini + Blender; README inside) and `tools/sketch_overlay/` (the artist's
+  strokes over the build in hero cameras and three orthos). Everything a run writes goes there. The hooks find it
+  through `WORK=` in `gate.conf` and `permissions.additionalDirectories` in `.claude/settings.json`.
+
+Discuss-only brief: `brief.md` starts with the **Core** ("Core – read this first …", also written as `core.md`):
+the task, "Do not build anything", pictures first (open every hero, whole-board and section picture and say how
+many), captions, videos, then explain what you understood, list open questions and contradictions, make
+suggestions, with the six clarify topics (goal and round, kinds of work, what holds of existing geometry, moving
+parts, tools and delivery, working mode). At the end "How to work with the artist" (glossary and picture list in a
+project file, feedback short form part · view · kind · goal · what stays fixed). No package, no `project.md`, no
+work folder; `.mcp.json` / `.codex/config.toml` are still written.
+
+### How brief.md is organised (build brief)
+1. Pointer to the package files and `project.md`.
+2. `## Clarified with the artist before export` – only when answers exist (see §Clarified answers).
+3. `## Reading the scene` – what the scene contains (imported meshes = starting point to develop, sketched surfaces
+   with display material/colour as look hints, lines grouped into stroke objects, paint, notes), reading notes (a
+   note points at example spots and often means all similar or mirrored parts; "also meant" lists are hand-marked and
+   may be incomplete; captions can name parts "→ parts H3, M5"; arrows only point in a direction – read text and
+   picture together), how to read the sketch (existing silhouette, proportions, positions, connections and motion
+   axes hold; facets and kinks from low resolution are not intent – smooth what is meant smooth, keep the
+   character of bark, rock, skin; marks show intent, not dimensions; design words are goals, numbers matter; think
+   through every state of moving parts), units and ids.
+4. `## Overview` – overall size of all visible geometry incl. meshes (X × Y × Z, min/max), counts.
+5. `## Open points the tool noticed` – "Raise these with the artist": missing pictures in the scene file, missing
+   video files, reference pictures without caption, board sections without text, strokes not connected to text or
+   picture, review drafts not yet checked by the artist ("treat it as likely but ask when it matters"), notes that
+   point at nothing or whose leader lines end in empty space (or on something hidden), deleted "also meant" parts,
+   missing mesh files.
+6. `## Focus – what to build` (with focus).
+7. `## Views`, `## Hero cameras` (with Color-ID explanation), `## Look images (before building)` (with Look pre-stage).
+8. `## Project note – <title> (applies to the whole sketch)` and `## Notes (artist intent)`: per note `### N# – title`,
+   each leader line "(k) points at <kind> **id** `name` (in <parent null>) – point (x, y, z) – picture
+   `views/note_N#_k.png`" or "points at line L# at 40 % of its length, part of …", then "also meant: …", then the
+   board: sections in reading order with texts, pictures with captions and their parts, arrows as
+   "P# label → spot in picture", counts of marks and unclear strokes, viewport screenshots with their cameras.
+9. Shots part (if any).
+10. `## Components (hierarchy as in the outliner)` – the **component tree**: imported files with mesh ranges and
+    triangle counts ("FILE MISSING" if absent); per group its meshes (name, tris, size), its surfaces summarised in one
+    line (id range, kinds, material, colours, total size, helper surfaces = drawing aids), its stroke objects (lines,
+    brush colours, painted strokes and on what). Nested groups indent.
+11. `## Lines` – table id · object · shape · length · start → end · notes (joins, axis-parallel, corners, planar
+    normal, brush colour, painted on …); tiny lines left out and named; above 400 lines only in brief.json/scene.usd.
+12. `## Helper planes (drawing aids)`.
+
+### Hierarchy, symmetry, arrays, hidden objects, open points
+- **Hierarchy:** every object is listed under its null in the component tree; every note anchor names the group
+  directly above the hit object. Prims in `scene.usd` follow the Outliner. The Outliner column **Brief** sets a
+  binding level per object or null (Fixed – don't touch · Authoritative – refining allowed · Basis – execution open
+  · Orientation; a null applies to everything below); it appears in the task ("Set by the artist on single parts – they
+  override the notes' general rules") and in the round map of `project.md`.
+- **Symmetry** (H# "SYMMETRY") is **described, not computed into lines/surfaces in brief.md**: mirror plane, its
+  origin, the normal of the kept side, how it is clipped, and a Houdini recipe ("Clip → Mirror → Fuse"). In
+  `scene.usd` the copies are baked.
+- **Array** (H# "ARRAY"): mode radial (count, angle, axis, pivot), linear (count, step) or along a line (count, path
+  line, up line or "carried"); which one is the original; spin per copy; random rotate/offset/seed with the note
+  "exact matrices in brief.json" (exact also with randomness); a Houdini recipe. The instances are **not** listed
+  under lines/surfaces; the views show them, `scene.usd` bakes them (`…__copyN` prims).
+- **Hidden objects** are left out completely (brief, views, USD). Hide helpers you do not want the AI to see;
+  unhide everything the AI must know about.
+- **Open points**: see the list above; the same list (in the UI language) is shown under "Check before export".
+
+### Re-exporting into the same folder
+- If the folder already holds a brief (`brief.md` or `brief.json`), Mule first deletes `views/`, `notes/` and
+  `shots/` of the old export, so nothing stale (a removed note picture, a renamed hero camera) stays. `gen/` (look
+  images) and all other own files stay.
+- `brief.md`, `brief.json`, `project.md`, `scene.usd`, the package and the MCP entries are rewritten; a `core.md` of
+  an older export is removed in a build brief; `context.md` is removed if there are no later-round notes.
+- `gate.conf` is written fresh for a new brief. While a run is going (agents.log exists) the package, hooks and
+  `gate.conf` are untouched – only content is renewed (the dialog asks first; the MCP tool does not ask).
+- Clarified answers stored in the scene are written into every export.
+- For a running chat prefer a **review round** over a re-export: a re-export renews the brief without telling the
+  chat what changed.
+
+## Way-of-working package (v5.0)
+
+### What it is
+A fixed, versioned set of rules, roles and hooks in `sketch_machine/brief_package/` that every build brief carries.
+It turns one Claude Code session in the brief folder into a **conductor** (main chat) that never builds and
+starts fresh sub-agents for each role, guarded by hooks. The agent-facing files are English; `LIESMICH.md` is
+German for the artist/developer. The version is in `brief_v4.VERSION` (currently `v5.0`) and is written to
+`.claude/package_version` and the head of `project.md`.
+
+Copied into the brief: `rules.md`, `levels.md`, `conductor.md`, `roles/`, `CLAUDE.md` (with the project name),
+`.claude/agents/`, `.claude/hooks/` (without the template `gate.conf`; a fresh one is generated), `.claude/settings.json`
+(paths filled in) and the two tools into the work folder. **Not copied:** `STARTPROMPT.md`, `LIESMICH.md`,
+`hooks_spec.md`, `project_template.md`, `PACKAGE_CHANGES.md` (the latter is quoted into review rounds).
+
+### Parts and what they do
+- `CLAUDE.md` – loaded automatically by Claude Code in the brief folder: main chat starts with `conductor.md`, then
+  `project.md`; includes `rules.md` and `levels.md` (`@rules.md`, `@levels.md`).
+- `rules.md` – **17 rules, the top law** for main chat and every agent; a rule may only be broken on purpose with
+  `BREAK: rule <n> - <reason>`. "Strict where it shows, light on paper." Key content: (1) the main chat conducts,
+  never builds; (2) work at the set level; (3) referee after every builder run, QC before showings and at unit
+  end, engineer after a unit; (4) one order of authority – the artist's newest word verbatim > what the artist
+  approved as built > the drawn form within tolerance > construction and fit > measured numbers; departures from the
+  drawing are `DEPART:` lines that only the artist approves; design is free and bold only where the artist hands it
+  over; vetoes only for fundamental visible problems; (5) feedback becomes work lines in the artist's own words, a
+  new principle applies backwards; (6) clarify in the first round, then decide and never wait (`review/assumed.md`,
+  stand-in for taste); (7) detail follows visibility – tiers A/B/C/S/D measured with `tools/vis_map`; (8) purpose,
+  origin, carrier per element; (9) function plus one chosen photo per part; (10) read marks by kind – precise lines
+  within ~3 % of their own length and ~10° direction, curves stay curves; gestures ~10 %; route lines by start, end
+  and order; construction is free; measured with `tools/sketch_overlay`; (11) judge on pictures; (12) choose the
+  method per part type; (13) no categorical errors in front of the artist, every question with a marked picture;
+  (14) work in units, main form to detail, pilot new methods; (15) at most two QC rounds per gate; (16) report in
+  four groups (done and checked · done but not checkable · open · announced but not built); (17) drop what you
+  cannot do well, hand over at ~150 tool calls.
+- `levels.md` – three levels: **scout** (try ideas, 1–2 units, few checks), **study** (Mule's default; convincing in
+  the hero views, 3–6 units, referee after every builder run, one QC round), **final** (production-ready, full
+  checks, up to 2 QC rounds). The table sets first-round keys, visibility-map scope, component views, detail by
+  tier, picture targets, overlay, referee/QC/engineer frequency, veto scope, collisions, materials, report length.
+  Recommended path: study over the whole goal, artist review, then final unit by unit.
+- `conductor.md` – how the main chat runs a round: role table (builder, referee, qc, engineer, helper, stand-in,
+  viewer), the loop per unit (plan → task → build → referee → QC → decide; unit end report, engineer), components /
+  runs / areas with ranks and views, lanes and packages with versioned interfaces, the files in `review/`
+  (worklist.md, readings.md, decisions.md, assumed.md, overlay/, units.md, components.md, units/, vis/,
+  bauwissen.md, adopted.md, standin_answers.md), what the hooks enforce, budget and hand-over duties, the fallback when
+  hooks do not run, review rounds, and the **first round**: one message with (1) the real questions, each with a
+  marked picture, (2) one table of everything beyond doubt (point · reading · source), (3) the units with
+  dependencies and lanes on one colour-coded picture, ending with the current level and how to change it. The artist
+  may answer by exception. Mandatory keys (as far as the level asks): `goal`, `level`, `units`, `approach`,
+  `blockout`, `tolerance`, `collision`, `visibility`, `sheet`, `away`, `marks` – each answered as a line in
+  `readings.md`. Then a short **goal proposal**; building starts only after the artist confirms.
+- `roles/*.md` – role contracts: `builder` (one run, one goal, one unit; reads only its state note, work lines,
+  tiers; ends with report, sheet ≤ 16 tiles, bauwissen lines), `referee` (rule check in minutes, VERDICT), `qc`
+  (`STAGE: targets` at unit start, checks on pictures, at most 3 work lines, VERDICT), `engineer` (measured
+  efficiency proposals, at most 3), `helper` (bounded side tasks, visibility-map runs), `standin` (questions of taste
+  only, never changes what the sketch shows), `viewer` (shows something in a live session, never saves).
+- `.claude/agents/<role>.md` – the same roles as Claude Code agent types (tool restrictions, e.g. viewer without
+  Write/Edit).
+- `.claude/hooks/` and `.claude/settings.json` – the **gate**: `gate.ps1` (SessionStart, UserPromptSubmit, PreToolUse
+  for Agent/Task, Stop), `pretool_build.sh` (PreToolUse for Houdini/Blender MCP, Bash, PowerShell, SendMessage,
+  Write, Edit), `posttool.sh`, `subagent.sh` (SubagentStart/Stop), `statusline.sh` (writes plan usage to
+  `review/gate/usage.txt`). They put the rules and a **GATE STATUS** block into the context at start, after
+  compaction, with every artist message and every `REMIND_EVERY` (30) tool calls; add rules, level row, role contract,
+  report path, recent artist words, decisions and matching bauwissen to every agent prompt; block the main chat from
+  building (read-only live tools `inspect`, `geo`, `problems`, `screenshot` allowed); enforce roles, number of
+  builders, referee/QC/engineer duties, first-round keys before the first builder, a current visibility map before
+  `STAGE: details`, the budget (`MAX_WEEKLY`, `MAX_5H`, default 90 %), a hand-over above `HANDOVER_AT` (500 k context
+  tokens); refuse shell writes into `review/*.md`; log to `review/gate/agents.log`, `tools.log`, `artist.log`.
+  The package's `settings.json` names the Windows standard paths; the export writes the programs found on this
+  machine instead (`brief_v4.hook_programs`): Git Bash (also outside the default folder) and Windows PowerShell on
+  Windows, `bash` and PowerShell 7 (`pwsh`) on Linux/macOS. If one is missing, the brief dialog says so under
+  "Check before export". Hook tests: `bash sketch_machine/brief_package/_claude/tests/run_tests.sh`.
+- `gate.conf` – generated per new brief: `WORK=<work folder>`, `REMIND_EVERY=30`, `MAX_BUILDERS=1`,
+  `SHARED_FILES=`, `LEVEL=study`, `MAX_WEEKLY=90`, `MAX_5H=90`, `HANDOVER_AT=500000`, `STOP_AT=`, `PAUSE=`.
+  Overlaid by `gate.local.conf`, which only the hook writes.
+- **`SET:` commands** – a line `SET: <key>=<value>` in a real artist message (not in quoted agent or system text) is
+  applied by the hook to `gate.local.conf`: `level=scout|study|final`, `max_builders=1–12`, `max_weekly=1–100`,
+  `pause=<reason>` or `pause=off`. Every other key is refused. Agents can never change settings themselves.
+- `project_template.md` – the template `project.md` follows (filled by `brief_v4.project_md`).
+- `STARTPROMPT.md` – German template of the start prompt (same content as the build-brief autoprompt).
+- `PACKAGE_CHANGES.md` – one section per package version with "Take over:" instructions for a running project;
+  quoted in a review round that brings a newer package.
+- `LIESMICH.md` – German overview of the package and its known gaps for the artist/developer.
+
+### Starting a build session correctly
+1. Mule must be running with the scene open (for the MCP tools).
+2. Open a terminal **in the brief folder** (`<scene>_brief`, not the work folder, not the repo) and start Claude Code
+   there. Only there do `CLAUDE.md`, `.claude/settings.json`, the hooks and `.mcp.json` apply.
+3. **Confirm the trust dialog** of Claude Code for that folder; otherwise the hooks and project MCP servers do not run.
+4. Paste the autoprompt (`Ctrl+V`). The first answer must begin with the quoted **GATE STATUS** block. If it is
+   missing, the hooks are not running: the AI stops and says so (fallback in `conductor.md`: keep rules by hand).
+5. The first round follows `conductor.md`; the level is shown at the end of the first message; change it any time
+   with `SET: level=…`.
+Codex: open the brief folder in Codex; `.codex/config.toml` gives it the Mule MCP server. The Claude Code hooks do not
+apply to Codex [unverified whether Codex reads any part of `.claude/`]; the rules files can still be followed by hand.
+
+## Review rounds ("Builds on")
+
+### What it is
+Feedback for a chat that is already working on a brief, as a stack of screenshots and comments – **not a new brief
+and not a new run**. Code: `sketch_machine/review_round.py`.
+
+### How to do it
+1. Change notes in Mule (new notes, edited text, pictures, review drafts accepted) and the geometry as needed.
+2. `Ctrl+E`, in **Builds on** choose the brief folder the running chat works in (Choose …). The grey line shows
+   "Review round N – goes to … without picking a folder".
+3. Export. Mule writes `<brief>/review_rounds/review_NN_<YYYY-MM-DD>/` and copies a sentence to the clipboard
+   (autoprompt variant "review round", or your own text). Paste it into the **same running chat**.
+
+### What the round contains
+- `review.md`: "Review round N – <scene>", how to take it in (read completely, open every picture, fit into decisions,
+  readings, units and work list – where a note contradicts something established the note wins, list each case as
+  established · now · source; ask only what stays open; go on with the same rules and level), the comparison base,
+  a table of **parts whose id moved**, the artist's words for this round (task sentence and export notes, if
+  changed), then **New notes**, **Changed notes** (title was, new text, text no longer on the board, new/removed
+  pictures, drawing changed → look at the whole board, target changed, review draft now confirmed), **Notes no
+  longer in the scene** (this revokes nothing), changed project note, and the current state for lookup. Review drafts
+  are flagged "the artist has not confirmed it yet".
+- Current state: `brief.json`, `scene.usd`, `views/`, `notes/` (and `videos/`, `shots/` if any). No `brief.md`, no
+  `project.md`, no MCP entries, no new work folder.
+- Comparison: against the `brief.json` of the last round, otherwise of the brief; notes are matched by their fixed
+  uid, older exports by title.
+- If the brief folder's package is older than Mule's, the round **brings the new package** (rules, roles, agent
+  types, hooks, tools; `gate.conf`, `gate.local.conf`, the work folder and all content stay) and `review.md` gets a
+  section "The rules were updated: package old → new" with the newer `PACKAGE_CHANGES.md` sections and the order to
+  re-read the rules and apply the changes backwards.
+- After a review round, `write_clarified` writes into the base brief's `brief.md` (the round's base becomes "last
+  brief export").
+- The MCP tool `export_brief` without `folder` also produces a review round when the stored assignment has
+  **Builds on** set (and not "Discuss only"); it fails with a message if that folder holds no `brief.json`.
+
+## Clarified answers
+
+### What they are
+The summary the artist confirmed and the question → answer pairs from going through the brief with the AI. Stored in
+the scene (`scene.brief_clarified`, saved with the scene file) and written into **every later export**. Code:
+`brief_ai.merge_clarified`, `brief_ai.write_clarified`, MCP `write_clarified`.
+
+### How they flow
+- The AI calls `write_clarified` (only with what the artist said or confirmed). Merge rules: answers are added; the
+  same question (case and spacing ignored) gets the new answer; `drop` removes questions that no longer apply; a new
+  summary replaces the old one, an empty one keeps it; replaced and dropped entries go to the history.
+- Immediately: the scene is marked unsaved (status bar: save the scene), and if a brief was exported in this session
+  its `brief.md` is updated in place.
+- In `brief.md` the section `## Clarified with the artist before export` sits before "Reading the scene": "authoritative
+  where it is more specific than the rest", the confirmed summary as quote, then `- question → answer`; answer
+  `decide` is rendered "the artist leaves this to you: decide, and say what you decided". History is only pointed to
+  (`clarified_history.md`). Also in `brief.json` under `clarified`, and appended to `core.md` (discuss briefs).
+- In the brief dialog: row **Clarified with the AI** with View / Delete.
+- Keep "what applies now" short: drop corrections of a finished round and merge overlapping answers.
+
+## MCP server
+
+### Address and registration
+- Mule starts a local MCP server when it starts: `http://127.0.0.1:8770/mcp`, this computer only, no login.
+  Transport: Streamable HTTP, POST only, plain JSON responses (no SSE; GET/DELETE answer 405). Protocol versions
+  2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05. Server name `sketch_machine`.
+- **Single instance:** if the port is taken (e.g. a second Mule is running), the second Mule starts no server and
+  says so in the status bar for 20 s ("AI connection off: port 8770 is in use …"). The AI always talks to the Mule
+  that started first.
+- Mule must be running before the AI session starts (or reconnect the MCP server in the client).
+- Claude Code: `.mcp.json` in the project folder
+  `{"mcpServers": {"sketch_machine": {"type": "http", "url": "http://127.0.0.1:8770/mcp"}}}`, or
+  `claude mcp add --transport http sketch_machine http://127.0.0.1:8770/mcp`. Every brief export writes this file
+  into the brief folder.
+- Codex: `~/.codex/config.toml` or `.codex/config.toml` in the project: `[mcp_servers.sketch_machine]` /
+  `url = "http://127.0.0.1:8770/mcp"`. Every brief export writes this too.
+- Any MCP-capable AI can use the tools; Mule never starts a chat by itself.
+- Server instructions sent on initialize: talk to the artist in the artist's language; change notes only when the
+  artist explicitly asks (`edit_note`); write back only what the artist confirmed or dictated (`dictate_note`);
+  review recordings become draft notes the artist checks in Mule.
+- Every tool runs in Mule's main (Qt) thread and works on the **open scene**. A call times out after 300 s with
+  "Mule does not respond (busy or a dialog is open)" – a modal dialog in Mule blocks all tools. Writing tools change
+  the open scene **without saving**; each is undoable in Mule with `Ctrl+Z` and shows a status-bar message.
+- Pictures come back as PNG, longest side at most 1568 px (`review_moment` 800 px unless `detail`).
+- Code: `sketch_machine/mcp_server.py` (`TOOLS` list, class `Tools`).
+
+### scene_brief
+- Purpose: the open sketch as a Sketch Brief in Markdown, **live** (not the last export). Start here.
+- Parameters: none.
+- Returns text: a head with the scene file, the last brief export of this session, how to get pictures, a note on
+  file paths (if the last export folder exists: "open them in <folder> – as of the export"; otherwise "exist only
+  in an exported brief folder"), the hero camera names (marked "(approved prompt)"); then, for a build assignment,
+  `project.md` content followed by `brief.md` content (without rendered views).
+- Use: ids in it are the ids every other tool expects.
+
+### render_view
+- Purpose: a picture of the open sketch without UI, labels or drawing planes.
+- Parameters: `view` (required) – a hero camera name, `persp`, `top`, `front`, `right`, `back` (framed on all visible
+  geometry) or `current` (what the artist sees now); `xray` (bool, optional) – see-through display.
+- Returns one image. Hero cameras use their stored camera and aspect. Unknown view → error listing the valid names.
+- Rule: one call per camera.
+
+### note_images
+- Purpose: a note board as a picture (texts, pictures, screenshots, hand-drawn marks as arranged) – live, no export.
+- Parameters: `note` (required) – `N1` …, a note title, or `project`; `sections` (bool) – also every section as a
+  readable picture, as `notes/board_N#_k.png` in an export, with title and arrows P#; `images` (bool) – also every
+  picture on the board alone (at most 8), labelled with file, hero camera / viewport screenshot, caption.
+- Returns text labels and images; "the board is empty" if so.
+
+### video_frames
+- Purpose: frames of a reference video on a board – only for a video the artist wants read closely.
+- Parameters: `video` (required) – file name as in the brief (`videos/…`, the base name is matched); `times` – seconds
+  (at most 12); without `times` an even overview.
+- Returns the duration and one image per frame with its time.
+
+### image_captions
+- Purpose: list board pictures with file name, the notes they are on and their caption – by default only reference
+  pictures **without** a caption (viewport screenshots are skipped), 8 per call.
+- Parameters: `note` (only this note), `start` (paging offset), `all` (also screenshots and captioned pictures).
+- Returns text per picture (`notes/<file>` – on N# – caption – → parts – "MISSING in the scene file") plus the image,
+  and a paging hint.
+- Rule: look at the board for context (`note_images`), propose one caption each to the artist – what the picture
+  stands for here and what matters in it, one sentence, not a description; if the board already says it, only point
+  there – plus the part ids (H#, M#, F#, S#). Store only the confirmed ones with `set_image_captions`.
+
+### set_image_captions
+- Purpose: store captions the artist confirmed.
+- Parameters: `captions` (required) – list of `{file, caption, parts?}`; empty caption removes caption and parts;
+  `parts` = ids the picture belongs to, `[]` removes them, left out keeps them.
+- Returns how many were stored, files not on any board, unknown or hidden part ids (left out).
+- Effect: a caption holds for the picture on every board; the brief shows it after the picture with its parts and
+  lists the picture at each part (`part_notes`). Saved with the scene.
+
+### export_brief
+- Purpose: export the brief folder without the dialog, with the assignment the artist stored.
+- Parameters: `folder` (optional) – exact target folder; without it next to the scene file as `<scene>_brief`.
+- Returns the folder and "read brief.md there (and the pictures in views/ and notes/)", or for a review round
+  "Exported review round to … – read review.md there".
+- Notes: never applies a focus; no "Run in progress" question; sets the session's last brief export.
+
+### write_clarified
+- Purpose: store the summary the artist confirmed and the answers, after going through the brief.
+- Parameters: `answers` (required) – list of `{question, answer}`; `summary` (optional, empty keeps the old one);
+  `drop` – questions as written that no longer apply.
+- Returns the number of answers now stored and where they were written.
+- Rules: only what the artist said or confirmed, never own guesses; answer `decide` = the artist leaves it to the
+  builder. Merge behaviour see §Clarified answers. Remind the artist to save the scene.
+
+### set_hero_prompt
+- Purpose: store an image prompt the artist approved on a hero camera.
+- Parameters: `hero` (required, camera name as in `scene_brief`), `prompt` (required; empty removes it).
+- Returns confirmation; unknown name → error with the list of hero cameras.
+- Effect: later exports list it under "Look images" as approved ("use it, no need to ask again").
+
+### dictate_note
+- Purpose: the artist dictates a note; store it as a text on a note board – worked through, not word for word.
+- Parameters: `text` (required) – the worked-through note; `note` – `N#`, a title or `project` (left out: the board
+  open in Mule, otherwise the project note); `images` – list of `{file, at?}` for pictures on that board the text is
+  about, only when the artist says which; `at` = `[u, v]` from 0 to 1 from top left (default the middle).
+- Returns where it was stored, the number of arrows, pictures not on that board (no arrow).
+- Rules (mandatory order): keep every point (what, where, why, sizes, numbers, open questions), drop filler,
+  repetitions and false starts (a self-correction counts in its last version), the artist's language, add nothing,
+  mark unclear with (?). **1.** Propose the text first – by default as bullet points (short first line, one bullet per
+  point, grouped) – and in the same message ask: like this or as running text, and which note and pictures (say what
+  you would pick). **2.** Store only after the artist's go, in the chosen form. **3.** Say where it went (`Ctrl+Z`
+  undoes it). The text is placed without covering anything; each image gets an arrow from the text that the brief
+  reads like a drawn arrow.
+
+### review_read
+- Purpose: read a review recording (View → Review): the transcript in pieces with time, what the cursor rested on (L#,
+  S#, F#, M#), "Hier!" marks, board marks, camera changes, selection, open board, what the artist changed during the
+  review (notes created, pictures/texts added to boards, lines drawn or removed), and drafts already written.
+- Parameters: `review` – name as listed (default the newest); `start` – skip this many transcript pieces (pages of 120).
+- Returns text. Warns "NOT THE SAME FILE" when the open scene is not the recorded one (ids may not match). Without a
+  transcript (no sound or no Whisper): only marks and what was pointed at, with the reason.
+- Note: the first call after a recording may take minutes (local transcription runs outside Mule's main thread; if
+  Mule is still transcribing, the call waits). While Claude works, the **Send Review** button shows "Claude is
+  working …".
+
+### review_moment
+- Purpose: pictures of review moments – the sketch rendered from the artist's camera at that time, the cursor as a
+  magenta ring.
+- Parameters: `times` (required, seconds, at most 6); `review`; `xray`; `detail` (full size instead of 800 px).
+- Returns per time a label (camera number, what the cursor was on, or "cursor outside the view") and an image.
+- Rule: pictures cost tokens – look at **one** moment per component first (its best pointing: a mark, a spoken
+  "hier/here", a cursor rest), more only if text and pointing leave it unclear.
+
+### review_note
+- Purpose: write one feedback point of a review as a **draft** note (dashed brackets in Mule; the board shows the
+  original sentence, ▶ Listen plays the audio, ✓ Accept turns it into a normal note). No confirmation needed before
+  each draft – the artist checks them all in Mule.
+- Parameters: `t` (seconds) or `mark` (a "Hier!" mark number, the most exact pointing); `text` (first line + bullets);
+  `title` (default the first line, max 60 chars); `quote` (the artist's own words); `t_end` (default: end of the
+  transcript piece); `note` (an existing note `N#`/title/`project` to add text and pictures to instead of a new
+  draft); `anchor` (`cursor` default, a part id L#/S#/F#/M#, or `none`); `parts` (further meant parts – "octopus
+  arms", need an anchor); `images` (up to 4 times, one picture per spot, default `t`); `refs` (up to 4 BOARD MARK
+  numbers – the clicked board picture is added to this note's board with an arrow on the clicked spot; it stays on
+  its own board); `discard` (with `note`: delete a draft you wrote – only drafts); `review`.
+- Behaviour: `t` is moved to the nearest real pointing – a mark up to 4 s away, else a spoken "hier/here/dort/there"
+  up to 3 s away while cursor and camera stood still, else a cursor rest from 2 s before to 3 s after. With no
+  pointing there is **no arrow and no cursor anchor** (pass `anchor` with a part id). The answer says how `t` moved.
+  Passing a board-mark number as `mark` is an error (use `refs`). Before the first draft of a review Mule writes a
+  backup of the scene into `review_backups/` next to the scene file (once per review and scene).
+- Working method (from the tool description): 1. `review_read`. 2. Plan the grouping first – as few notes as
+  possible, as many as needed: one note per **component** at the level the artist talks about (one object: its main
+  parts; a place: whole objects or kinds), a bullet group per aspect, a picture per spot; scene-wide rules go to the
+  project note; things said minutes apart about one component belong together. 3. Check bullets against one
+  `review_moment` per component; write so it reads without audio ("the left wing tip", not "here"); add nothing,
+  keep (?) for unclear. 4. Text like `dictate_note`. 5. Take `t` from a "cursor on … @time" or MARK, never a round
+  number. Build on what the artist did during the review: a note they created is theirs – add to it (`note = N#`)
+  instead of making a second one; lines they drew while talking show what they mean. A point about an open/
+  discussed note → `note` = that note; general remarks → `project`. 6. Tell the artist how many drafts, which points
+  were unclear or could not be placed.
+
+### review_notes
+- Purpose: all drafts of one review in **one** call (preferred) – same fields per draft as `review_note` (no
+  `discard`); 1–40 drafts.
+- Parameters: `notes` (required), `review`.
+- Returns "n of m draft(s) in the scene (one undo step)" with one result line per draft; a failing draft is reported,
+  the others still go in.
+- Effect: all appear together in the open scene, one `Ctrl+Z`; the Send Review button learns the review is done.
+  Nothing is saved – the artist saves after checking.
+
+### insert_images
+- Purpose: put picture files from disk on a note board, like dragging them in (reference folder, `marke_N.jpg`
+  pictures of a review folder, renders of an earlier run).
+- Parameters: `files` (required, at most 12) – `{path, caption?, at?}`; `path` absolute or relative to the scene
+  file's folder; `caption` only what the artist said or confirmed; `at` = `[u, v]` for an arrow from the text;
+  `note` (default the open board, else the project note); `text` (optional note text next to the pictures, with an
+  arrow to each picture that has `at`).
+- Returns how many were placed, those already on that board (not added twice, compared by content), not found,
+  unreadable.
+- Rules: only pictures you have opened and that clearly belong there (the artist named them or the folder, or they
+  are the ones already used for the same thing); when in doubt ask first. The file on disk stays; the picture is
+  stored in the scene; `Ctrl+Z` undoes it.
+
+### edit_note
+- Purpose: change the text of a note.
+- Parameters: `old` – an exact, unique piece of text on that board (as in `scene_brief`/`note_images`); `new` –
+  replacement (empty deletes; a text left empty disappears); `title` – a new note title (optional); `note` –
+  `N#`/title/`project` (left out: the open board; error if none is open). Either `old` or `title` is needed.
+- Returns "Changed N# title."
+- Rules: **only when the artist explicitly asks** (e.g. improve a note you wrote or one of theirs), or for a review
+  draft you are writing right now; never on your own initiative, never to tidy up; do what was asked, nothing more;
+  afterwards say what changed (`Ctrl+Z` undoes it). Claude changes no note on its own – except its own review drafts.
+
+## Other exports and import
+
+### Export scene as USD
+- Menu **File → Export → Scene as USD…** (Datei → Exportieren → Szene als USD…), `Ctrl+Shift+E`. Save dialog (USD
+  binary `.usd`/`.usdc`, USD text `.usda`), then a small dialog: **Surface resolution (× viewport)** 0.25–4, default
+  0.25 (the viewport is very dense for smooth display; imported geometry always stays as it is); **Also export lines
+  as tubes** (polymesh, diameter = stroke width, prim `L#_tube`); **Shot cameras** stepped/linear (only with Shots).
+- Binary output is written as `.usda` first and converted with the `pxr` (usd-core) library.
+- Structure: `/sketch` (defaultPrim, `upAxis = "Y"`, `metersPerUnit = 1`) → one Xform per null, hierarchy as in the
+  Outliner, `H#_<name>`; everything in **world coordinates** (null Xforms carry no translation; their origin and axes
+  as `sketch:origin`, `sketch:axes`, plus `sketch:id`, `sketch:name`, `sketch:kind`). Generators additionally carry
+  `sketch:baked`, `sketch:mirror_origin`/`sketch:mirror_normal` or `sketch:copies` (matrix4d per copy).
+- Surfaces `F#_<name>` as Mesh: lofts, curve surfaces and extrusions as quads from their grid, fills as triangles;
+  normals per corner as in the viewport (hard edges stay hard), UV `primvars:st` in metres, `displayColor`,
+  `displayOpacity` if transparent, primvars `sketch_id`, `sketch_name`, `sketch_kind`, `sketch_material`; helper
+  surfaces `purpose = "guide"`.
+- Stroke objects `S#_<name>` as Xform with one `BasisCurves` (linear) per line `L#`: `widths` per vertex, point
+  attributes (orient, pscale, hardness and connection data), brush colour and `sketch_style`, painted strokes with
+  `sketch_paint` and `sketch_paint_order`.
+- Imported meshes `M#_<name>`: USD files are **referenced** (relative path, nothing copied, `<prim>` if set) with
+  the position as a matrix (the prim's own position in the source file included); OBJ (and USD whose file is
+  missing) is **embedded** as a triangle mesh. `sketch:source`, `sketch:prim`.
+- Symmetry and array **baked**: each copy its own prim `…__copyN`, the mirrored side cut at the mirror plane.
+- `/sketch/notes`: per note a `Points` prim `N#` with title, text, picture paths (only in the brief's `scene.usd`)
+  and anchor lines as primvars, plus `N#_leaders` BasisCurves from note to anchors.
+- `/sketch/cameras`: hero cameras as `Camera` prims (only in the brief's `scene.usd`, where hero cameras are
+  computed) with focal length, apertures, orthographic projection where set, primvars `sketch_name`, `sketch_image`.
+  `/sketch/shots/…`: Shots cameras.
+- Only visible objects; ids as in the brief; focused prims carry `sketch:focus = 1` (brief export only).
+- In Houdini: load in Solaris (Sublayer/Reference LOP) or into SOPs with a USD import; surfaces arrive as polygons,
+  lines as curves with `width`; primvars become attributes [unverified: exact attribute names after import]. The
+  brief's Houdini hints for symmetry: Clip → Mirror → Fuse.
+- In Blender: File → Import → Universal Scene Description; the file is Y-up, Blender is Z-up – check that the importer
+  converts the axis [unverified: depends on importer settings]. Referenced USD meshes need their source files at the
+  relative path.
+
+### Export curves
+- Menu **File → Export → Curves…** (Datei → Exportieren → Kurven…). Dialog: **USD – for Houdini, Blender, Maya** or
+  **JSON – for scripts and AI chats (readable text)**; **Include hidden objects**; **Also as tubes** (USD only).
+  Default file names next to the scene: `<scene>_curves.usd` or `<scene>.curves.json`.
+- Content: only lines and paint with width per point; no surfaces, meshes or notes. Hero cameras included. Exact
+  duplicate strokes (same points to 0.01 mm) are dropped and counted. Symmetry/array copies are baked. Visible items
+  keep their brief ids; hidden ones (if included) are numbered after them and flagged `hidden`.
+- JSON (`format: "mule-curves"`, version 1): units, up axis, bounds, `dropped_duplicates`, `cameras`, `objects`
+  (S# with name) → `curves` (L#, style, paint, order, hidden, color, corners = point indices, points, widths), one
+  line per curve.
+- Code: `sketch_machine/curve_export.py`.
+
+### Import
+- **File → Import geometry…** (Datei → Geometrie importieren…), `Ctrl+I`: `.obj`, `.usd`, `.usda`, `.usdc`, `.usdz`.
+  USD as in Solaris: one mesh per mesh prim, one null per group prim above it, all under a null named after the file,
+  listed in the Outliner under "Import". Invisible prims, guides/proxies and empty groups are dropped. The scene stores
+  file and prim path; the brief names the prim path and flags missing files. Details: see §Import.
+- Typical loop: build in Houdini/Blender, export USD, import into Mule next to the sketch, compare in the hero cameras
+  or draw feedback on it.
+
+## Working with an AI – recommended workflows
+
+### 1. Prepare the scene for a brief
+- Notes with leader lines on the parts they mean (octopus arms for "also meant" parts); text, reference pictures
+  with captions (right-click a picture), backdrops as titled sections.
+- Project (Global) note for what holds for the whole object: purpose, style, tools, delivery.
+- Screenshots with the tick **hero camera** and a name: the cameras the AI builds for and judges from.
+- Outliner column **Brief** for binding levels where the default reading by kind of mark is not right.
+- Hide what the AI must not see; unhide what it must.
+- Look at **Check before export** in the dialog and fix what matters.
+
+### 2. Discuss the brief, then clarify
+- Without exporting: in any chat with the MCP server, "look at the scene" → `scene_brief`, `render_view` per hero
+  camera, `note_images` with `sections=true`. With a "Discuss only" export: paste the autoprompt.
+- The AI's first message: all pictures opened (with count), what it understood, answers it can take from the notes
+  (with source), only the real open questions, caption proposals for uncaptioned reference pictures.
+- The artist answers (by exception is fine). The AI stores the confirmed answers with `write_clarified`, captions
+  with `set_image_captions`, approved image prompts with `set_hero_prompt`. Save the scene in Mule.
+
+### 3. Build in Houdini or Blender
+- Export a build brief (`Ctrl+E`), start Claude Code **in the brief folder**, accept the trust dialog, paste the
+  autoprompt, check that the first answer quotes GATE STATUS.
+- First round per `conductor.md`: questions with marked pictures, table of what is beyond doubt, units; artist
+  answers; goal proposal; build only after confirmation. Change the level with `SET: level=scout|study|final`, lanes
+  with `SET: max_builders=N`, stop new builders with `SET: pause=<reason>`.
+- The artist's Houdini/Blender MCP servers come along when they are in the repo's or `%APPDATA%/Mule`'s `.mcp.json`.
+- Builders work in `work_<name>/`; review scene, sheets and reports land in `work_<name>/review/`.
+
+### 4. Review with hero cameras
+- Compare the build with `views/hero_*.png` from exactly the same cameras (`scene.usd` `/sketch/cameras` or
+  `brief.json` cameras). Use `views/hero_*_ids.png` to know which part is which pixel, `tools/sketch_overlay` to put
+  the artist's strokes over the build, `tools/vis_map` for detail tiers.
+- Optionally import the exported build back into Mule (`Ctrl+I`) and look at it next to the sketch.
+
+### 5. Review round with the artist
+- The artist changes or adds notes in Mule (also by drawing on imported renders or the imported build), then exports
+  with **Builds on** = the running brief folder and pastes the sentence into the **same** chat. The chat reads
+  `review.md`, opens every named picture, lists where something established changes, asks only what stays open, and
+  continues with the same rules and level.
+
+### 6. Dictating notes
+- The artist talks or types a dictation in the chat. The AI proposes bullet points and asks: like this or running
+  text, which note, which pictures. After the go: `dictate_note`. Then it says where it went.
+
+### 7. Turning a voice review into notes
+- The artist records in Mule (View → Review, Mark tool, Send Review; see §Review) and writes "the review is ready" in
+  the chat (the clipboard sentence).
+- The AI: `review_read` (page with `start` if long) → list the components → one `review_moment` per component →
+  `review_notes` with all drafts in one call (t from marks or cursor rests, `quote`, `parts`, `refs` for board marks,
+  `note` for notes the artist made during the review) → report the count and unclear points.
+- The artist checks each draft in Mule (▶ Listen, ✓ Accept), saves the scene. Unaccepted drafts appear in the brief
+  as open points.
+
+### 8. Inserting images
+- "Put the pictures from folder X on the note of the tank": the AI opens them, then `insert_images` with
+  captions only where the artist gave them, and `at` + `text` for arrows. Duplicates are skipped.
+
+### 9. Rules for the AI in every workflow
+- Talk in the artist's language. Write back only what the artist said or confirmed. Never edit notes unasked.
+- Every question about a part with a picture in which the part is marked and named in words, not only an id.
+- Open the pictures; a caption does not replace opening a picture.
+- Remind the artist that MCP changes are unsaved until they save in Mule.
+- If a tool times out, a dialog is probably open in Mule.
+
+## Workflow bible
+
+### What it is
+`bible/sketch_machine_bible.md` collects general workflows, checks and pitfalls from earlier projects built from
+Sketch Machine briefs. Every brief names its path (`project.md`; discuss briefs in "How to work with the artist").
+From source it is the repo file; in the installed program a writable copy in `%APPDATA%/Mule/bible/` that updates do
+not overwrite. Entries are **suggestions, never rules**.
+
+### Protocol and entry format (from the file's head)
+1. Write your own strategy first, then read matching entries, compare, choose and say why.
+2. Weigh age and evidence; an entry is neither wrong because it is old nor right because it is written.
+3. Only what holds in general (kinds of objects, steps, tools, checks), never about one object; failures count.
+4. Rate from results: attempts until accepted, reviewer's verdict, artist's verdict.
+5. **Sign** every entry and remark: model name, tools with versions, date.
+6. When you used an entry, add a line under it: confirmed or contradicted, signed, one sentence why.
+7. Keep it short; extend instead of duplicating; never delete – mark "superseded by …, because …".
+Format: `### <title>` with Kind (workflow | check | pitfall), Applies to, What, Result, Signed,
+Confirmed / contradicted. Add entries at the end of a project.
+
+### What the shipped bible contains
+The public copy starts with entries about modelling techniques and tools; lessons about how a build runs (roles,
+reviewers, gates, the artist's intent) are part of the way-of-working package (rules, roles, hooks) and not repeated
+in the bible. Examples of what is in it:
+- Find the free envelope of a moving part with a parametric proxy and collision tests before modelling it.
+- Collision tests: list exactly which pairs were tested, and look at what grows between states.
+- Houdini 22 Intersection Analysis: `sourceprim` does not match merged inputs – ask `nearestPrim` per cluster.
+- Reused procedural networks can hide a world-axis assumption; parameters of a reused asset can reach far outside
+  the part.
+- Blender: hidden objects can report a stale `matrix_world` – update the view layer first; even-offset inset can
+  throw a corner off a curved surface.
+- Rebuild rig parts in dependency order and compare per-pose bounding boxes in a fresh-process test; keep rigid
+  parts in joint space and freeze deforming parts in the rest pose when handing a SOP rig to USD.
+- Judge the look under real light (path tracer, sky) early, not in viewport shading.
+- MaterialX: author shaders as plain USD for a portable first look; match primvar types to what the shader reads;
+  look at a baked field as grey emission before tuning; a primer colour must follow the paint; separate paint loss
+  from corrosion.
+- Houdini 22 `usd_rop` stalling on heavy chains: write time samples frame by frame.
+- Ask for UVs before subdividing a mesh only to get more shading resolution.
+- Welded tube frames: remesh a voxel union with Quad Remesh.
+- Check that the scene the artist looks at really shows the current build.
+- Single frames cannot judge motion; reveal only what stays covered or stays.
+Each user's AI adds its own entries at the end of a project, in that user's copy.
+
+# 6. Troubleshooting, limits, and the source code
+
+Part A is for answering a user who has a problem. Part B is for an AI that reads or changes the source.
+Internal names: the Python package is `sketch_machine`, settings live under "SketchMachine", the scene format is
+`sketch-machine-scene`, the MCP server is called `sketch_machine`. All of these mean Mule Create.
+
+**Part A – Troubleshooting and limits (for users)**
+
+## Known limits (Alpha 1)
+
+- **Scene format can change** between versions until the beta; older scenes are not always supported further
+  (there is no promise of backward compatibility during the test phase). Tell the user to copy important scenes
+  before updating.
+- **Platforms:** only Windows is tested in the package (`Mule_Windows.zip`). Linux runs from source (`start.sh`) and
+  is hardly tested. macOS is not tested at all; the viewport requests an OpenGL 3.3 *Compatibility* profile
+  (`viewport.py`), which macOS does not offer, so a macOS port needs a Core-profile rework (noted in
+  `packaging/github-build.yml`).
+- **Not signed:** Windows SmartScreen warns on first start (see below).
+- **Whisper is not in the package:** review transcripts need a one-time setup with a separately installed Python
+  (see below). Recording works without it.
+- **AI connection needs the user's own account** with Claude (Claude Code) or Codex. Mule itself calls no AI
+  service; the AI connects to Mule over MCP.
+- **Language:** the UI defaults to **German** on first start (`i18n._DEFAULT = "de"`). Switch with
+  View → Sprache / Language (Ansicht → Sprache / Language), then restart Mule. Parts of the interface, the detailed
+  German feature list, many code comments and all test names are still German; the in-app manual (F1) exists in
+  German and English.
+- **No built-in "Report a problem"** function.
+- **Large scenes get slow while drawing and dragging** (see Performance).
+- **Videos on the note board play without sound.**
+- **Review has no keyboard shortcut** to start: Start Review is in the Review menu and the Review button only
+  (older versions used F8/F9; those keys are gone).
+- **Shots/Timing is a prototype** (see §Shots).
+- **One MCP server per computer:** a second running Mule does not start a second server (see MCP).
+
+## Where Mule keeps its files
+
+- **User folder** (`paths.user_dir()`): Windows `%APPDATA%\Mule`; Linux `$XDG_DATA_HOME/Mule`, else
+  `~/.local/share/Mule`; macOS `~/Library/Application Support/Mule`. It contains:
+  - `mule.log` – **only in the packaged program** (`Mule.exe`): stdout, stderr and crash tracebacks
+    (`faulthandler`), **overwritten at every start**. Copy it before restarting Mule after a crash.
+  - `Reviews/<scene>_<timestamp>/` – review recordings: `ton.wav` (audio), `protokoll.jsonl` (camera, cursor,
+    selection, marks), `review.json`, `transkript.json`; `transkript_fehler.txt` if transcription failed.
+  - `Aufnahmen/<date_time>/` – input recordings from View → Recording (Ansicht → Aufnahme): `protokoll.jsonl`
+    plus `haenger_<n>.png` screenshots when Mule did not respond for more than 1 s.
+  - `whisper_venv/` – the Python environment created by Set Up Transcription.
+  - In the package also a writable copy of the workflow bible (`bible/sketch_machine_bible.md`) and optionally the
+    user's own `.mcp.json` / `.codex/config.toml` (copied into every brief folder, see MCP).
+- **Settings:** Qt `QSettings("SketchMachine", "SketchMachine")` – on Windows the registry key
+  `HKCU\Software\SketchMachine` [exact subkey `\SketchMachine` unverified]; on Linux an ini file under
+  `~/.config/SketchMachine/` [unverified]. Contains language, window layout, backup settings, Whisper Python path,
+  startup animation on/off, recent files.
+- **Next to the scene file:** `backups/` (automatic backups), `review_backups/` (scene state before each sent
+  review), `videos/` (copies of note-board videos, made on save).
+- **Unsaved scenes** are backed up to `Documents/Mule/backups`.
+- **File association:** on every start Mule registers `.mule` for the current user (HKCU, no admin rights), so a
+  double-click opens the Mule that ran last – the package or a source checkout. Code: `sketch_machine/assoc.py`.
+- **Running from source** (`start.bat`, `start.sh`, `python -m sketch_machine`) writes **no log file**: output goes
+  to the console. `start.bat` uses `pythonw.exe`, so there is no console and errors are invisible. To see a
+  traceback on Windows, start from a terminal: `.venv\Scripts\python -m sketch_machine`. `start.sh` sets
+  `PYTHONFAULTHANDLER`, so crashes print the exact location in the terminal.
+
+Code: `sketch_machine/paths.py`, `sketch_machine/backup.py`, `sketch_machine/review.py`, `sketch_machine/recorder.py`
+
+## Program does not start or the viewport is red
+
+### "OpenGL 3.3 not available: …"
+- Symptom: the window opens, but the viewport is filled with an error colour and the text
+  `OpenGL 3.3 not available:` plus the driver's error. Cause: creating the moderngl context failed in
+  `Viewport.initializeGL` (driver without OpenGL 3.3).
+- Fixes: update the graphics driver; on laptops with two GPUs make sure Mule runs on the dedicated one
+  [unverified]. Remote desktop sessions often provide no OpenGL 3.3 [unverified].
+- The Windows package ships Qt's `opengl32sw.dll` (Mesa llvmpipe, software rendering), which Qt uses when no driver
+  supports OpenGL (`packaging/third_party.py`). Forcing it with the Qt environment variable `QT_OPENGL=software`
+  should work, but will be slow [unverified for Mule].
+- On Linux Mule needs the system's OpenGL 3.3 driver (NVIDIA or Mesa).
+
+### Startup animation
+- The logo animation plays before the main window appears; a click or key skips it, at most 8 s. Turn it off with
+  View → Startup animation (Ansicht → Startanimation). If the animation file is missing, Mule starts without it.
+  Code: `sketch_machine/startup.py`
+
+### Windows SmartScreen "Windows protected your PC"
+- Cause: the program is not code-signed. Click **More info**, then **Run anyway** (German Windows:
+  „Weitere Informationen“ → „Trotzdem ausführen“). If company policy blocks this, the user has to ask their IT;
+  there is no workaround in Mule.
+- Unzip `Mule_Windows.zip` into a folder of its own and start `Mule\Mule.exe`; no installation, no Python needed.
+
+### Linux start problems (from LIESMICH/README and `start.sh`)
+- First start needs `uv` and internet once: `start.sh` creates its own Python 3.14 in `runtime/python` and `.venv`
+  with the pinned `requirements.txt`. The system Python is neither used nor changed; no admin rights.
+  Install uv without admin: `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+- An older `.venv` is moved to `.venv.alt-<date>` (can be deleted). New packages are installed into the existing
+  `.venv` on the next start (internet needed once).
+- `Could not load the Qt platform plugin "xcb"`: a system library is missing, usually `libxcb-cursor0`.
+- Under Wayland, if needed, start with `QT_QPA_PLATFORM=xcb ./start.sh`.
+- Do not upgrade PySide6 without testing: PySide6 6.12.0 crashed in the viewport on Linux with Python 3.10
+  ("deallocating None"); harmless from Python 3.12. Fallback version would be 6.10.
+
+### Graphics tablet
+- The pen acts as the mouse (tip = LMB, side buttons as the driver maps them). Pressure controls width/eraser
+  circle size depending on the sliders. With several monitors, map the tablet area to one monitor in the tablet driver.
+
+### Package self-test (diagnosis on a user's machine)
+- `Mule.exe --selftest result.json` runs, with throwaway settings and no dialogs, these checks and writes them to
+  the JSON file (`"ok": true/false`, per-check info or traceback): `opengl` (viewport framebuffer), `usd` (USD import),
+  `bible` (bible writable), `brief` (export writes `brief.md`, `brief.json`, `scene.usd`), `manual`, `szene`
+  (save and reload), `video` (QtMultimedia present, H.264 decoding), `startanimation`, `aufnahme` (WebSocket for OBS,
+  recordings folder), `lizenzen` (license files next to `Mule.exe`). Exit code 0 = all passed.
+  From source: `python -m sketch_machine --selftest result.json`.
+  Code: `sketch_machine/selftest.py`
+
+## AI connection (MCP) does not work
+
+Facts from the code (`sketch_machine/mcp_server.py`): the server runs inside the Mule process on
+`http://127.0.0.1:8770/mcp` (port fixed, `PORT = 8770`), only reachable from the same computer, no login,
+Streamable HTTP with JSON answers only (GET and DELETE answer 405; no server push). Every tool call runs on the Qt
+main thread. Setup for Claude Code and Codex: see §MCP.
+
+Checklist:
+1. **Mule must be running before the AI session starts.** The server starts with the main window and stops with
+   it. If Mule was started later, reconnect the server in the AI client or restart the session (in Claude Code:
+   `/mcp`) [unverified for every client].
+2. **Port 8770 already in use** (usually a second Mule): `mcp_server.start()` catches the error and returns `None`;
+   Mule then runs **without** an MCP server; the status bar says "AI connection off: port 8770 is in use (is
+   another Mule running?)" for 20 s after the start. The AI then talks to the *first* Mule, which
+   may have a different scene open. Fix: close every Mule, start one, restart the AI session. Check on Windows with
+   `netstat -ano | findstr 8770` which process holds the port.
+3. **Entry missing or wrong:** the server name must be `sketch_machine`, type `http`, URL exactly
+   `http://127.0.0.1:8770/mcp`. Every Sketch Brief export writes `.mcp.json` (Claude Code) and `.codex/config.toml`
+   (Codex) with this entry into the brief folder, so a session started in the brief folder has it automatically.
+   Claude Code asks once to approve servers from a project `.mcp.json` [unverified wording].
+4. **Extra MCP servers (Houdini, Blender) in every brief folder:** put them into a `.mcp.json` /
+   `.codex/config.toml` in the user folder (package: `%APPDATA%\Mule`; source: the repo root). Export merges them
+   into the brief folder; existing entries there stay, only these servers are set. Code: `brief.write_tool_config`.
+5. **Firewall/proxy:** the server binds to 127.0.0.1 only; a corporate proxy setting that routes localhost through
+   a proxy could break it [unverified].
+6. Tool errors come back to the AI as `isError: true` with a text message, not as a crash.
+
+## Brief session: hooks do not run
+
+The brief export copies a working-method package with Claude Code hooks into the brief folder (`.claude/settings.json`,
+`.claude/hooks/`, agent types; see §Brief). Symptom: the AI's first message lacks the quoted **GATE STATUS** block
+that the start hook injects; the start prompt tells the AI to stop and say so.
+
+Causes and fixes:
+- **Session not started in the brief folder.** Claude Code only loads `.claude/settings.json` of the folder it was
+  started in. Start Claude Code in the brief folder itself (not in a parent or the work folder `work_<name>`).
+- **Trust dialog not confirmed.** Claude Code asks whether to trust the folder; hooks only run after confirming.
+- **Programs missing.** The hooks run with bash (status line, pretool/posttool/subagent hooks) and PowerShell
+  (`gate.ps1`: session start, every prompt, Agent calls, stop). The export writes the programs it finds on this
+  machine into `.claude/settings.json`: on Windows Git Bash (from the Git installation, also outside
+  `C:/Program Files/Git`) and Windows PowerShell; on Linux/macOS `bash` and PowerShell 7 (`pwsh`, install it
+  separately). If one is missing, the brief dialog lists it under "Check before export"; install it and export
+  again. Several PreToolUse hooks are `onFailure: block`, so a missing bash blocks Bash/Write/Edit/Agent calls
+  instead of silently passing.
+- **Linux/macOS:** supported since v0.99.247 with `pwsh` installed, but not yet tested on a real Linux machine
+  [unverified].
+- **Codex** does not use Claude Code hooks; the rules then rely on the AI reading `CLAUDE.md` / `conductor.md`
+  [unverified].
+- Fallback written in `conductor.md`: without GATE STATUS the main chat tells the artist, pastes rules, level row,
+  role and report path into every agent prompt itself and keeps the loop by hand.
+- If a run is already going in the work folder (`review/gate/agents.log` exists), a new export does not overwrite
+  hooks, rules or `gate.conf`; only brief content is renewed. This is intended.
+
+Code: `sketch_machine/brief_v4.py`, `sketch_machine/brief_package/_claude/`
+
+## Review transcription (Whisper) fails
+
+How it works: Review → Set Up Transcription … (Review → Transkription einrichten …), or the question on the first
+review (Set Up … / Later / Don't ask again). Steps, each as a separate process while Mule stays usable:
+1. find an installed Python **3.10–3.13** (Windows: `py -3.12`, `-3.13`, `-3.11`, `-3.10` via the py launcher, then
+   `python3`, `python`; the Microsoft Store placeholder `python.exe` in `WindowsApps` is skipped),
+2. `python -m venv %APPDATA%\Mule\whisper_venv`,
+3. `pip install faster-whisper` (with an NVIDIA GPU, detected by `nvidia-smi` on PATH, also `nvidia-cublas-cu12`
+   and `nvidia-cudnn-cu12==9.*`),
+4. download the model `large-v3-turbo` (~1.6 GB). Together about 2–4 GB.
+On success the path is stored in the setting `whisper_python`.
+
+Problems:
+- **"Python not found" in the dialog:** install Python 3.10–3.13 from python.org with **Add python.exe to PATH**
+  ticked, then click **Look for Python again**. Python 3.14 is *not* accepted (no prebuilt faster-whisper /
+  ctranslate2 wheels).
+- **"Step failed: …"**: the dialog shows the step and the full pip/venv output in its log box. Typical causes:
+  no internet, proxy, disk full [unverified list]. **Try again** restarts; Cancel stops and Set Up Transcription
+  continues later. Deleting `%APPDATA%\Mule\whisper_venv` and running the setup again gives a clean start
+  [unverified].
+- **Slow transcription:** without a usable NVIDIA GPU, Whisper runs on the CPU (`int8`), much slower but in the
+  background. If CUDA fails, it falls back to CPU automatically and prints "GPU nicht nutzbar …".
+- **Transcript missing after a review:** see `transkript_fehler.txt` in the review folder
+  (Review → Open Reviews Folder). The MCP tool `review_read` transcribes on demand if the transcript is missing;
+  without Whisper it answers "no Python with faster-whisper found".
+- **Own Python:** Mule looks, in this order, at the environment variable `SM_WHISPER_PYTHON`, the setting
+  `whisper_python`, `%APPDATA%\Mule\whisper_venv`, `~/mcp/whisper_venv`, and (source runs only) Mule's own Python if
+  `faster_whisper` is importable.
+- **Microphone:** choose it in Review → Microphone; "(no microphone found)" means Qt sees no audio input.
+
+Code: `sketch_machine/whisper_setup.py`, `sketch_machine/review_transcribe.py`, `sketch_machine/review.py`
+
+## Videos on the note board
+
+- Accepted extensions: `.mp4 .mov .m4v .webm .mkv .avi`. Decoding is Qt Multimedia with its bundled FFmpeg
+  (LGPL); the self-test requires H.264 decoding. Other codecs depend on that FFmpeg build [unverified which].
+- "Could not read the video: …": the file could not be opened within 8 s or is not decodable. Re-encode to
+  H.264 MP4 [unverified as a fix, but H.264 is the checked codec].
+- "Videos need PySide6-Addons, which this installation does not have.": source install without `PySide6-Addons`;
+  run `pip install -r requirements.txt`.
+- "Video missing": the file is no longer where the scene points. Videos are **not** stored in the scene file: on
+  save Mule copies them into `videos/` next to the scene and stores the relative path. Keep that folder with the
+  scene.
+- Videos play without sound.
+
+Code: `sketch_machine/video.py`
+
+## Performance with large scenes
+
+- Known: drawing, dragging with the gizmo and undo get slower as the scene grows; the rework of the internals aims at
+  "cost depends on the size of the change, not of the scene" and is not finished (`tests/test_messlatte.py` lists
+  which work counters still grow with scene size: point dragging, new lines, object dragging, undo snapshots).
+- Measured on a large reference scene: with **Light** on, a gizmo drag frame took about twice as long as without
+  (shadow map). Turning Light off (Light icon) while editing heavy scenes is a reasonable first step
+  [unverified as general advice].
+- Hiding or isolating parts reduces what is drawn [unverified effect on drag speed].
+- Undo keeps up to 150 scene snapshots (unchanged lines and surfaces are shared, so memory grows with changes,
+  not linearly with scene size).
+- Note-board pictures are embedded in the scene file (base64), so scenes with many pictures become large files and
+  take longer to save and back up. Automatic backups never run in the middle of a stroke or drag.
+- For a slow-down report, View → Recording → Start Recording logs every input with its processing time and
+  screenshots hangs; attach that folder (View → Recording → Open Recordings Folder).
+
+## Lost work, backups, undo
+
+- **Automatic backups:** File → Settings… (Datei → Einstellungen…, `Ctrl+,`) → Backup: on/off and interval
+  (default 10 min, 1–240). Only when something changed since saving or the last backup. Folder `backups/` next to
+  the scene (unsaved scenes: `Documents/Mule/backups`), newest 50 per scene kept. Backups do not save the scene and
+  do not copy videos. File → Open Recent (Datei → Zuletzt geöffnet) has **Open backup folder**.
+- **Review backups:** before each sent review Mule saves the scene into `review_backups/` next to it (newest 20 by
+  default).
+- Undo/redo: `Ctrl+Z` / redo as listed in §Keys; 150 steps; selection changes are their own undo steps and do not
+  count toward the limit.
+- **Workspace messed up** (panels undocked or closed): View → Reset workspace (Ansicht → Arbeitsbereich zurücksetzen).
+- "Not a Mule scene.": the JSON file lacks `"format": "sketch-machine-scene"`.
+- Old scene extension `.sketch.json` still opens via File → Open; current scenes are saved as `.mule` (same JSON).
+
+## Reporting a problem
+
+- Open an **Issue** on GitHub (templates: "Bug report / Fehler melden", "Idea or workflow / Idee oder Arbeitsweise"). Pull requests are not accepted
+  during the alpha (see Part B, Contribution policy).
+- Attach:
+  1. what the user did, expected, and what happened;
+  2. the version (release name, e.g. "Mule Create Alpha 1 (v0.99.229)") and the system;
+  3. `mule.log` from `%APPDATA%\Mule` (Windows: `Win+R`, type `%APPDATA%\Mule`) – copy it before restarting, it is
+     overwritten at every start; from source: the console output;
+  4. if possible the scene (`.mule`) plus, if it has them, the `videos/` folder and imported mesh files (OBJ/USD are
+     stored as relative paths, not embedded; note-board pictures are inside the scene file); a screenshot;
+  5. for review/transcription problems: the review folder (contains the voice recording – the user should know that);
+     for slowness: a Recording folder; for package problems: the `--selftest` JSON.
+- Feedback on how the AI handled a Sketch Brief is explicitly welcome.
+- Contact for anything that does not fit an issue: **mulecreate@gmail.com**.
+
+## License
+
+- Mule Create is free software under the **GNU General Public License v3.0** (`LICENSE`).
+- The name "Mule Create" and the Mule logo are **not** covered by the license; modified versions must not use them.
+- Third-party software in the package with its licenses: `THIRD_PARTY_NOTICES.md` and `licenses/` next to
+  `Mule.exe` (Qt/PySide6 LGPL-3.0, FFmpeg LGPL-2.1+, Mesa llvmpipe MIT with LLVM NCSA, Python, numpy, usd-core …).
+  Qt libraries sit as separate files in `_internal/PySide6` and may be replaced by compatible builds.
+
+**Part B – Working on the source (for an AI changing the code)**
+
+## Repo layout
+
+Tracked and public:
+- `sketch_machine/` – the program (Python package). `python -m sketch_machine` starts it.
+- `sketch_machine/brief_package/` – the working-method package copied into each brief export (rules, roles,
+  `conductor.md`, `levels.md`, Claude Code hooks in `_claude/`, `tools/vis_map`, `tools/sketch_overlay`,
+  `PACKAGE_CHANGES.md`); hook tests: `bash sketch_machine/brief_package/_claude/tests/run_tests.sh`.
+- `sketch_machine/assets/` – `mule_start.webp` (startup animation), `mule_icon.png`.
+- `bible/` – `sketch_machine_bible.md` (workflow bible the AI reads and extends; the brief names its path).
+- `tests/` – test system (see Tests); `tests/scenes/` test scenes, `tests/assets/clip.mp4`.
+- `packaging/` – build and release (see Packaging).
+- `houdini_mcp/` – a separate small MCP server for Houdini (`houdini_code`, port 8771); not part of Mule's
+  program, not in the Linux package, included in the source zip.
+- `sketches/szene.sketch.json` – one sample scene.
+- `.github/` – issue templates and PR template (no active workflows).
+- Top-level files: `README.md` (English overview), `LIESMICH.md` (detailed German feature list), `AI_HANDBOOK.md`
+  (this file), `GUIDE.md` (English tester
+  guide), `ANLEITUNG.md` (German), `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`, `requirements.txt`,
+  `requirements-build.txt` (PyInstaller), `start.bat`, `start.sh`.
+
+Not in the repository (`.gitignore`, generated or local): `.venv/`, `runtime/`, `build/`, `dist/`, `tests/_out/`,
+`tests/_baseline/`, `backups/`, `.claude/`, `.codex/`, `.mcp.json`, loose scene files in the root (test scenes
+belong in `tests/scenes/`).
+
+## Running from source
+
+- Python **3.14**, pinned versions in `requirements.txt`: PySide6-Essentials and PySide6-Addons 6.12.0, numpy,
+  moderngl, glcontext, trimesh (OBJ), usd-core (USD), scipy (required for surfaces).
+- Windows: `py -3.14 -m venv .venv`, `.venv\Scripts\pip install -r requirements.txt`, `.venv\Scripts\python -m sketch_machine`.
+- Environment variables: `MULE_LANG=de|en` overrides the language setting; `SM_WHISPER_PYTHON`; `SM_FAST=1` turns off
+  the test verify modes (measurements); `SKETCH_UPDATE_BASELINE=1` (set by `--update-baseline`).
+- Entry: `sketch_machine/__main__.py` → `app.main()`; package entry `packaging/mule_main.py`. `main()` starts the log
+  (package only), handles `--selftest`, creates `MainWindow`, starts the MCP server, registers `.mule`, plays the
+  startup animation, then loads `sys.argv[1]` if it is a file.
+
+## Architecture of `sketch_machine/`
+
+App and UI
+- `app.py` – `MainWindow`, menus, toolbars, docks, save/load, review/backup wiring, `main()`.
+- `ui.py` – line icons and UI colour scheme. `theme.py` – viewport colours (paper / chalkboard).
+- `outliner.py` – object list and hierarchy (nulls, symmetry/array), selection sync.
+- `views.py` – split/close/maximize viewports (Houdini-style). `workspace.py` – state shared by all viewports.
+- `colorpick.py` – colour picker. `manual.py` / `manual_en.py` – in-app manual (F1).
+- `startup.py` – startup animation. `assoc.py` – `.mule` file association. `backup.py` – backups, recent files.
+- `paths.py` – repo vs package paths, user folder, log. `selftest.py` – package self-test.
+- `i18n.py` / `i18n_en.py` – UI language. `counters.py` – work counters. `lru.py` – bounded caches.
+- `recorder.py` – input recording (View → Recording), optional OBS control via WebSocket.
+
+Viewport (`viewport.py` + mixins in `vp/`)
+- `viewport.py` – `Viewport(QOpenGLWidget)` composed of the mixins below; OpenGL 3.3 compatibility context.
+- `renderer.py` – moderngl rendering: shaded meshes, planes, surfaces, GPU picking. `camera.py` – orbit camera,
+  persp/ortho. `gizmo.py` – transform gizmo.
+- `vp/common.py` shared helpers; `vp/navigation.py` camera/focus/views/new plane; `vp/drawing.py` pen, smoothing,
+  pressure, shapes; `vp/free_draw.py` Free mode (Q); `vp/eraser.py`; `vp/selection.py` objects/edges/points,
+  rectangle and loop select; `vp/picking.py` rays and hit tests; `vp/snapping.py`; `vp/component_edit.py` points/edges;
+  `vp/point_tools.py` hardness, smoothing, slide; `vp/edit_ops.py` undo/redo, copy/paste, group; `vp/cleanup_ops.py`
+  weld/fuse; `vp/surface_ops.py` loft, curve surface, fill, split, delete/rename; `vp/tools.py` extrude and connect;
+  `vp/nulls.py` nulls and generators; `vp/visibility.py` helpers, X-Ray, hide/isolate, paint mode;
+  `vp/display_lists.py` display lists incl. generator instances; `vp/overlay.py` QPainter overlay;
+  `vp/timing_view.py` Shots mode in the viewport.
+
+Scene model
+- `scene.py` – all scene classes (`Plane`, `Curve`, `StrokeObject`, `SurfaceObject`, `ExtrudeSurface`,
+  `LoftSurface`, `PatchSurface`, `MeshObject`, `NullObject`, `Note`, …), undo/redo, save/load.
+- `scene_surfaces.py` – surface methods of `Scene` (mixin): fills, lofts, curve surfaces, sync after every change.
+- `components.py` – points (knots) and edges on lines. `edges.py` – lines as editable edges.
+- `network.py` – curve net: shared point identities (`Curve.pids`). `netedit.py` – deleting net points.
+  `topology.py` – merge duplicate lines after operations.
+- `generators.py` – symmetry/array instances. `arrays.py` – array placement. `convert.py` – generators to real geometry.
+- `clipboard.py` – copy/paste. `cleanup.py` – cleanup functions. `light.py` – sun light (display only).
+- `geometry.py` – OBJ/USD import (Y up, 1 unit = 1 m). `pictures.py` – images projected on helper planes.
+- `shapes.py` – shape recognition (circle, rectangle, arc).
+
+Geometry and surfaces
+- `fill.py` – loops to triangles. `cage.py` – fill surfaces that follow their outline (mean value coordinates).
+- `netfill.py` – net surface on fill triangles. `loft.py` – loft through cross-sections. `patch.py` – curve surface
+  (Coons). `patchnet.py` – curve surface as Gordon surface from net lines. `netsurf.py` – net surface (trial).
+- `extrude.py` – extrude line logic. `extruding.py` – extrude on the scene (X).
+
+Notes
+- `notes.py` – note data and geometry (no Qt). `note_tool.py` – Notes mode (N) in the viewport.
+- `note_board.py` – note board (pictures, text, handwriting, arrows, hero cameras). `board_links.py` – what board
+  arrows connect. `video.py` – reference videos.
+
+Brief
+- `brief.py` – Sketch Brief export (`brief.md`, `brief.json`, `scene.usd`, views, notes), MCP entries for the
+  brief folder. `brief_dialog.py` – assignment dialog. `brief_v4.py` – working-method package and work folder.
+  `brief_ai.py` – clarified answers (merge, write into the brief). `review_round.py` – review rounds into a running
+  brief ("builds on").
+
+Export
+- `usd_export.py` – scene as USD. `curve_export.py` – curves only, USD or JSON. `timing_export.py` – shots in USD and
+  in the brief.
+
+MCP
+- `mcp_server.py` – JSON-RPC MCP server over HTTP, tool definitions (`TOOLS`) and implementations (`Tools`).
+  Tools: `scene_brief`, `render_view`, `note_images`, `video_frames`, `image_captions`, `set_image_captions`,
+  `export_brief`, `write_clarified`, `set_hero_prompt`, `dictate_note`, `review_read`, `review_moment`,
+  `review_note`, `review_notes`, `insert_images`, `edit_note` (details: §MCP).
+
+Timing (Shots, prototype)
+- `timing.py` – flipbook planes, timing cameras (data). `timing_ui.py` – Shots timeline.
+
+Review
+- `review.py` – review recording, marks, drafts, Whisper lookup. `review_transcribe.py` – standalone transcription
+  script run in the Whisper Python. `whisper_setup.py` – Set Up Transcription dialog.
+
+## Scene file format
+
+- One JSON file, extension `.mule` (older `.sketch.json` still loads). Written with `json.dumps(indent=1)`, UTF-8.
+  Coordinates rounded to 5 decimals. Paths are stored relative to the scene folder (absolute if on another drive).
+- Top-level keys (`Scene.to_dict`, plus `views` from `app.py`):
+  - `format` = `"sketch-machine-scene"` (checked on load), `version` = `5`.
+  - `planes` – id, name, preset flag, origin, axis_u/axis_v, size; optional hidden, picture, flipbook + blank_keys.
+  - `nulls` – groups and generators: id, name, kind, origin, axes, params, parent, hidden, color, binding.
+  - `meshes` – imported OBJ/USD: id, name, relative `path`, `xform`, optional prim, parent, hidden, binding.
+  - `strokes` – stroke objects: id, name, axes, parent, hidden, flipbook, `curves` (each: id, plane, points, widths,
+    generated, optional knots, style/color, paint/seq/lift/normals, hidden, frame, `pids` net point ids, `pattr`).
+  - `surfaces` – id, name, kind, axes, `outline` curves, material, seed, optional opacity, resolution, aid, picture,
+    `frozen` mesh, binding, tint; per type extra fields: extrude `segments`; fill `links/counts/rest/attached`;
+    patch `patch_*`, `net`, `span`, `bnd`; loft `closed/wrap/sources/rails/attached`.
+  - `global_note` – title and board of the project note.
+  - `notes` – id, uid, title, pos, size, yaw, `anchors` (point, curve, t, optional `members`), `board`, optional `review`.
+  - `timing` – only if Shots data exists: timing state plus its own global note and notes.
+  - `sun`, `light_bands`, optional `note_scale`.
+  - `brief_task` (assignment sentence), optional `brief_clarified`.
+  - optional `splits` – old line id → current pieces, so surfaces/notes referencing split lines still resolve.
+  - `active_plane`, `active_mesh`, `active_stroke`.
+  - `assets` – note-board pictures as base64, embedded (one file holds everything, like PureRef). Older scenes read
+    pictures from a `<name>.assets` folder next to the file.
+  - `views` – viewport layout.
+- Not embedded: videos (copied to `videos/` on save) and imported meshes (relative path).
+- `Scene.from_dict` is the single place that reads all file versions; `Scene.load` also calls `assign_owners()`
+  for older scenes. During the alpha the policy is clean architecture over backward compatibility.
+
+## Undo design
+
+- Whole-scene snapshots (`Scene.checkpoint()` before a change), at most `UNDO_LIMIT = 150`; selection-only steps
+  (`_Selection`) and light paint steps (`_PaintStep`, stores only the new paint curves) are cheaper entries;
+  selection steps do not count toward the limit.
+- `checkpoint(burst=...)`: same burst id within 1 s merges into one step (e.g. mouse wheel). `merge_next()` folds the
+  next checkpoint into the current one.
+- Snapshots share structure: numpy arrays are **shared, never copied** and made read-only – the scene must never
+  modify an array in place, only replace it (a violation raises immediately). Unchanged lines and surfaces reuse
+  their image from the previous snapshot (`_twins`, `_twin_memo`); on restore unchanged live objects stay.
+- `gc.freeze()` after each snapshot keeps the history out of the garbage collector.
+- Verify mode `Scene.VERIFY_UNDO` (on in tests) compares every shared copy against a full deep copy.
+
+## Internationalisation
+
+- UI strings in code are **German literals wrapped in `tr("…")`**; the German text is the key. `i18n_en.py` holds
+  `EN = {German: English}`. Missing entries fall back to German. Placeholders `{0}` must match.
+- Language is fixed at startup (`setting "language"`, default `de`, View → Sprache / Language, restart);
+  `MULE_LANG` overrides. Module-level constants also use `tr()`, so they are translated at import.
+- Not translated: internal names, file format, the artist's notes. `i18n.artist_language()` tells the AI which
+  language to talk in.
+- `manual.py` and `manual_en.py` are kept structurally identical: same tabs, same number of `<h2>` and `<tr>` per tab.
+- `tests/test_sprache.py` checks: every `tr()` literal has an English entry with matching placeholders; with
+  `MULE_LANG=en` no visible widget text looks German; default stays German; manual tabs match; language menu has
+  exactly one checked entry.
+- Adding a UI string: write it in German inside `tr()`, add the pair to `i18n_en.py`, run `tests/run.py sprache`.
+
+## Test system
+
+- `python tests/run.py` – every `tests/test_*.py` in its own subprocess (own app window, off screen, real mouse and
+  key events); throwaway settings, real settings untouched. Name filters: `tests/run.py loft undo`.
+- Three stages (`tests/LIESMICH.md`):
+  1. **Kern** (core): files with the line `STUFE = "kern"`; no window, tests receive `h = None`; seconds;
+     run after every change: `tests/run.py --kern`.
+  2. **Bedienung** (interaction): all other files; real window; minutes; run the affected area while working, all
+     before a commit touching shared core.
+  3. **Groß** (large): `tests/run.py --gross`; measurement runs on a large reference scene that is not part of the
+     public repository, so this stage is not available outside the developer's machine.
+- Without flags stages 1 and 2 run, core first. Results: `OK`, `FEHLER` (failure), `ERWARTET` (known problem marked
+  `@expected_failure("reason")`), `BEHOBEN` (known problem now passes – remove the marker). Exit code 1 on any FEHLER.
+  Stage 2 can give focus-related false alarms if someone uses the machine meanwhile; rerun singly.
+- `tests/harness.py` (`H`): drives the real app; redirects `QSettings` to a temp file before importing the app; turns
+  on verify modes (`Renderer.VERIFY_STROKES`, `DisplayListMixin.VERIFY_LISTS`, `SurfaceSyncMixin.VERIFY_SYNC`,
+  `Scene.VERIFY_UNDO`, `Scene.VERIFY_INDEX`, `SurfaceObject.VERIFY_KEY`) unless `SM_FAST=1`; Qt callback errors fail
+  the test. Read the scene through harness questions (`h.welt`, `h.objekt_von`, `h.verbunden`, `h.flaechen_von`,
+  `h.form`), not internal fields.
+- Pixel comparison: first run creates per-machine reference images in `tests/_baseline/`; after intended display
+  changes `tests/run.py render --update-baseline`. Run images go to `tests/_out/`. Compare images only with fixed
+  texture seed (`surface.seed = 1.0`).
+- Rules: check speed with work counters (`counters.py`, `tests/test_messlatte.py`), never with the clock; never
+  compare nets by point count alone. `test_messlatte.BEKANNT` lists counters that still grow with scene size; a new
+  growing counter or a no-longer-growing listed one fails the test.
+
+## Packaging and release
+
+- `packaging/mule.spec` – PyInstaller one-folder build: `python -m PyInstaller packaging/mule.spec --noconfirm` →
+  `dist/Mule/Mule.exe` (no console). Bundles the bible, startup assets, `review_transcribe.py` as a plain file, the
+  brief package (without its tests), USD plugins; then calls `third_party.write`.
+- `packaging/third_party.py` – writes `licenses/` and `THIRD_PARTY_NOTICES.md` next to `Mule.exe` from the modules
+  actually bundled; aborts the build if a license text is missing (add it to `OVERRIDES`). Notes for Qt (LGPL-3.0),
+  FFmpeg, Mesa/LLVM. `packaging/licenses/` holds GPL-3.0, LGPL-2.1, LGPL-3.0, LLVM-NCSA, Mesa-MIT texts.
+- `packaging/release.py` – builds from the tagged, pushed commit via `git archive` (never the working folder), runs
+  the self-test in German and English outside the project, packs `Mule_Windows.zip` (with ANLEITUNG, GUIDE,
+  CHANGELOG, CONTRIBUTING) and the Linux source tar or, with `--alpha "Alpha 1"`, `Mule_Quellcode.zip` plus docs,
+  then `gh release create` (alpha: draft, not latest). Refuses without a version tag `v…`, unpushed commit/tag, or an
+  existing release.
+- `packaging/public_export.py TARGET --name … --email …` – exports the current commit without history into a new
+  folder (without developer-only files), scans for private traces and aborts on any hit, makes one commit;
+  pushes nothing.
+- `packaging/mule.iss` – Inno Setup installer script (`ISCC.exe packaging\mule.iss` → `dist\Mule_Setup.exe`).
+  `packaging/mule.ico`, `packaging/mule_main.py` (PyInstaller entry).
+- `packaging/github-build.yml` (build + self-test on Windows/Linux/macOS, manual) and `github-kern-tests.yml` (core
+  tests on push, Windows/Linux, `QT_QPA_PLATFORM=offscreen`) are **drafts, not active**: they must be moved to
+  `.github/workflows/` to run; neither has ever run.
+- Versioning: commits are titled `v0.99.NNN: …`; releases are tagged `v0.99.NNN`; the brief package has its own
+  version (`brief_v4.VERSION`, currently v5.0) recorded in `PACKAGE_CHANGES.md`.
+
+## Contribution policy
+
+- Issues are welcome: bug reports, ideas, and reports on AI workflows with a Sketch Brief.
+- **Pull requests are not accepted during the alpha** – not reviewed or merged, may be closed without comment
+  (the PR template says so). Reason: one developer, focus, and licensing kept in one hand. People who built on Mule
+  should describe it in an Issue. `CONTRIBUTING.md` will say if this changes.
+- An AI helping a user modify Mule for themselves may do so under GPL-3.0, but must not ship the modified version
+  under the name "Mule Create" or with the logo.
+
+## Coding conventions (observed)
+
+- Python 3.14, PySide6 (Qt 6), numpy, moderngl. No type hints in most code, no linter config in the repo; lines
+  mostly up to about 120 characters (not enforced).
+- Comments and docstrings: historically German, being translated to English; module docstrings explain purpose and
+  design decisions, often with the reason or the incident that led to them.
+- UI text only through `tr()` with German keys. Test files and test function names are German
+  (`test_jeder_text_hat_…`).
+- The viewport is split into mixins (`vp/*.py`, one responsibility each) combined in `Viewport`; scene surface logic
+  is a mixin of `Scene` (`scene_surfaces.py`). Pure geometry modules (`fill.py`, `notes.py`, `shapes.py`, …) avoid Qt.
+- numpy arrays in the scene are replaced, never modified in place (undo sharing depends on it).
+- Settings always via `QSettings("SketchMachine", "SketchMachine")`.
+- Performance work is measured with `counters.C[...]` increments per touched element group, not per point.
+- Caches use bounded LRU (`lru.py`) instead of clearing everything.
+- Verify modes (`VERIFY_*` class flags) guard fast paths; tests switch them on.
+- MCP tools run on the Qt main thread; long work (transcription) goes into a `pre_<tool>` step outside it.
+- Tool and parameter descriptions for the AI (MCP) are in English.
+
+# 7. Appendix: UI glossary German → English
+
+Short UI names of the program (menus, buttons, tools, labels) as the German interface shows them, with the English name used in this handbook. Generated from `sketch_machine/i18n_en.py`.
+
+<!-- GLOSSARY:START (generated by packaging/handbook_glossary.py – do not edit by hand) -->
+
+- **Notizkrake, Krake** → note octopus: extra leader lines of a note to the similar parts it also means
+- **Ebene** → plane (tracing paper in space); in Shots also a flipbook layer ("Ebenen" → "Layers")
+- **Zeichenfläche** → drawing surface (curved surface you draw on)
+- **Fläche** → surface (fill surface, curve surface, loft)
+- **Strich, Linie** → stroke, line
+- **Stroke-Objekt** → stroke object (container of lines)
+- **Hinweislinie** → leader line of a note
+- **Notizbrett, Brett** → note board
+- **Kurvennetz, Netz** → curve net
+- **Hero-Kamera** → hero camera
+- **Strg / Entf / Umschalt** → Ctrl / Del / Shift
+- Abbrechen → Cancel
+- ABRUNDEN → ROUND
+- Abstand zwischen den Backups: → Time between backups:
+- Achse zurücksetzen → Reset axis
+- Achsenmodus	Alt+A → Axis mode	Alt+A
+- aktiv → active
+- Alle Linien löschen → Delete all lines
+- Alle Viewports zeigen → Show all viewports
+- Alles aufklappen → Expand all
+- Alles einklappen → Collapse all
+- am Weltursprung → at the world origin
+- Andere Datei … → Other file …
+- Ansehen → View
+- Ansicht → View
+- Ansicht geändert → View changed
+- Ansicht ins Notizbrett (Bild) → View to note board (picture)
+- Anwenden → Apply
+- Anzahl → Count
+- Arbeitsbereich zurückgesetzt → Workspace reset
+- Arbeitsbereich zurücksetzen → Reset workspace
+- Array (Auswahl vervielfachen) → Array (multiply selection)
+- Art: → Type:
+- auf die oberste Ebene → to the top level
+- Auf oberste Ebene → To top level
+- Auflösung → Resolution
+- Auflösung aller Flächen → Resolution of all surfaces
+- Auflösung der Flächen (× Viewport): → Surface resolution (× viewport):
+- Aufnahme → Recording
+- Aufnahme beenden → Stop Recording
+- Aufnahme starten → Start Recording
+- Aufnahmen-Ordner öffnen → Open Recordings Folder
+- Aufräumen: → Clean up:
+- Aufräumen: nichts zu verschweißen → Clean up: nothing to weld
+- Aufräumen: verschweißen + verschmelzen → Clean up: weld + merge
+- Auftrag in einem Satz: → Assignment in one sentence:
+- Aus → Off
+- aus Auswahl → from selection
+- aus der jetzigen Ansicht → from the current view
+- Aus Krake entfernen	Entf → Remove from octopus	Del
+- Ausgeblendetes mitnehmen → Include hidden objects
+- Ausschneiden	Strg+X → Cut	Ctrl+X
+- Auswahl → Selection
+- Auswahl in eigenes Objekt	Strg+G → Selection to own object	Ctrl+G
+- Auswahl in neues Objekt → Selection to new object
+- Auswahl zur Krake hinzufügen → Add selection to octopus
+- Automatisch Backups anlegen → Create backups automatically
+- Backup-Ordner öffnen → Open backup folder
+- Baut auf: → Builds on:
+- Bearbeiten → Edit
+- Behalten → Keep
+- Bereich → Range
+- Bereit – sag Claude Bescheid → Ready – tell Claude
+- Bild → Picture
+- Bild auf dem Brett → picture on the board
+- Bild fehlt → Picture missing
+- Bild laden → Load Picture
+- Bilder → Pictures
+- Bilder pro Sekunde → Frames per second
+- Bildunterschrift → Caption
+- Bildunterschrift ändern … → Edit caption …
+- Bildunterschrift … → Caption …
+- bis → to
+- Blau → Blue
+- Bleistift → pencil
+- Bleistiftfarbe → Pencil color
+- Boden (XZ) → Ground (XZ)
+- Bogen → Arc
+- Brennweite → Focal length
+- Brett → board
+- Brief-Ordner des laufenden Chats wählen → Choose the brief folder of the running chat
+- Claude arbeitet … → Claude is working …
+- Cleanup: nichts zu tun → Cleanup: nothing to do
+- Cleanup: nichts zu verbinden → Cleanup: nothing to connect
+- Cleanup: wirkt jetzt auf ALLES → Cleanup: now acts on EVERYTHING
+- Datei → File
+- Datei … → File …
+- Delete Selection	Entf → Delete selection	Del
+- des Arrays gesetzt → of the array set
+- des Nulls → of the null
+- Die im Viewport angeklickte Notiz → The note clicked in the viewport
+- Die OBJ-Datei enthält keine Flächen. → The OBJ file contains no faces.
+- Doppelklick: durch diese Kamera schauen → Double-click: look through this camera
+- doppelte Linie(n) entfernt → duplicate line(s) removed
+- Doppelte Linien entfernen → Remove duplicate lines
+- Dr. → tris
+- Drahtgitter: Deckkraft der Kanten → Wireframe: edge opacity
+- Drehen	R → Rotate	R
+- Drehen (R) → Rotate (R)
+- Drehung ° → Rotation °
+- Druckempfindlichkeit → Pressure sensitivity
+- Duplizieren → Duplicate
+- Duplizieren (mit allem darunter)	Strg+D → Duplicate (with everything below)	Ctrl+D
+- Dupliziert und verschoben um → Duplicated and moved by
+- Durch die Kamera schauen	Doppelklick → Look through the camera	Double-click
+- Ebene → Plane
+- Ebenen → Planes
+- Ebenen: → Layers:
+- Eigene Stiftfarbe (Farbrad) → Own pen color (color wheel)
+- Eigener Wert … → Custom value …
+- Ein-/Ausblenden → Show/Hide
+- Einblenden → Show
+- Einfügen → Paste
+- Einfügen	Strg+V → Paste	Ctrl+V
+- Einfügen: Zwischenablage ist leer. → Paste: clipboard is empty.
+- eingefügte Punkt(e) aufgelöst → inserted point(s) dissolved
+- Eingefügte Punkte auflösen → Dissolve inserted points
+- Einheiten → units
+- Einrast-Schritte (Strg) → Snap steps (Ctrl)
+- Einrast-Schritte … → Snap steps …
+- Einrichten → Set Up
+- Einrichten … → Set Up …
+- Einstellungen → Settings
+- Einstellungen… → Settings…
+- Entlang Linie → Along line
+- entscheidet die KI → the AI decides
+- Erster Frame → First frame
+- Es ist nichts ausgeblendet → Nothing hidden
+- Export fehlgeschlagen → Export failed
+- Exportieren → Export
+- Extrudieren erzeugt Flächen → Extruding creates surfaces
+- Fahrt: → Move:
+- Fangweite → Snap distance
+- Farbe → Color
+- Farblinien → Color lines
+- FASE → CHAMFER
+- Fast gerade Stücke begradigen → Straighten nearly straight pieces
+- fehlt → missing
+- fest → fixed
+- Fest – nicht anfassen → Fixed – don't touch
+- Finnpappe → Cardboard
+- fließend → smooth
+- Fläche → Surface
+- Fläche(n) wieder verknüpft → surface(s) relinked
+- Flächen → Surfaces
+- Geklärt mit der KI → Clarified with the AI
+- Geklärt mit der KI: → Clarified with the AI:
+- Gelb → Yellow
+- Geometrie fehlt → Geometry missing
+- Geometrie importieren → Import geometry
+- Geometrie importieren… → Import geometry…
+- Glätten → Smooth
+- Groß → Large
+- Grundlage – Ausführung frei → Basis – execution open
+- Gruppe auflösen	Shift+G → Ungroup	Shift+G
+- Gruppen → Groups
+- Grün → Green
+- haben wieder ihr Material → have their material back
+- Handbuch → Manual
+- Hier! markieren → Mark Here!
+- Hilfe → Help
+- Hilfsfläche → Helper surface
+- Hilfsfläche (nur zum Draufzeichnen) → Helper surface (for drawing on only)
+- Hilfsfläche: erst Flächen wählen → Helper surface: first select surfaces
+- Hinweise zu diesem Export: → Notes on this export:
+- Holz → Wood
+- Härte → Hardness
+- Import fehlgeschlagen → Import failed
+- In Bleistift umwandeln → Convert to pencil
+- in der Mitte der Auswahl → at the center of the selection
+- ins Leere → into empty space
+- Kamera → Camera
+- Kamera löschen → Delete camera
+- Kamera umbenennen → Rename camera
+- Kamera umbenennen … → Rename camera …
+- Kameragröße → Camera size
+- Kameras → Cameras
+- Kante → Edge
+- Kanten → edges
+- kein Bild → no picture
+- kein Gizmo – T/R/E → no gizmo – T/R/E
+- kein Mikrofon gefunden → no microphone found
+- Keine (wie darüber) → None (as above)
+- Keine Marke zum Zurücknehmen → No mark to take back
+- Keine Mule-Szene. → Not a Mule scene.
+- Keine Review-Runde – normaler Export → No review round – normal export
+- Klein → Small
+- Klick: Verbindlichkeit fürs Brief → Click: binding level for the brief
+- Konvertieren (echte Geometrie)	Alt+C → Convert (real geometry)	Alt+C
+- Konvertiert: → Converted:
+- Kopieren → Copy
+- Kopieren	Strg+C → Copy	Ctrl+C
+- Kopieren: nichts ausgewählt. → Copy: nothing selected.
+- Kopiert: → Copied:
+- Krake leeren → Clear octopus
+- Kreide → Chalk
+- Kreidefarbe → Chalk color
+- Kreidetafel → Chalkboard
+- Kreis → Circle
+- Kreis (um Y) → Circle (around Y)
+- Kurven als JSON (*.json) → Curves as JSON (*.json)
+- Kurven exportieren → Export curves
+- Kurvenfläche → Curve surface
+- Kurvenfläche (als Loft entstanden) → Curve surface (created as loft)
+- Kurven… → Curves…
+- Laufender Lauf → Run in progress
+- Leere Stroke-Objekte löschen → Delete empty stroke objects
+- Leere Zeichnung → Empty drawing
+- leere(s) Objekt(e) gelöscht → empty object(s) deleted
+- Leeren → Clear
+- Letzte Marke zurücknehmen	Shift+F8 → Take Back Last Mark	Shift+F8
+- Letzter Frame → Last frame
+- Licht aus → Light off
+- Licht-Stufen → Light steps
+- Licht-Stufen … → Light steps …
+- Linie → Line
+- Linien → Lines
+- Linien aus Flächen → Lines from surfaces
+- Liste leeren → Clear list
+- Loft durch Querschnitte	Shift+F → Loft through cross-sections	Shift+F
+- Lokal → Local
+- Lokal statt Welt ausrichten (Space+M) → Align local instead of world (Space+M)
+- Löschen → Delete
+- Löschen	Entf → Delete	Del
+- Löschen (mit allem darunter)	Entf → Delete (with everything below)	Del
+- Malerei → Paint
+- Markieren → Mark
+- Maximale Strichbreite → Maximum stroke width
+- Maximale Strichbreite … → Maximum stroke width …
+- Maximieren → Maximize
+- Maßgeblich – verfeinern erlaubt → Authoritative – refining allowed
+- Mikrofon → Microphone
+- Mikrofon lässt sich nicht öffnen → the microphone cannot be opened
+- Mit der Kamera drehen → Rotate with the camera
+- Mittel → Medium
+- Modus → Mode
+- Mule Create – Handbuch → Mule Create – Manual
+- Neu → New
+- Neue Kamera → New camera
+- Neue Kamera (Screenshot ins Brett) → New camera (screenshot onto the board)
+- Nicht mehr fragen → Don't ask again
+- nichts → nothing
+- Nichts gewählt zum Ausblenden → Nothing selected to hide
+- Nichts gewählt zum Isolieren → Nothing selected to isolate
+- Noch kein Review aufgenommen → No review recorded yet
+- noch keine Farbe benutzt → no color used yet
+- Nochmal nach Python suchen → Look for Python again
+- Nochmal versuchen → Try again
+- Normale → Normal
+- Notiz → Note
+- Notiz löschen → Delete note
+- Notizbrett in jedem Modus → Note Board in Every Mode
+- Notizbrett öffnen → Open note board
+- Notizen → Notes
+- Notizen ein-/ausblenden → Show/hide notes
+- Notizgröße der Szene → Note size of the scene
+- Null (Auswahl gruppieren)	Alt+G → Null (group selection)	Alt+G
+- Nur besprechen – nichts bauen → Discuss only – build nothing
+- Objekt → Object
+- Objekte → Objects
+- OBS mitstarten → Also Start OBS
+- oder zu verschmelzen → or merge
+- Onion-Skin → Onion skin
+- Onion-Skin an → Onion skin on
+- Onion-Skin aus → Onion skin off
+- Orientierung → Orientation
+- Papier → Paper
+- Pfad → Path
+- Pinselstriche → brush strokes
+- Projekt → Project
+- Punkt → Point
+- Punkte → Points
+- Punkte oder Kanten → points or edges
+- Punkte ziehen: immer hart → Drag points: always hard
+- Punkte ziehen: immer weich → Drag points: always soft
+- Punktgröße → Point size
+- Rechteck → Rectangle
+- Review absenden → Send Review
+- Review beenden → Stop Review
+- Review starten → Start Review
+- Review-Backups je Szene: → Review backups per scene:
+- Review-Backups öffnen → Open Review Backups
+- Review-Ordner öffnen → Open Reviews Folder
+- Review-Runde → Review round
+- ringförmiger Loft → ring loft
+- Rosa → Pink
+- Rot → Red
+- Rotieren und Geraden → Rotate and straight lines
+- Rundung → Rounding
+- Röhre → Tube
+- samt Grafikkarten-Bibliotheken (NVIDIA) → with graphics card libraries (NVIDIA)
+- Schließen → Close
+- Screenshot neu aufgenommen → Screenshot retaken
+- Sehr groß → Very large
+- Seite (ZY) → Side (ZY)
+- Shot-Kameras: → Shot cameras:
+- Skalieren → Scale
+- Skalieren (E) → Scale (E)
+- Sketch Brief exportieren… → Export Sketch Brief…
+- Sketch Brief – Auftrag → Sketch Brief – Assignment
+- Smooth-Maximum → Smooth maximum
+- Smooth-Maximum … → Smooth maximum …
+- Speichern → Save
+- Speichern fehlgeschlagen → Save failed
+- Speichern unter… → Save as…
+- Split links/rechts → Split left/right
+- Split oben/unten → Split top/bottom
+- Sprühfarbe → Spray paint
+- Später → Later
+- Standard des Systems → System default
+- Standardfarben → Default colors
+- Standbild ins Brett → Add still to the board
+- Startanimation → Startup animation
+- Stellung ab Frame → Position from frame
+- Stellung ab Frame … → Position from frame …
+- Stellung: → Position:
+- Stiftgröße in Welteinheiten → Pen size in world units
+- Stoff → Fabric
+- Stück(e) begradigt → piece(s) straightened
+- Suchen … → Search …
+- Symbolgröße → Symbol size
+- Symmetrie → Symmetry
+- Symmetrie (Auswahl spiegeln) → Symmetry (mirror selection)
+- Szene als USD → Scene as USD
+- Szene als USD exportieren → Export scene as USD
+- Szene als USD… → Scene as USD…
+- Szene speichern → Save scene
+- Szene öffnen → Open scene
+- Timing-Notizen → Timing notes
+- Tinte → Ink
+- Transkribiere … → Transcribing …
+- Transkription einrichten → Set Up Transcription
+- Transkription einrichten … → Set Up Transcription …
+- Transkription einrichten? → Set up transcription?
+- Transparenz → Transparency
+- Türkis → Turquoise
+- Umfang: → Scope:
+- Umwandeln: erst Linien wählen → Convert: first select lines
+- Unbenannt → Untitled
+- und eine Zusammenfassung → and a summary
+- Ungespeicherte Änderungen → Unsaved changes
+- Up-Linie → Up line
+- USD-Datei konnte nicht geöffnet werden. → The USD file could not be opened.
+- Verbindung lösen	Entf → Detach	Del
+- Verbindungen lösen → Detach all
+- Verlauf (gilt nicht mehr): → History (no longer valid):
+- Versatz → Offset
+- Versatz je Kopie entlang → Offset per copy along
+- Verschieben → Move
+- Verschieben (T) → Move (T)
+- Verschweißen (Lücken schließen) → Weld (close gaps)
+- Video fehlt → Video missing
+- Viewport schließen → Close viewport
+- Violett → Violet
+- vom Auftrag bzw. Null darüber → from the assignment or the null above
+- von → from
+- Vorige übernehmen → Copy previous
+- Was passiert in diesem Bereich? → What happens in this range?
+- Welt → World
+- Werkzeug aus → Tool off
+- Werkzeuge → Tools
+- Whisper installieren (einige Minuten) … → Installing Whisper (a few minutes) …
+- Winkel ° → Angle °
+- winzige Linie(n) gelöscht → tiny line(s) deleted
+- Winzige Linien und Punkte löschen → Delete tiny lines and points
+- Wird beim Exportieren gelöscht → Will be deleted on export
+- Wählen … → Choose …
+- Zeichenpapier → Drawing paper
+- Zeichnen → Draw
+- Zeichnung löschen → Delete drawing
+- Zufall Dreh. → Random rot.
+- Zufall Vers. → Random offs.
+- Zuklappen mit allem darunter → Collapse with everything below
+- Zuletzt geöffnet → Open Recent
+- Änderungen speichern? → Save changes?
+- Öffnen fehlgeschlagen → Open failed
+- Öffnen… → Open…
+- Überschrift → Heading
+- Überschrift bearbeiten	Doppelklick → Edit heading	Double-click
+
+<!-- GLOSSARY:END -->

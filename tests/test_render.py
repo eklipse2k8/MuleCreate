@@ -47,13 +47,13 @@ def _compare(h: H, scene):
     return ", ".join(notes)
 
 
-def test_giesskanne(h: H):
-    return _compare(h, "giesskanne")
+def test_watering_can(h: H):
+    return _compare(h, "watering_can")
 
 
-def test_teetasse(h: H):
-    return _compare(h, "teetasse")
+def test_teacup(h: H):
+    return _compare(h, "teacup")
 
 
-def test_pferdekopf(h: H):
-    return _compare(h, "pferdekopf")
+def test_horse_head(h: H):
+    return _compare(h, "horse_head")

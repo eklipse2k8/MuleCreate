@@ -110,7 +110,7 @@ def test_splitting_keeps_points(h: H):
 
 def test_migration_of_an_old_file(h: H):
     # rebuild an older file: the same scene without point IDs on the lines
-    with open(os.path.join(ROOT, "tests", "scenes", "topologie.sketch.json"), encoding="utf-8") as f:
+    with open(os.path.join(ROOT, "tests", "scenes", "topology.sketch.json"), encoding="utf-8") as f:
         raw = json.load(f)
 
     def strip(o):
@@ -285,7 +285,7 @@ def test_crossing_on_fill_surface_stays_one_point(h: H):
     """The artist's scene (new_topology_v002): second stroke over a fill surface, crosses the first and runs past the
     edge. The outer line gets new points in the process, the surface follows it - the crossing must still remain a
     shared point, and drawing must not throw errors in the image (coloured boxes)."""
-    h.load("tests/scenes/netz_fuellflaeche_kreuz.sketch.json")
+    h.load("tests/scenes/net_fill_cross.sketch.json")
     sc = h.sc
     surf = sc.surfaces[0]
     h.v._activate(surf)

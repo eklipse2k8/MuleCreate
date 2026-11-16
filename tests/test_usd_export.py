@@ -30,7 +30,7 @@ def test_surfaces_as_quads_with_normals_and_resolution(h: H):
     """Teacup: lofts as quads (shape as in the viewport), fill surface as triangles, normals and UV included; the
     multiplier refines the grid surfaces."""
     from pxr import UsdGeom
-    h.load("tests/scenes/teetasse.sketch.json")
+    h.load("tests/scenes/teacup.sketch.json")
     folder = tempfile.mkdtemp()
     usd_export.write(h.sc, os.path.join(folder, "a.usda"), mult=1.0)
     usd_export.write(h.sc, os.path.join(folder, "b.usd"), mult=2.0)

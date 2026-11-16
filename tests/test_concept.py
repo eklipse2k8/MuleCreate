@@ -1,4 +1,4 @@
-"""Topology concept (plan document, section "test criteria"): the artist's test scene topologie.sketch.json, tasks 1-5.
+"""Topology concept (plan document, section "test criteria"): the artist's test scene topology.sketch.json, tasks 1-5.
 
 Hierarchy: points -> real lines -> surfaces -> fog/painting; nothing further down moves anything further up.
 The scene's red brush strokes are the templates: real lines are drawn along them, the way the artist would
@@ -13,7 +13,7 @@ from tests.harness import H, Qt
 from sketch_machine import components, network
 from sketch_machine.scene import PatchSurface
 
-SCENE = "tests/scenes/topologie.sketch.json"
+SCENE = "tests/scenes/topology.sketch.json"
 MOVE_TOL = 1e-6  # how far points that are not moved may shift
 ON_TOL = 0.01  # fraction of the surface size: how close the surface must lie to its lines
 
@@ -197,7 +197,7 @@ def _lift_and_check(h: H, surface, pid, delta):
 
 def test_task1_raise_a_corner(h: H):
     h.load(SCENE)
-    surf = _surface(h, "Kurvenfläche 1")
+    surf = _surface(h, "Curve surface 1")
     lines = [_draw_along(h, surf, g) for g in _guides(h, surf)]
     assert len(lines) == 2
     _check_connected(h, surf, lines)
@@ -211,7 +211,7 @@ def test_task1_raise_a_corner(h: H):
 
 def test_task2_raise_a_crossing(h: H):
     h.load(SCENE)
-    surf = _surface(h, "Kurvenfläche 3")
+    surf = _surface(h, "Curve surface 3")
     lines = [_draw_along(h, surf, g) for g in _guides(h, surf)[:2]]
     _check_connected(h, surf, lines)
     shared = set(lines[0].pids.values()) & set(lines[1].pids.values())
@@ -232,7 +232,7 @@ def _delete_point(h: H, point):
 
 def test_task3_delete_corner_bridge(h: H):
     h.load(SCENE)
-    surf = _surface(h, "Kurvenfläche 5")
+    surf = _surface(h, "Curve surface 5")
     _top_view(h, surf)
     a, b, gone = np.array([-18.88, 0, 3.83]), np.array([-13.0, 0, -6.7]), np.array([-21.18, 0, -1.74])
     _delete_point(h, gone)
@@ -247,7 +247,7 @@ def test_task3_delete_corner_bridge(h: H):
 
 def test_task4_delete_corner_outline_via_grid_lines(h: H):
     h.load(SCENE)
-    surf = _surface(h, "Kurvenfläche 6")
+    surf = _surface(h, "Curve surface 6")
     guides = [g for g in _guides(h, surf) if np.linalg.norm(np.ptp(g.points, axis=0)) > 0.3 * _size(surf)]  # without the circle
     lines = [_draw_along(h, surf, g) for g in guides]
     assert len(lines) == 2, f"{len(lines)} grid lines"
@@ -265,7 +265,7 @@ def test_task4_delete_corner_outline_via_grid_lines(h: H):
 
 def test_task5_move_every_point(h: H):
     h.load(SCENE)
-    names = ("Kurvenfläche 7", "Kurvenfläche 8", "Kurvenfläche 9")
+    names = ("Curve surface 7", "Curve surface 8", "Curve surface 9")
     surfs = [_surface(h, n) for n in names]
     lo = np.min([_box(s)[0] for s in surfs], axis=0)
     hi = np.max([_box(s)[1] for s in surfs], axis=0)
@@ -308,7 +308,7 @@ def test_edge_connects_even_with_smoothing_and_a_fast_stroke(h: H):
     last a bit before the edge - still the start (placed outside) and the end (dragged over the edge) must land on
     the boundary line."""
     h.load(SCENE)
-    surf = _surface(h, "Kurvenfläche 1")
+    surf = _surface(h, "Curve surface 1")
     h.draw_mode()
     h.v._activate(surf)
     _top_view(h, surf)
@@ -337,7 +337,7 @@ def test_close_lines_without_strong_waves(h: H):
     smooth surface remains."""
     from sketch_machine import netsurf
     assert netsurf.sparse is not None, "scipy missing (requirements.txt)"
-    h.load("tests/scenes/netz_nahe_linien.sketch.json")
+    h.load("tests/scenes/net_close_lines.sketch.json")
     surf = h.sc.surfaces[0]
     y = surf.grid()[..., 1]
     assert -0.35 < y.min() and y.max() < 0.25, f"surface swings out: {y.min():.2f} .. {y.max():.2f}"
@@ -351,7 +351,7 @@ def test_edge_points_sideways_and_corners_without_outliers(h: H):
     moves = [([4.29, 0, -6.5], [1.0, 0, 0]), ([4.29, 0, -6.5], [0, 0, 1.0]), ([8.38, 0, -10.98], [1.0, 0, 0]),
              ([8.38, 0, -10.98], [0, 1.0, 0]), ([-3.99, 0, -0.55], [0, 0, 1.0]), ([1.08, 0.57, 1.65], [0, 0, 1.0])]
     for point, delta in moves:
-        h.load("tests/scenes/netz_randpunkte.sketch.json")
+        h.load("tests/scenes/net_border_points.sketch.json")
         surf = h.sc.surfaces[0]
         _move_point(h, _pid_at(h, point, tol=0.02), delta)
         ys = np.concatenate([c.points[:, 1] for c in _members(h, surf)])
@@ -365,7 +365,7 @@ def test_dissolving_at_the_surface_edge_keeps_shape(h: H):
     """Del on the joint of two boundary lines of a curve surface: the two lines become one, the shape of line and
     surface stays, the surface knows the new boundary line."""
     h.load(SCENE)
-    surf = _surface(h, "Kurvenfläche 5")
+    surf = _surface(h, "Curve surface 5")
     _top_view(h, surf)
     lines_before = {c.id for c in h.curves() if not c.paint}
     grid_before = surf.grid().copy()
@@ -390,7 +390,7 @@ def test_dissolving_at_the_surface_edge_keeps_shape(h: H):
 
 def test_crossing_is_not_dissolved(h: H):
     h.load(SCENE)
-    surf = _surface(h, "Kurvenfläche 3")
+    surf = _surface(h, "Curve surface 3")
     lines = [_draw_along(h, surf, g) for g in _guides(h, surf)[:2]]
     x = (set(lines[0].pids.values()) & set(lines[1].pids.values())).pop()
     pos = _positions(h)[x]
@@ -411,7 +411,7 @@ def _folded(g):
 def test_corner_far_sideways_without_folds(h: H):
     """Edge nodes hang at fixed places of the boundary lines: if a corner is dragged far sideways, the surface stays
     unfolded (even redistribution at the edge formerly shifted all edge nodes of the side: 133 folded cells)."""
-    h.load("tests/scenes/netz_randpunkte.sketch.json")
+    h.load("tests/scenes/net_border_points.sketch.json")
     surf = h.sc.surfaces[0]
     rest = _folded(surf.grid())
     _move_point(h, _pid_at(h, [8.38, 0, -10.98], tol=0.02), [8.0, 0, -6.0])
@@ -423,7 +423,7 @@ def test_redistributing_keeps_shape(h: H):
     """Curve net: the grid points hang at fixed places of the lines - after a long drag nothing is
     reclassified (the surface depends on the classification and would jump after release)."""
     from sketch_machine import netsurf
-    h.load("tests/scenes/netz_randpunkte.sketch.json")
+    h.load("tests/scenes/net_border_points.sketch.json")
     surf = h.sc.surfaces[0]
     _move_point(h, _pid_at(h, [8.38, 0, -10.98], tol=0.02), [8.0, 0, -6.0])
     g_old = surf.grid().copy()
@@ -461,7 +461,7 @@ def test_multi_across_surface_boundaries_connected(h: H):
     """Multi mode (artist): a stroke across three surfaces with shared boundary lines and past the outer edge.
     Each piece ends on a boundary line of its surface; transitions are shared points; crossings too."""
     h.load(SCENE)
-    surfs = _multi(h, ("Kurvenfläche 7", "Kurvenfläche 8", "Kurvenfläche 9"))
+    surfs = _multi(h, ("Curve surface 7", "Curve surface 8", "Curve surface 9"))
     try:
         first = _stroke_new(h, [-71.0, 0, 1.0], [-49.0, 0, -7.5])
         second = _stroke_new(h, [-64.0, 0, -9.0], [-57.0, 0, 6.5])
@@ -484,9 +484,9 @@ def test_multi_across_surface_boundaries_connected(h: H):
 
 
 def test_multi_artist_scene(h: H):
-    """The artist's multi scene (netz_multi): two curve surfaces with a shared boundary line; stroke across both and past both
+    """The artist's multi scene (net_multi): two curve surfaces with a shared boundary line; stroke across both and past both
     outer edges, a second one crosses an existing line. Everything connected."""
-    h.load("tests/scenes/netz_multi.sketch.json")
+    h.load("tests/scenes/net_multi.sketch.json")
     surfs = list(h.sc.surfaces)
     lo = np.min([_box(s)[0] for s in surfs], axis=0)
     hi = np.max([_box(s)[1] for s in surfs], axis=0)
@@ -517,7 +517,7 @@ def test_multi_artist_scene(h: H):
 def test_recognised_shape_across_surface_boundaries_connected(h: H):
     """netz_multi_v002 (artist): a stroke held still at the end is recognised as an arc and laid anew onto the surfaces
     - transitions and edges were lost in the process (all ends loose). Multi and single mode."""
-    scene = "tests/scenes/netz_multi_v002.sketch.json"
+    scene = "tests/scenes/net_multi_v002.sketch.json"
     h.load(scene)
     path = np.vstack([h.curves()[-2].points, h.curves()[-1].points])  # the artist's arc across both surfaces
     d0 = (path[0] - path[5]) / np.linalg.norm(path[0] - path[5])
@@ -562,7 +562,7 @@ def test_recognised_shape_across_surface_boundaries_connected(h: H):
 def test_cleanup_connects_loose_ends_of_old_scenes(h: H):
     """Cleanup "connect ends and crossings" applies the connection rule to existing lines: the artist's scenes
     netz_multi_v002/_v003 (drawn before the rule) afterwards have no loose ends close to lines any more."""
-    for scene in ("tests/scenes/netz_multi_v002.sketch.json", "tests/scenes/netz_multi_v003.sketch.json"):
+    for scene in ("tests/scenes/net_multi_v002.sketch.json", "tests/scenes/net_multi_v003.sketch.json"):
         h.load(scene)
         _top_view(h, h.sc.surfaces[0])
         assert network.sync(h.sc)["free_ends"] > 0, "test setup: loose ends present"
@@ -576,7 +576,7 @@ def test_cleanup_connects_loose_ends_of_old_scenes(h: H):
 
 # --- Fill surfaces as a net surface (netfill.py) ---
 
-FILL = "tests/scenes/netz_fuellflaeche_kreuz.sketch.json"
+FILL = "tests/scenes/net_fill_cross.sketch.json"
 
 
 def _fill_members(h: H, surf):

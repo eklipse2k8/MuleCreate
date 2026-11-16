@@ -233,7 +233,7 @@ def test_loft_old_scene_is_recognized(h: H):
     through their middle arc. (Their side lines are saved lines – with the loft shape of that time; the surface
     follows them, so no comparison with a freshly computed loft shape here.)"""
     import os
-    path = os.path.join(os.path.dirname(__file__), "scenes", "loft_alt.sketch.json")
+    path = os.path.join(os.path.dirname(__file__), "scenes", "loft_old.sketch.json")
     h.load(path)
     sc = h.sc
     sc.sync_lofts()

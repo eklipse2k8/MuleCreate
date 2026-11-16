@@ -4,7 +4,7 @@
  "planes": [
   {
    "id": 5,
-   "name": "Boden (XZ)",
+   "name": "Ground (XZ)",
    "preset": true,
    "origin": [
     0.0,
@@ -48,7 +48,7 @@
   },
   {
    "id": 7,
-   "name": "Seite (ZY)",
+   "name": "Side (ZY)",
    "preset": true,
    "origin": [
     0.0,
@@ -3560,7 +3560,7 @@
  "surfaces": [
   {
    "id": 22,
-   "name": "Kurvenfl\u00e4che 1",
+   "name": "Curve surface 1",
    "kind": "patch",
    "axes": [
     [
@@ -8508,7 +8508,7 @@
   },
   {
    "id": 644,
-   "name": "Kurvenfl\u00e4che 2",
+   "name": "Curve surface 2",
    "kind": "patch",
    "axes": [
     [
@@ -13008,7 +13008,7 @@
   "color": []
  },
  "global_note": {
-  "title": "Projekt",
+  "title": "Project",
   "board": {}
  },
  "sun": [

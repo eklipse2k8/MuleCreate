@@ -4,7 +4,7 @@
  "planes": [
   {
    "id": 1,
-   "name": "Boden (XZ)",
+   "name": "Ground (XZ)",
    "preset": true,
    "origin": [
     0.0,
@@ -48,7 +48,7 @@
   },
   {
    "id": 3,
-   "name": "Seite (ZY)",
+   "name": "Side (ZY)",
    "preset": true,
    "origin": [
     0.0,
@@ -2024,7 +2024,7 @@
  "surfaces": [
   {
    "id": 31,
-   "name": "Fl\u00e4che 1",
+   "name": "Surface 1",
    "kind": "fill",
    "axes": [
     [
@@ -4009,7 +4009,7 @@
   "color": []
  },
  "global_note": {
-  "title": "Projekt",
+  "title": "Project",
   "board": {}
  },
  "sun": [

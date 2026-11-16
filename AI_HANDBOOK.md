@@ -3221,7 +3221,7 @@ Tracked and public:
 - `packaging/` – build and release (see Packaging).
 - `houdini_mcp/` – a separate small MCP server for Houdini (`houdini_code`, port 8771); not part of Mule's
   program, not in the Linux package, included in the source zip.
-- `sketches/szene.sketch.json` – one sample scene.
+- `sketches/scene.sketch.json` – one sample scene.
 - `.github/` – issue templates and PR template (no active workflows).
 - Top-level files: `README.md` (overview), `AI_HANDBOOK.md` (this file), `GUIDE.md` (short guide), `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`, `requirements.txt`,
   `requirements-build.txt` (PyInstaller), `start.bat`, `start.sh`.

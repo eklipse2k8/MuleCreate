@@ -12,7 +12,7 @@ from sketch_machine import curve_export, usd_export
 def _szene(h: H):
     """Two lines and a paint stroke with a thickness profile, an exactly duplicated paint stroke, a hidden object, a
     surface (which must be missing from the curve export)."""
-    h.load("tests/scenes/teetasse.sketch.json")
+    h.load("tests/scenes/teacup.sketch.json")
     sc = h.sc
     def add(*args):
         sc.add_curve(*args)

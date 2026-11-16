@@ -8,6 +8,7 @@
 - This changelog is now in English.
 - The public repository is English only: German guides stay private, tests, developer tools, the brief package and
   remaining program texts outside the German UI are English (the German UI itself stays as a language option).
+- Test scenes and their parts have English names (teacup, watering_can, horse_head …); the pictures are renewed.
 - Tests: English file names, `LEVEL = "core"` and `tests/run.py --core`, results `FAIL` / `EXPECTED` / `FIXED`.
 
 ## Mule Create Alpha 1.2 – v0.99.255 (2026-11-16)

@@ -4,7 +4,7 @@
  "planes": [
   {
    "id": 491,
-   "name": "Boden (XZ)",
+   "name": "Ground (XZ)",
    "preset": true,
    "origin": [
     0.0,
@@ -48,7 +48,7 @@
   },
   {
    "id": 493,
-   "name": "Seite (ZY)",
+   "name": "Side (ZY)",
    "preset": true,
    "origin": [
     0.0,
@@ -73,7 +73,7 @@
  "strokes": [
   {
    "id": 495,
-   "name": "Tasse",
+   "name": "Cup",
    "axes": [
     [
      1.0,
@@ -2442,7 +2442,7 @@
   },
   {
    "id": 513,
-   "name": "Untertasse",
+   "name": "Saucer",
    "axes": [
     [
      1.0,
@@ -3799,7 +3799,7 @@
   },
   {
    "id": 525,
-   "name": "Henkel",
+   "name": "Handle",
    "axes": [
     [
      1.0,
@@ -6888,7 +6888,7 @@
  "surfaces": [
   {
    "id": 506,
-   "name": "Tasse 1",
+   "name": "Cup 1",
    "kind": "loft",
    "axes": [
     [
@@ -8930,7 +8930,7 @@
   },
   {
    "id": 512,
-   "name": "Fl\u00e4che 1",
+   "name": "Surface 1",
    "kind": "fill",
    "axes": [
     [
@@ -9430,7 +9430,7 @@
   },
   {
    "id": 520,
-   "name": "Untertasse 1",
+   "name": "Saucer 1",
    "kind": "loft",
    "axes": [
     [
@@ -10674,7 +10674,7 @@
   },
   {
    "id": 540,
-   "name": "Henkel 1",
+   "name": "Handle 1",
    "kind": "loft",
    "axes": [
     [
@@ -124366,7 +124366,7 @@
   ]
  },
  "global_note": {
-  "title": "Projekt",
+  "title": "Project",
   "board": {}
  },
  "sun": [

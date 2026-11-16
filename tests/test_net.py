@@ -131,7 +131,7 @@ def test_new_net_line_everything_stays_in_place(h: H):
 def test_old_curve_surfaces_become_net(h: H):
     """Older scene (the artist's topology test): all curve surfaces with a complete border get their net on loading
     and lie on all their lines."""
-    h.load("tests/scenes/topologie.sketch.json")
+    h.load("tests/scenes/topology.sketch.json")
     sc = h.sc
     sc.sync_lofts()
     patches = [s for s in sc.surfaces if isinstance(s, PatchSurface)]

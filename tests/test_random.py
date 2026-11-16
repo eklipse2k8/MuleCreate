@@ -48,8 +48,8 @@ def _surface(h, name):
 
 def _setup(h, kind, rng):
     """Load scene, set mode; returns (target surfaces, multi?, range (lo, hi) for the strokes)."""
-    sc_path = {"v002": "tests/scenes/netz_multi_v002.sketch.json", "task5": "tests/scenes/topologie.sketch.json",
-               "fill": "tests/scenes/netz_fuellflaeche_kreuz.sketch.json"}.get(kind)
+    sc_path = {"v002": "tests/scenes/net_multi_v002.sketch.json", "task5": "tests/scenes/topology.sketch.json",
+               "fill": "tests/scenes/net_fill_cross.sketch.json"}.get(kind)
     if kind == "loft":  # curved loft from three cross sections with side lines
         from tests.test_topology import _loft3
         h.new_scene()
@@ -74,7 +74,7 @@ def _setup(h, kind, rng):
     h.load(sc_path)
     sc = h.sc
     if kind == "task5":
-        surfs = [_surface(h, n) for n in ("Kurvenfläche 7", "Kurvenfläche 8", "Kurvenfläche 9")]
+        surfs = [_surface(h, n) for n in ("Curve surface 7", "Curve surface 8", "Curve surface 9")]
     else:
         surfs = list(sc.surfaces)
     verts = np.vstack([s.fill_mesh()[0] for s in surfs])

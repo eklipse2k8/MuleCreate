@@ -4,7 +4,7 @@
  "planes": [
   {
    "id": 1,
-   "name": "Boden (XZ)",
+   "name": "Ground (XZ)",
    "preset": true,
    "origin": [
     0.0,
@@ -48,7 +48,7 @@
   },
   {
    "id": 3,
-   "name": "Seite (ZY)",
+   "name": "Side (ZY)",
    "preset": true,
    "origin": [
     0.0,
@@ -70,7 +70,7 @@
   },
   {
    "id": 7,
-   "name": "Ebene 1",
+   "name": "Plane 1",
    "preset": false,
    "origin": [
     -4.02897,
@@ -92,7 +92,7 @@
   },
   {
    "id": 11,
-   "name": "Ebene 2",
+   "name": "Plane 2",
    "preset": false,
    "origin": [
     3.53096,
@@ -114,7 +114,7 @@
   },
   {
    "id": 396,
-   "name": "Ebene 3",
+   "name": "Plane 3",
    "preset": false,
    "origin": [
     -8.53401,
@@ -6978,7 +6978,7 @@
  "surfaces": [
   {
    "id": 32,
-   "name": "Kurvenfl\u00e4che 1",
+   "name": "Curve surface 1",
    "kind": "patch",
    "axes": [
     [
@@ -50839,7 +50839,7 @@
   },
   {
    "id": 367,
-   "name": "Kurvenfl\u00e4che 2",
+   "name": "Curve surface 2",
    "kind": "patch",
    "axes": [
     [
@@ -55522,7 +55522,7 @@
   },
   {
    "id": 393,
-   "name": "Kurvenfl\u00e4che 3",
+   "name": "Curve surface 3",
    "kind": "patch",
    "axes": [
     [
@@ -60073,7 +60073,7 @@
   },
   {
    "id": 418,
-   "name": "Kurvenfl\u00e4che 4",
+   "name": "Curve surface 4",
    "kind": "patch",
    "axes": [
     [
@@ -64619,7 +64619,7 @@
   }
  ],
  "global_note": {
-  "title": "Projekt",
+  "title": "Project",
   "board": {}
  },
  "sun": [

@@ -102,7 +102,7 @@ def test_brief_names_open_points(h: H):
 
 def test_line_connections_tiny_and_axes(h: H):
     """Line table: connections via shared points ("joins"), tiny lines only counted, ∥ only up to a good 1°."""
-    h.load("tests/scenes/topologie.sketch.json")
+    h.load("tests/scenes/topology.sketch.json")
     sc = h.sc
     sc.new_stroke(parent=None)
     sc.add_curve(line([50, 0, 0], [50.0004, 0, 0], 3), None)  # tiny

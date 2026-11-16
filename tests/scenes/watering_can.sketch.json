@@ -4,7 +4,7 @@
  "planes": [
   {
    "id": 95,
-   "name": "Boden (XZ)",
+   "name": "Ground (XZ)",
    "preset": true,
    "origin": [
     0.0,
@@ -48,7 +48,7 @@
   },
   {
    "id": 97,
-   "name": "Seite (ZY)",
+   "name": "Side (ZY)",
    "preset": true,
    "origin": [
     0.0,
@@ -73,7 +73,7 @@
  "strokes": [
   {
    "id": 99,
-   "name": "K\u00f6rper",
+   "name": "Body",
    "axes": [
     [
      1.0,
@@ -2442,7 +2442,7 @@
   },
   {
    "id": 117,
-   "name": "Hals",
+   "name": "Neck",
    "axes": [
     [
      1.0,
@@ -3119,7 +3119,7 @@
   },
   {
    "id": 125,
-   "name": "T\u00fclle",
+   "name": "Spout",
    "axes": [
     [
      1.0,
@@ -6164,7 +6164,7 @@
   },
   {
    "id": 145,
-   "name": "Brause",
+   "name": "Rose",
    "axes": [
     [
      1.0,
@@ -7521,7 +7521,7 @@
   },
   {
    "id": 157,
-   "name": "Henkel",
+   "name": "Handle",
    "axes": [
     [
      1.0,
@@ -10568,7 +10568,7 @@
  "surfaces": [
   {
    "id": 110,
-   "name": "K\u00f6rper 1",
+   "name": "Body 1",
    "kind": "loft",
    "axes": [
     [
@@ -12610,7 +12610,7 @@
   },
   {
    "id": 116,
-   "name": "Fl\u00e4che 1",
+   "name": "Surface 1",
    "kind": "fill",
    "axes": [
     [
@@ -13110,7 +13110,7 @@
   },
   {
    "id": 124,
-   "name": "Hals 1",
+   "name": "Neck 1",
    "kind": "loft",
    "axes": [
     [
@@ -14337,7 +14337,7 @@
   },
   {
    "id": 140,
-   "name": "T\u00fclle 1",
+   "name": "Spout 1",
    "kind": "loft",
    "axes": [
     [
@@ -17177,7 +17177,7 @@
   },
   {
    "id": 152,
-   "name": "Brause 1",
+   "name": "Rose 1",
    "kind": "loft",
    "axes": [
     [
@@ -18421,7 +18421,7 @@
   },
   {
    "id": 172,
-   "name": "Henkel 1",
+   "name": "Handle 1",
    "kind": "loft",
    "axes": [
     [
@@ -240473,7 +240473,7 @@
   ]
  },
  "global_note": {
-  "title": "Projekt",
+  "title": "Project",
   "board": {}
  },
  "sun": [

@@ -4,7 +4,7 @@
  "planes": [
   {
    "id": 1,
-   "name": "Boden (XZ)",
+   "name": "Ground (XZ)",
    "preset": true,
    "origin": [
     0.0,
@@ -48,7 +48,7 @@
   },
   {
    "id": 3,
-   "name": "Seite (ZY)",
+   "name": "Side (ZY)",
    "preset": true,
    "origin": [
     0.0,
@@ -70,7 +70,7 @@
   },
   {
    "id": 4,
-   "name": "Ebene 1",
+   "name": "Plane 1",
    "preset": false,
    "origin": [
     16.33071,
@@ -92,7 +92,7 @@
   },
   {
    "id": 6,
-   "name": "Ebene 2",
+   "name": "Plane 2",
    "preset": false,
    "origin": [
     30.93824,
@@ -114,7 +114,7 @@
   },
   {
    "id": 8,
-   "name": "Ebene 3",
+   "name": "Plane 3",
    "preset": false,
    "origin": [
     29.64132,
@@ -136,7 +136,7 @@
   },
   {
    "id": 9,
-   "name": "Ebene 4",
+   "name": "Plane 4",
    "preset": false,
    "origin": [
     65.26647,
@@ -158,7 +158,7 @@
   },
   {
    "id": 10,
-   "name": "Ebene 5",
+   "name": "Plane 5",
    "preset": false,
    "origin": [
     -206.18836,
@@ -180,7 +180,7 @@
   },
   {
    "id": 11,
-   "name": "Ebene 6",
+   "name": "Plane 6",
    "preset": false,
    "origin": [
     -169.3777,

@@ -4,7 +4,7 @@
  "planes": [
   {
    "id": 321,
-   "name": "Boden (XZ)",
+   "name": "Ground (XZ)",
    "preset": true,
    "origin": [
     0.0,
@@ -48,7 +48,7 @@
   },
   {
    "id": 323,
-   "name": "Seite (ZY)",
+   "name": "Side (ZY)",
    "preset": true,
    "origin": [
     0.0,
@@ -73,7 +73,7 @@
  "strokes": [
   {
    "id": 325,
-   "name": "Kopf",
+   "name": "Head",
    "axes": [
     [
      1.0,
@@ -3471,7 +3471,7 @@
   },
   {
    "id": 347,
-   "name": "Ohr rechts",
+   "name": "Right ear",
    "axes": [
     [
      1.0,
@@ -5166,7 +5166,7 @@
   },
   {
    "id": 361,
-   "name": "Ohr links",
+   "name": "Left ear",
    "axes": [
     [
      1.0,
@@ -6863,7 +6863,7 @@
  "surfaces": [
   {
    "id": 340,
-   "name": "Kopf 1",
+   "name": "Head 1",
    "kind": "loft",
    "axes": [
     [
@@ -9703,7 +9703,7 @@
   },
   {
    "id": 346,
-   "name": "Fl\u00e4che 1",
+   "name": "Surface 1",
    "kind": "fill",
    "axes": [
     [
@@ -10203,7 +10203,7 @@
   },
   {
    "id": 356,
-   "name": "Ohr rechts 1",
+   "name": "Right ear 1",
    "kind": "loft",
    "axes": [
     [
@@ -11846,7 +11846,7 @@
   },
   {
    "id": 370,
-   "name": "Ohr links 1",
+   "name": "Left ear 1",
    "kind": "loft",
    "axes": [
     [
@@ -135285,7 +135285,7 @@
   ]
  },
  "global_note": {
-  "title": "Projekt",
+  "title": "Project",
   "board": {}
  },
  "sun": [

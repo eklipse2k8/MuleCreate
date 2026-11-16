@@ -1,4 +1,4 @@
-"""Test scenes giesskanne (watering can), teetasse (teacup), pferdekopf (horse head): can clean mesh models be built from them?
+"""Test scenes watering_can, teacup and horse_head: can clean mesh models be built from them?
 
 Each scene is built with today's tools (lofts from cross-section lines, side lines, fill surfaces), saved under
 tests/scenes/ (to look at in the app) and checked:
@@ -77,35 +77,35 @@ class Builder:
         return self.sc.create_fill([(curve, False)])
 
 
-def build_giesskanne(sc):
+def build_watering_can(sc):
     b = Builder(sc)
     y_up = (0, 1.0, 0)
     body = [(0.0, 1.0), (0.12, 1.06), (0.9, 1.12), (1.55, 1.0), (1.8, 0.72)]
-    _, lines = b.loft("Körper", [ring((0, y, 0), y_up, r, r * 0.8) for y, r in body])
+    _, lines = b.loft("Body", [ring((0, y, 0), y_up, r, r * 0.8) for y, r in body])
     b.fill(lines[0])  # bottom
-    b.loft("Hals", [lines[-1].points, ring((0, 1.95, 0), y_up, 0.6, 0.5), ring((0, 2.02, 0), y_up, 0.64, 0.54)], rails=False)
+    b.loft("Neck", [lines[-1].points, ring((0, 1.95, 0), y_up, 0.6, 0.5), ring((0, 2.02, 0), y_up, 0.64, 0.54)], rails=False)
     spout = smooth_path([[0.8, 0.45, 0], [1.6, 1.0, 0], [2.3, 1.75, 0], [2.6, 2.1, 0]])
-    b.along("Tülle", spout, [0.24, 0.2, 0.16, 0.13, 0.11, 0.09, 0.08])
+    b.along("Spout", spout, [0.24, 0.2, 0.16, 0.13, 0.11, 0.09, 0.08])
     tip, d = spout[-1], spout[-1] - spout[-3]
-    b.loft("Brause", [ring(tip, d, 0.08), ring(tip + d * 0.6, d, 0.2), ring(tip + d * 0.9, d, 0.24)])
+    b.loft("Rose", [ring(tip, d, 0.08), ring(tip + d * 0.6, d, 0.2), ring(tip + d * 0.9, d, 0.24)])
     handle = smooth_path([[-0.85, 1.55, 0], [-1.5, 1.6, 0], [-1.65, 1.05, 0], [-1.45, 0.45, 0], [-1.0, 0.35, 0]])
-    b.along("Henkel", handle, [(0.09, 0.07)] * 7)
-    return b, "Körper", ["Tülle", "Henkel"]
+    b.along("Handle", handle, [(0.09, 0.07)] * 7)
+    return b, "Body", ["Spout", "Handle"]
 
 
-def build_teetasse(sc):
+def build_teacup(sc):
     b = Builder(sc)
     y_up = (0, 1.0, 0)
     cup = [(0.0, 0.45), (0.05, 0.5), (0.4, 0.62), (0.8, 0.75), (0.9, 0.78)]
-    _, lines = b.loft("Tasse", [ring((0, y, 0), y_up, r) for y, r in cup])
+    _, lines = b.loft("Cup", [ring((0, y, 0), y_up, r) for y, r in cup])
     b.fill(lines[0])
-    b.loft("Untertasse", [ring((0, -0.06, 0), y_up, 0.5), ring((0, -0.03, 0), y_up, 1.0), ring((0, 0.06, 0), y_up, 1.25)])
+    b.loft("Saucer", [ring((0, -0.06, 0), y_up, 0.5), ring((0, -0.03, 0), y_up, 1.0), ring((0, 0.06, 0), y_up, 1.25)])
     handle = smooth_path([[0.68, 0.75, 0], [0.98, 0.8, 0], [1.1, 0.55, 0], [0.95, 0.3, 0], [0.56, 0.2, 0]])
-    b.along("Henkel", handle, [(0.07, 0.05)] * 7)
-    return b, "Tasse", ["Henkel"]
+    b.along("Handle", handle, [(0.07, 0.05)] * 7)
+    return b, "Cup", ["Handle"]
 
 
-def build_pferdekopf(sc):
+def build_horse_head(sc):
     b = Builder(sc)
     axis = smooth_path([[0, 0, -0.7], [0, 0.9, -0.45], [0, 1.6, 0.0], [0, 1.5, 0.6], [0, 1.1, 1.2], [0, 0.8, 1.65]], n=60)
     sizes = [(0.5, 0.7), (0.42, 0.62), (0.4, 0.56), (0.37, 0.5), (0.3, 0.4), (0.27, 0.33), (0.25, 0.28)]
@@ -114,15 +114,15 @@ def build_pferdekopf(sc):
     for (rx, ry), i in zip(sizes, idx):
         tangent = axis[min(i + 1, len(axis) - 1)] - axis[max(i - 1, 0)]
         secs.append(ring(axis[i], tangent, rx, ry, side=(1.0, 0, 0)))
-    _, lines = b.loft("Kopf", secs)
+    _, lines = b.loft("Head", secs)
     b.fill(lines[-1])  # muzzle
-    for sx, name in ((1, "Ohr rechts"), (-1, "Ohr links")):
+    for sx, name in ((1, "Right ear"), (-1, "Left ear")):
         ear = smooth_path([[0.2 * sx, 1.75, -0.05], [0.26 * sx, 2.05, -0.02], [0.3 * sx, 2.3, -0.08]], n=20)
         b.along(name, ear, [(0.11, 0.07), (0.1, 0.06), (0.07, 0.04), (0.02, 0.012)], count=4, side=(0, 0, 1.0))
-    return b, "Kopf", ["Ohr rechts", "Ohr links"]
+    return b, "Head", ["Right ear", "Left ear"]
 
 
-BUILDERS = {"giesskanne": build_giesskanne, "teetasse": build_teetasse, "pferdekopf": build_pferdekopf}
+BUILDERS = {"watering_can": build_watering_can, "teacup": build_teacup, "horse_head": build_horse_head}
 
 
 def _materials(sc):
@@ -202,25 +202,25 @@ def _check_joints(h: H, key):
     return f"{joined} joint crossing(s), all connected"
 
 
-def test_giesskanne_build(h: H):
-    return _check_build(h, "giesskanne")
+def test_watering_can_build(h: H):
+    return _check_build(h, "watering_can")
 
 
-def test_giesskanne_joints(h: H):
-    return _check_joints(h, "giesskanne")
+def test_watering_can_joints(h: H):
+    return _check_joints(h, "watering_can")
 
 
-def test_teetasse_build(h: H):
-    return _check_build(h, "teetasse")
+def test_teacup_build(h: H):
+    return _check_build(h, "teacup")
 
 
-def test_teetasse_joints(h: H):
-    return _check_joints(h, "teetasse")
+def test_teacup_joints(h: H):
+    return _check_joints(h, "teacup")
 
 
-def test_pferdekopf_build(h: H):
-    return _check_build(h, "pferdekopf")
+def test_horse_head_build(h: H):
+    return _check_build(h, "horse_head")
 
 
-def test_pferdekopf_joints(h: H):
-    return _check_joints(h, "pferdekopf")
+def test_horse_head_joints(h: H):
+    return _check_joints(h, "horse_head")

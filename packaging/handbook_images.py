@@ -267,7 +267,7 @@ def _toolbar(h, area):
 
 def overview(h, s):
     """The window: modes and display buttons on top, tools on the left, viewport, outliner, status line."""
-    h.load("tests/scenes/teetasse.sketch.json")
+    h.load("tests/scenes/teacup.sketch.json")
     h.draw_mode()
     top = s.widget_rect(_toolbar(h, Qt.TopToolBarArea), pad=-2)
     s.box(top, 1, at=QPointF(top.left() + 330, top.center().y()))
@@ -549,8 +549,8 @@ def _space_key(h, key):
 
 def new_plane(h, s):
     """Space+N on the cup handle: a new plane there – seen from the side it stands in space; then draw on it."""
-    h.load("tests/scenes/teetasse.sketch.json")
-    handle = next(st for st in h.sc.strokes if st.name == "Henkel")
+    h.load("tests/scenes/teacup.sketch.json")
+    handle = next(st for st in h.sc.strokes if st.name == "Handle")
     pts = np.vstack([c.points for c in handle.curves])
     allp = np.vstack([c.points for st in h.sc.strokes for c in st.curves])
     centre = (allp.min(0) + allp.max(0)) / 2
@@ -582,8 +582,8 @@ def new_plane(h, s):
 
 def edit_gizmo(h, s):
     """Edit mode: select an object, T shows the move gizmo."""
-    h.load("tests/scenes/teetasse.sketch.json")
-    cup = next(st for st in h.sc.strokes if st.name == "Untertasse")
+    h.load("tests/scenes/teacup.sketch.json")
+    cup = next(st for st in h.sc.strokes if st.name == "Saucer")
     h.edit_mode("edge")
     h.v.edge_selection = [("line", cup.id, c.id) for c in cup.curves]
     h.v._changed()
@@ -943,10 +943,10 @@ def review_mark(h, s):
     old = review.reviews_dir, review.AudioWriter
     review.reviews_dir, review.AudioWriter = (lambda: base), Silent
     try:
-        h.load("tests/scenes/teetasse.sketch.json")
+        h.load("tests/scenes/teacup.sketch.json")
         h.v.set_notes_mode(True)
         session = h.w.review
-        cup = next(st for st in h.sc.strokes if st.name == "Henkel")
+        cup = next(st for st in h.sc.strokes if st.name == "Handle")
         target = cup.curves[0].points[len(cup.curves[0].points) // 2]
         on = h.scr(target)
         session.cursor = lambda: h.v.mapToGlobal(on)

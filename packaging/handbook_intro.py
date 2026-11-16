@@ -41,7 +41,8 @@ def _legend_md(pic):
 
 
 def introduction_md(pics):
-    out = ["# Mule Create – Introduction", "",
+    out = ['<img src="../sketch_machine/assets/mule_icon.png" alt="Mule Create logo" width="72" align="right">', "",
+           "# Mule Create – Introduction", "",
            f"{len(pics)} pictures of the most important functions, each from the real program. "
            "Click through with the links under each picture.", "", f"> {ASK_AI}", "", f"> {EXAMPLE}", "", "## Contents", ""]
     heads = [f"{k}. {p['title']}" for k, p in enumerate(pics, 1)]

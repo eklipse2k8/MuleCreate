@@ -1,3 +1,5 @@
+<img src="sketch_machine/assets/mule_icon.png" alt="Mule Create logo" width="72" align="right">
+
 # Mule Create – Tester Guide (Alpha 1)
 
 Mule Create is a program for sketching in 3D space with lines. You draw on planes that you set up in space, add

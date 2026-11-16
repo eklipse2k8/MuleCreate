@@ -23,7 +23,9 @@ if PUBLIC:  # the public repository is English only: no German guide, an English
     DOCS = tuple(d for d in DOCS if d != "ANLEITUNG.md")
 SOURCE_ZIP = "Mule_Source.zip" if PUBLIC else "Mule_Quellcode.zip"
 ALPHA = PUBLIC or (sys.argv[sys.argv.index("--alpha") + 1] if "--alpha" in sys.argv else None)
-PUBLIC_NOTES = """**Mule Create {name}** – sketch in 3D space with lines, add notes, pictures and spoken feedback, and export a Sketch Brief from which an AI (Claude Code, Codex, …) builds the object in Houdini or Blender. This is an alpha: expect bugs, and scene files may change between versions.
+PUBLIC_NOTES = """<img src="https://raw.githubusercontent.com/felixbfx/MuleCreate/main/sketch_machine/assets/mule_icon.png" alt="Mule Create logo" width="96" align="right">
+
+**Mule Create {name}** – sketch in 3D space with lines, add notes, pictures and spoken feedback, and export a Sketch Brief from which an AI (Claude Code, Codex, …) builds the object in Houdini or Blender. This is an alpha: expect bugs, and scene files may change between versions.
 
 **Downloads**
 - **Windows:** `Mule_Windows.zip` – unzip into a folder of its own and start `Mule.exe` in the `Mule` folder. No Python needed. The program is not signed yet: on the first start Windows SmartScreen warns – click "More info", then "Run anyway". The package passed its self-test in English and German.

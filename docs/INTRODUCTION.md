@@ -1,3 +1,5 @@
+<img src="../sketch_machine/assets/mule_icon.png" alt="Mule Create logo" width="72" align="right">
+
 # Mule Create – Introduction
 
 18 pictures of the most important functions, each from the real program. Click through with the links under each picture.

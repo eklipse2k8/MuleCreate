@@ -1,10 +1,15 @@
-# Mule Create
+<p align="center">
+  <img src="sketch_machine/assets/mule_icon.png" alt="Mule Create logo" width="150">
+</p>
 
-**Sketch in 3D space with lines – and hand the sketch to an AI that builds it.**
+<h1 align="center">Mule Create</h1>
 
-### [⬇ Download Mule for Windows](https://github.com/felixbfx/MuleCreate/releases/latest/download/Mule_Windows.zip)
+<p align="center"><b>Sketch in 3D space with lines – and hand the sketch to an AI that builds it.</b></p>
 
-The newest version in one click: unzip, start `Mule\Mule.exe` – no installation, no Python. [All versions, source code, Linux](https://github.com/felixbfx/MuleCreate/releases)
+<h3 align="center"><a href="https://github.com/felixbfx/MuleCreate/releases/latest/download/Mule_Windows.zip">⬇ Download Mule for Windows</a></h3>
+
+<p align="center">The newest version in one click: unzip, start <code>Mule\Mule.exe</code> – no installation, no Python.<br>
+<a href="https://github.com/felixbfx/MuleCreate/releases">All versions, source code, Linux</a></p>
 
 ![Mule Create: modes, tools, viewport, outliner and status line](docs/handbook/01_overview.png)
 

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Leaner build runs (Mule Default v5.1):** measured on a full run, no check removed. The main chat hands over and
+  compacts at about 250 k tokens and goes on in the same chat; hook texts stay short enough to arrive whole (the full
+  rules load through `CLAUDE.md`); each role names a *strong* or *light* model, harness-neutral; the detail stage
+  starts only after the form was held against the sketch; `tools/quiet.sh` keeps long logs out of the agents' context,
+  and builders get a hint to hand over when their context grows large.
+- **Brief recipes:** the whole way of working of a build brief – rules, roles, agents, hooks, tools, the process
+  part of `project.md` and the sentences for the chat – is now a swappable recipe. Choose it under **Brief recipe**
+  in the brief dialog; **…** imports a recipe as .zip (Mule shows its hook commands, permissions and network calls
+  first), shows its contents and opens the recipe folder. Mule's own method is the recipe **Mule Default**, unchanged.
+  Every build brief names its recipe in `.mule_recipe.json`; review rounds keep the brief's recipe. Format:
+  `docs/recipes.md`.
 - README: picture at the top, direct links to the download, the introduction and the AI handbook.
 - Known limits now say that the local MCP server has no password (it only listens on this computer).
 - Contributing: questions and ideas welcome in GitHub Discussions.

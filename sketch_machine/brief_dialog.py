@@ -1,15 +1,16 @@
 """Assignment dialog at brief export: sets only what the AI cannot clarify from the scene itself – assignment in
 one sentence, hints for this export, "discuss only", look pre-stage, focus on the selection. Scope of the round,
 kinds of work, bindingness, tools and way of working are clarified by the AI in the first round from the notes
-(brief.CLARIFY). Stored in scene.brief_task (brief.task_clean)."""
+(brief.CLARIFY). Stored in scene.brief_task (brief.task_clean). "Brief-Recipe" picks the brief recipe of a build brief
+(recipes.py): Mule's own or one of the user's / the community's – a review round keeps the recipe of its brief."""
 import html
 import os
 
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
-                               QPlainTextEdit, QPushButton, QScrollArea, QWidget)
+                               QMenu, QPlainTextEdit, QPushButton, QScrollArea, QToolButton, QWidget)
 
-from . import brief, brief_v4
+from . import brief, brief_v4, recipes
 from .i18n import tr
 
 def autoprompt(name, folder, task):
@@ -17,15 +18,19 @@ def autoprompt(name, folder, task):
     (MCP) if the AI has them."""
     # Blind test Glider 003: "say it briefly" and "the images" turned the first round into a short chat – 6 of ~60
     # images opened, no units and work list. That is why the sentence refers to the first round in the core.
-    from . import review_round
+    from . import i18n, recipes, review_round
     if (task or {}).get("kind") != "discuss" and review_round.is_brief((task or {}).get("based_on")):  # review round
-        return tr("Review-Runde {0} zu „{1}“ liegt in {2}. Das ist kein neuer Brief und kein neuer Lauf, sondern Feedback für unsere laufende Arbeit: Lies dort review.md ganz und öffne alle Bilder, die sie nennt. Lass das Review in Entscheidungen, Einheiten und Arbeitsliste einfließen, nenn mir, wo es etwas Etabliertes ändert, frag nur, was offen bleibt, und arbeite dann weiter wie bisher – gleiche Regeln, gleiche Stufe.").format(
-            review_round.round_number(folder or ""), name, os.path.normpath(folder) if folder else folder)
-    if (task or {}).get("kind") != "discuss":  # build brief with working-method package v4 (hooks, roles, levels)
-        text = tr("Diese Sitzung muss im Brief-Ordner {1} laufen, nur dort greifen die Hooks. Läuft sie in einem anderen Ordner, mach nichts weiter und sag mir, dass ich eine neue Sitzung in genau diesem Ordner starten soll. Beginne deine erste Nachricht mit dem Block „GATE STATUS“ aus dem Start-Hook, wörtlich zitiert. Fehlt er, mach nichts weiter und sag es mir. Prüfe und besprich den Sketch Brief „{0}“ ({1}). Lies conductor.md, project.md und brief.md und mach die erste Runde, wie sie in conductor.md steht: zuerst die echten Fragen mit markierten Bildern, dann eine Tabelle mit allem Zweifelsfreien, dann die Einheiten mit Abhängigkeiten und Spuren, ganz unten die aktuelle Stufe und wie ich sie ändere. Ich darf per Ausnahme antworten. Nach meinen Antworten kommt dein kurzer Zielvorschlag; gebaut wird erst nach meiner Bestätigung. Hast du die Mule-Werkzeuge, schlag für Referenzbilder ohne Unterschrift je einen Satz vor und speichere, was ich bestätige, mit set_image_captions; das Geklärte der ersten Runde schreibst du mit write_clarified zurück.").format(name, os.path.normpath(folder) if folder else folder)
-        if brief.TASK_LOOK in (task or {}).get("parts", []):
-            text += tr(" Vor dem Bauen: je Hero-Kamera einen Bild-Prompt mit mir abstimmen (set_hero_prompt), Bilder erzeugen lassen, ich wähle aus.")
-        return text
+        recipe = brief_v4.recipe_of(review_round.base_of(task["based_on"])) or recipes.default()
+        text = recipe.render("review_start", {"round": review_round.round_number(folder or ""), "project_name": name,
+                                              "round_dir": os.path.normpath(folder) if folder else ""}, i18n.LANG)
+        return (text or tr("Review-Runde {0} zu „{1}“ liegt in {2}. Lies dort review.md ganz und arbeite weiter.").format(
+            review_round.round_number(folder or ""), name, os.path.normpath(folder) if folder else folder)).strip()
+    if (task or {}).get("kind") != "discuss":  # build brief: the sentence comes with the recipe
+        recipe = recipes.get((task or {}).get("recipe"))
+        return recipe.render("start", {"project_name": name, "brief_dir": os.path.normpath(folder) if folder else "",
+                                       "look": brief.TASK_LOOK in (task or {}).get("parts", []),
+                                       "recipe": {"id": recipe.id, "name": recipe.name, "version": recipe.version}},
+                             i18n.LANG).strip()
     text = (tr("Prüfe und besprich den Sketch Brief „{0}“ ({1}): Lies brief.md und mach die erste Runde, wie sie im Core steht – zuerst alle Hero-Bilder, ganzen Bretter und Abschnittsbilder aus dem Ordner, auch die von Teilen, die diese Runde nicht baut; dann die Antworten auf die Klärungsfragen, die du selbst aus Notizen und genannten Dateien beantwortest, nur die wirklich offenen Fragen, und – wenn gebaut wird – Prüfeinheiten und Arbeitsliste, alles in einer Nachricht. Hast du die Mule-Werkzeuge, sieh dir zusätzlich die Szene mit scene_brief an (live) und schreib das Geklärte am Ende mit write_clarified zurück. Referenzbilder ohne Unterschrift (image_captions): schlag je Bild einen Satz vor – wofür es steht und worauf es dabei ankommt (keine Nacherzählung des Bilds; sagt das Brett es schon, nur darauf verweisen) – und zu welchen Teilen (IDs) es gehört, und speichere, was ich bestätige, mit set_image_captions.").format(name, folder))
     if brief.TASK_LOOK in (task or {}).get("parts", []):
         text += (tr(" Schreib danach je Hero-Kamera einen guten Bild-Prompt aus dem Brief (Form wie im Hero-Bild, Materialien, Licht, Stimmung, Kamera, Stil), stimm ihn mit mir ab und speichere ihn mit set_hero_prompt."))
@@ -82,6 +87,33 @@ class BriefDialog(QDialog):
         self.look.setChecked(brief.TASK_LOOK in task.get("parts", []))
         self.look.toggled.connect(self._sync)
         form.addRow("", self.look)
+
+        # brief recipe (recipes.py): the whole way of working of a build brief – rules, roles, hooks, agents, texts
+        self.recipe_combo = QComboBox()
+        self.recipe_combo.setToolTip(tr("Recipe des Bau-Briefs: die ganze Arbeitsweise – Regeln, Rollen, Hooks, Agenten und der Satz für den Chat"))
+        more = QToolButton()
+        more.setText("…")
+        more.setPopupMode(QToolButton.InstantPopup)
+        menu = QMenu(more)
+        menu.addAction(tr("Recipe importieren (.zip) …"), self._import_recipe)
+        menu.addAction(tr("Inhalt ansehen …"), self._show_recipe)
+        menu.addAction(tr("Recipe-Ordner öffnen"), self._open_recipe_dir)
+        menu.addAction(tr("Neu einlesen"), lambda: self._fill_recipes(self.recipe_combo.currentData()))
+        more.setMenu(menu)
+        rrow = QWidget()
+        rlay = QHBoxLayout(rrow)
+        rlay.setContentsMargins(0, 0, 0, 0)
+        rlay.addWidget(self.recipe_combo, 1)
+        rlay.addWidget(more)
+        self.recipe_row = rrow
+        form.addRow(tr("Brief-Recipe:"), rrow)
+        self.recipe_info = QLabel()
+        self.recipe_info.setWordWrap(True)
+        self.recipe_info.setStyleSheet("color: gray")
+        form.addRow("", self.recipe_info)
+        self._recipes = {}
+        self._fill_recipes(task.get("recipe") or recipes.DEFAULT_ID)
+        self.recipe_combo.currentIndexChanged.connect(self._sync)
 
         # timing cameras (only if there are any): stepped as in Mule or linear between the poses
         self.timing_combo = QComboBox()
@@ -169,6 +201,9 @@ class BriefDialog(QDialog):
             self.based_on_row.setEnabled(not self.discuss.isChecked())
             self.based_on_info.setText(self.based_on_text())
             self.layout().setRowVisible(self.based_on_info, bool(self.based_on_info.text()))
+        if hasattr(self, "recipe_info"):
+            self.recipe_row.setEnabled(not self.discuss.isChecked() and self.round_folder() is None)
+            self.recipe_info.setText(self.recipe_text())
         if not hasattr(self, "hints"):
             return  # still under construction
         hints = brief.part_hints(self.values(), self.checks.get("text", ""), self.checks.get("images", False))             + self.checks.get("points", [])
@@ -186,6 +221,117 @@ class BriefDialog(QDialog):
             self._filling = True
             self.prompt.setPlainText(autoprompt(self.name, self.round_folder() or self.folder, self.values()))
             self._filling = False
+
+    # ---- brief recipe
+
+    def _fill_recipes(self, wanted):
+        """Recipes into the list; broken ones are shown but cannot be chosen. A wanted recipe that is missing falls
+        back to Mule's own (the info line says so)."""
+        self.recipe_combo.blockSignals(True)
+        self.recipe_combo.clear()
+        self._recipes = {}
+        pick = 0
+        for r in recipes.available():
+            label = (tr("Mule Default ({0})").format(r.version) if r.builtin else
+                     r.label() + (f" – {r.author}" if r.author else ""))
+            self.recipe_combo.addItem(label, r.id if r.ok else None)
+            k = self.recipe_combo.count() - 1
+            if not r.ok:
+                self.recipe_combo.model().item(k).setEnabled(False)
+                self.recipe_combo.setItemData(k, tr("Nicht nutzbar: ") + "; ".join(r.problems), Qt.ToolTipRole)
+            else:
+                self._recipes.setdefault(r.id, r)
+                if r.id == wanted:
+                    pick = k
+        self._recipe_missing = wanted if wanted and wanted not in self._recipes else None
+        self.recipe_combo.setCurrentIndex(pick)
+        self.recipe_combo.blockSignals(False)
+        if hasattr(self, "hints"):
+            self._sync()
+
+    def recipe(self):
+        return self._recipes.get(self.recipe_combo.currentData()) or recipes.default()
+
+    def recipe_text(self):
+        """Info line under the recipe choice."""
+        from . import review_round
+        if self.discuss.isChecked():
+            return tr("„Nur besprechen“ nutzt kein Recipe – der Brief bringt seinen kurzen Kern mit.")
+        b = self.based_on.text().strip()
+        if b and review_round.is_brief(b):
+            base = review_round.base_of(b)
+            lock = recipes.read_lock(base) or {}
+            r = brief_v4.recipe_of(base)
+            if r is None and lock:
+                return tr("Review-Runde: der Brief nutzt „{0}“ {1} – auf diesem Rechner nicht installiert, die Runde bringt keine neue Version mit.").format(lock.get("name") or lock["id"], lock.get("version", ""))
+            return tr("Review-Runde: es gilt das Recipe des Briefs – {0}.").format(
+                (r or recipes.default()).label())
+        r = self.recipe()
+        lines = []
+        if self._recipe_missing:
+            lines.append(tr("Das gespeicherte Recipe „{0}“ ist hier nicht installiert – es gilt Mule Default.").format(self._recipe_missing))
+        if r.description:
+            lines.append(r.description)
+        sm = recipes.summary(r)
+        meta = [tr("von {0}").format(r.author)] if r.author else []
+        if r.made_for:
+            meta.append(tr("für {0}").format(", ".join(r.made_for)))
+        if r.size:
+            meta.append(tr("Größe: {0}").format(r.size))
+        meta.append(tr("{0} Hook-Befehl(e)").format(len(sm["hooks"])))
+        if not r.builtin:
+            meta.append(tr("nicht von Mule geprüft – vor dem ersten Lauf ansehen (…)"))
+        if sm["network"] and not r.builtin:
+            meta.append(tr("{0} Stelle(n) mit Netz/Download in Skripten").format(len(sm["network"])))
+        if sm["mode"] in ("bypassPermissions", "acceptEdits"):
+            meta.append(tr("Rechte-Modus „{0}“").format(sm["mode"]))
+        lines.append(" · ".join(meta))
+        return "\n".join(lines)
+
+    def _show_recipe(self):
+        from PySide6.QtWidgets import QMessageBox
+        box = QMessageBox(QMessageBox.NoIcon, tr("Brief-Recipe"), summary_text(self.recipe()), QMessageBox.Close, self)
+        box.exec()
+
+    def _open_recipe_dir(self):
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+        QDesktopServices.openUrl(QUrl.fromLocalFile(recipes.user_dir()))
+
+    def _import_recipe(self, path=None, ask=True):
+        """Unpack a recipe zip, show what it does on this machine, install after confirmation. -> Recipe or None."""
+        from PySide6.QtWidgets import QFileDialog, QMessageBox
+        if not path:
+            path, _ = QFileDialog.getOpenFileName(self, tr("Recipe importieren"), "", tr("Recipe (*.zip)"))
+            if not path:
+                return None
+        try:
+            r = recipes.unpack(path)
+        except recipes.RecipeError as exc:
+            QMessageBox.warning(self, tr("Recipe importieren"), str(exc))
+            return None
+        try:
+            if not r.ok:
+                QMessageBox.warning(self, tr("Recipe importieren"), tr("Dieses Recipe ist nicht nutzbar:") + "\n• "
+                                    + "\n• ".join(r.problems))
+                return None
+            exists = os.path.exists(recipes.target_of(r))
+            if ask:
+                box = QMessageBox(QMessageBox.Question, tr("Recipe importieren"),
+                                  summary_text(r) + "\n\n" + (tr("Ein Recipe „{0}“ ist schon installiert – ersetzen?").format(r.id)
+                                                              if exists else tr("Installieren?")),
+                                  QMessageBox.Yes | QMessageBox.No, self)
+                if box.exec() != QMessageBox.Yes:
+                    return None
+            try:
+                installed = recipes.install_unpacked(r, replace=exists)
+            except recipes.RecipeError as exc:
+                QMessageBox.warning(self, tr("Recipe importieren"), str(exc))
+                return None
+        finally:
+            recipes.discard(r)
+        self._fill_recipes(installed.id)
+        return installed
 
     def round_folder(self):
         """Folder of the review round when "Builds on" points to a brief (and it is being built), otherwise None."""
@@ -265,4 +411,38 @@ class BriefDialog(QDialog):
             "task": self.task.text(), "notes": self.notes.toPlainText(),
             "kind": "discuss" if self.discuss.isChecked() else None,
             "parts": [brief.TASK_LOOK] if self.look.isChecked() else [],
-            "based_on": self.based_on.text()})  # unused when discussing only, but remembered
+            "based_on": self.based_on.text(),  # unused when discussing only, but remembered
+            "recipe": self.recipe_combo.currentData() or ""})
+
+
+def summary_text(r):
+    """What a recipe is and does on this machine – before importing and on request in the dialog. A help for
+    looking, not a guarantee: the files themselves decide."""
+    sm = recipes.summary(r)
+    def clean(cmd):
+        for k, v in (("{{bash}}", "bash"), ("{{powershell}}", "powershell"), ("{{brief_dir}}", "<Brief>"),
+                     ("{{work_dir}}", "<Arbeitsordner>")):
+            cmd = cmd.replace(k, v)
+        return cmd
+    out = [f"{r.name} {r.version}" + (f" – {r.author}" if r.author else ""), r.description, ""]
+    if r.made_for or r.size:
+        out.append(tr("Gedacht für: {0}").format(", ".join(r.made_for) + (f" · {r.size}" if r.size else "")))
+    out.append(tr("Werkzeug: {0} · Brief-Schnittstelle {1}").format(r.harness, r.interface))
+    if r.forked_from:
+        out.append(tr("Abgeleitet von: {0}").format(r.forked_from))
+    out.append(tr("Dateien: {0} (Brief-Ordner {1}, Arbeitsordner {2})").format(sm["files"], len(sm["brief"]), len(sm["work"])))
+    out.append(tr("Prüfsumme: {0}").format(recipes.digest(r)[:16]))
+    out += ["", tr("Hooks – Befehle, die Claude Code auf deinem Rechner ausführt ({0}):").format(len(sm["hooks"]))]
+    out += [f"• {e}: {clean(c)}" for e, c in sm["hooks"]] or [tr("• keine")]
+    if sm["allow"] or sm["mode"]:
+        out += ["", tr("Freigaben ohne Rückfrage:") + " " + ", ".join(sm["allow"] or ["–"])
+                + (tr(" · Rechte-Modus „{0}“").format(sm["mode"]) if sm["mode"] else "")]
+    if sm["mcp"]:
+        out += ["", tr("Eigene MCP-Server: {0}").format(", ".join(sm["mcp"]))]
+    if sm["network"]:
+        out += ["", tr("Netz/Download in Skripten ({0}):").format(len(sm["network"]))]
+        out += [f"• {f}:{k}  {t}" for f, k, t in sm["network"][:12]]
+        if len(sm["network"]) > 12:
+            out.append(tr("• … und {0} weitere").format(len(sm["network"]) - 12))
+    out += ["", tr("Ein Recipe ist Anweisung und Programm zugleich: Regeln und Rollen steuern die KI, Hooks laufen auf deinem Rechner. Diese Übersicht ersetzt kein Lesen der Dateien – nimm nur Recipes, deren Quelle du traust.")]
+    return "\n".join(x for x in out if x is not None).replace("\n\n\n", "\n\n")

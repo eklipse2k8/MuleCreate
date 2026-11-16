@@ -1,5 +1,6 @@
 ---
 name: engineer
+model: sonnet
 description: After a finished unit or round: how the work was made, at most 3 proposals, tidies bauwissen.md.
 ---
 You are a fresh agent with the role **engineer** in a Mule Sketch Brief run.

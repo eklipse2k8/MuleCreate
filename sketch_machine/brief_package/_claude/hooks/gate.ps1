@@ -13,8 +13,7 @@ trap {
   if ($Mode -eq 'pretool') {
     [Console]::Out.Write('{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"GATE ERROR - the gate hook failed, so this agent start is blocked: ' + $err + '. Tell the artist."}}')
   } elseif ($Mode -eq 'context') {
-    try { [Console]::Out.Write((Get-Content -Raw -Encoding UTF8 (Join-Path $PSScriptRoot '..\..\rules.md'))) } catch {}
-    [Console]::Out.Write("`nGATE STATUS: ERROR in the gate hook ($err). Tell the artist; until it is fixed keep the rules by hand.")
+    [Console]::Out.Write("GATE STATUS: ERROR in the gate hook ($err). Tell the artist; until it is fixed keep rules.md by hand (it stays loaded through CLAUDE.md).")
   } else {
     [Console]::Out.Write('{"systemMessage":"GATE ERROR in the Stop hook: ' + $err + '"}')
   }
@@ -53,6 +52,17 @@ $Units = Join-Path $Work 'review\units'
 foreach ($d in @($Gate, $Iter, $Units)) { if (-not (Test-Path $d)) { New-Item -ItemType Directory -Force $d | Out-Null } }
 $AgentsLog = Join-Path $Gate 'agents.log'
 $Rules = Get-Content -Raw -Encoding UTF8 (Join-Path $Brief 'rules.md')
+# v5.1: hook text above 10 000 characters reaches the model only as a 2 000-character preview (Claude Code).
+# The full rules stay in context through CLAUDE.md (@rules.md) and in every agent prompt; hook outputs carry
+# only the rule headlines and the status.
+function Rule-Heads {
+  $h = @([regex]::Matches($Rules, '(?m)^(\d+)\.\s+\*\*(.+?)\*\*') | ForEach-Object { "$($_.Groups[1].Value). $($_.Groups[2].Value)" })
+  "RULES (the top law): rules.md, always loaded through CLAUDE.md. Headlines:`n" + ($h -join "`n")
+}
+function Cap-Text([string]$s, [int]$max = 9500) {
+  if ($s.Length -le $max) { return $s }
+  $s.Substring(0, $max) + "`n[cut at $max characters - read review/gate/ and the files named above]"
+}
 
 function Esc-Json([string]$s) {
   # ConvertTo-Json in PS 5.1 leaves non-ASCII as is; escape it so any reader decodes it safely
@@ -352,12 +362,18 @@ switch ($Mode) {
       }
     }
     $st = Get-State
-    $text = $Rules + "`n" + (Status-Text $st)
+    # v5.1: rule headlines only at a (re)start; an artist message gets the status alone (rules stay via CLAUDE.md)
+    $text = ''
+    if ([string]$in.hook_event_name -ne 'UserPromptSubmit') {
+      $text = (Rule-Heads) + "`n"
+      if ([string]$in.source -eq 'compact') { $text += "After this compaction: read review/conductor_handover.md, review/worklist.md, review/units.md and the state notes of running units before deciding.`n" }
+    }
+    $text += (Status-Text $st)
     if ($setMsgs.Count) { $text += "`n- SET by the artist's message: " + ($setMsgs -join ' ') }
-    # static reminder for the fast bash hook (every N tool calls)
-    $rem = @{ hookSpecificOutput = @{ hookEventName = 'PostToolUse'; additionalContext = ("REMINDER - keep to these rules now:`n" + $Rules) } }
+    # static reminder for the fast bash hook (agents, every N tool calls): headlines, short enough to arrive whole
+    $rem = @{ hookSpecificOutput = @{ hookEventName = 'PostToolUse'; additionalContext = ("REMINDER - keep to these rules now (full text in your prompt and rules.md):`n" + (Rule-Heads)) } }
     [IO.File]::WriteAllText((Join-Path $Gate 'reminder.json'), (Esc-Json ($rem | ConvertTo-Json -Depth 5 -Compress)))
-    [Console]::Out.Write($text)
+    [Console]::Out.Write((Cap-Text $text))
   }
 
   'pretool' {
@@ -389,7 +405,7 @@ switch ($Mode) {
     $hd = Join-Path $Gate 'handover_due'; $ho = Join-Path $Work 'review\conductor_handover.md'
     if (-not $in.agent_id -and (Test-Path $hd) -and (-not (Test-Path $ho) -or (Get-Item $ho).LastWriteTime -lt (Get-Item $hd).LastWriteTime)) {
       $k = ([IO.File]::ReadAllText($hd)).Trim()
-      & $deny "Your context is about $k k tokens, above HANDOVER_AT. Before the next agent: write the hand-over into review/conductor_handover.md (state per unit, open lanes and checks, next steps, changes to tools/), then ask the artist for a fresh chat that continues from it. Running agents go on; after the hand-over new agents may start again." }
+      & $deny "Your context is about $k k tokens, above HANDOVER_AT. Before the next agent: write the hand-over into review/conductor_handover.md (state per unit, open lanes and checks, next steps, changes to tools/), then go on in this chat: it compacts on its own and continues from the hand-over. Running agents go on; after the hand-over new agents may start again." }
     if (-not $role) { & $deny 'Start every agent with its agent type (builder, referee, qc, engineer, helper, standin, viewer) or a first line "ROLE: <role>"; except helper, standin and viewer also a line "UNIT: <id>" (rules 1-2).' }
     if (@('helper', 'standin', 'viewer') -notcontains $role -and -not $unit) { & $deny "ROLE: $role needs a line UNIT: <id>." }
     # agents started in one message run their hooks at the same time: one start at a time, so that each gets its own
@@ -464,6 +480,14 @@ switch ($Mode) {
             elseif ((Test-Path $sigF) -and [IO.File]::ReadAllText($sigF) -eq $sigNow) { $mapOld = $false }
             if ($mapOld) {
               & $deny "The visibility map of $baseUnit ($((Get-Item $vis).LastWriteTime.ToString('s'))) is older than a changed export of the unit, $($lastEx[0].Name) ($($lastEx[0].LastWriteTime.ToString('s'))). The builder that changes the geometry runs tools/vis_map at the end of its own run (rule 7); if that was missed, ROLE: helper runs it before STAGE: details." }
+            # v5.1: the form is held against the sketch before detail is spent on it (rule 10; levels: study and final).
+            # Measured: most rework came from departures first seen after the detail stage.
+            if ($Level -ne 'scout' -and $lastEx.Count) {
+              $ovDir = Join-Path $Work 'review\overlay'
+              $ov = @(Get-ChildItem -Path $ovDir -Filter '*_overlay.md' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match $ure } | Sort-Object LastWriteTime | Select-Object -Last 1)
+              if (-not $ov.Count -or $ov[0].LastWriteTime -lt $lastEx[0].LastWriteTime.AddMinutes(-10)) {
+                & $deny "STAGE: details for unit $baseUnit needs a sketch overlay of its current form (review/overlay/<name>_overlay.md, rule 10) - none is newer than its last export $($lastEx[0].Name). The builder of the form stage runs tools/sketch_overlay before publishing; if that was missed, a short builder run of this unit runs it and fixes what is red before detail is added." }
+            }
           }
           # rule 7: components of the unit listed, and their views made for every rank the level asks (study: 1, final: 1-2)
           if ($Level -ne 'scout') {

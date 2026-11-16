@@ -1,5 +1,6 @@
 ---
 name: viewer
+model: sonnet
 description: Shows something to the artist in a live session (open scene, camera, state). Never saves or writes a file.
 disallowedTools: Write, Edit, NotebookEdit
 ---

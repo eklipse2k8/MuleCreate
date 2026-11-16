@@ -1429,6 +1429,8 @@ def task_clean(task):
         out["based_on"] = task["based_on"].strip()
     if TASK_LOOK in (task.get("parts") or []) and out.get("kind") != "discuss":
         out["parts"] = [TASK_LOOK]
+    if isinstance(task.get("recipe"), str) and task["recipe"].strip() not in ("", "default"):  # brief recipe (recipes.py)
+        out["recipe"] = task["recipe"].strip()
     return out
 
 
@@ -1900,11 +1902,13 @@ def _later_notes(data):
     return out
 
 
-def _v4_head(has_context):
-    return ["This file holds the notes of this round and the scene – the reference you come back to part by part. "
-            "The process is in `conductor.md` (main chat), `rules.md`, `levels.md` and `roles/`; goal, round map, "
-            "task and the pictures of the first round are in `project.md`."
-            + (" Notes of later rounds: `context.md` (intent only, no work lines)." if has_context else ""), ""]
+def _v4_head(has_context, recipe=None):
+    """Head of brief.md in a build brief: where the process is – from the recipe (template brief_head)."""
+    from . import recipes
+    text = (recipe or recipes.default()).render("brief_head", {"has_context": bool(has_context)})
+    if text is None:
+        text = "This file holds the notes of this round and the scene; the way of working comes with the recipe."
+    return [text.rstrip("\n"), ""]
 
 
 def write_markdown(data, views, path, scene_name):
@@ -1915,8 +1919,9 @@ def write_markdown(data, views, path, scene_name):
         n.pop("later", None)
         if n["id"] in later:
             n["later"] = True
-    if builds:  # package v4: the way of working is in the package, the brief is content
-        core = _v4_head(bool(later))
+    if builds:  # build brief: the way of working is in the recipe, the brief is content
+        from . import recipes
+        core = _v4_head(bool(later), recipes.get((data.get("task") or {}).get("recipe")))
     else:
         core = _core_md(data)
         with open(os.path.join(os.path.dirname(path), CORE_FILE), "w", encoding="utf-8") as fh:
@@ -2333,10 +2338,12 @@ def export(scene, viewport, folder, scene_name="sketch", focus=None, data=None, 
     has_context = write_markdown(data, views, os.path.join(folder, "brief.md"), scene_name)
     data.pop("_notice", None)
     if (data.get("task") or {}).get("kind") != "discuss":  # work-method package v4 (rules, roles, hooks, view map)
-        from . import brief_v4
+        from . import brief_v4, recipes
+        recipe = recipes.get((data.get("task") or {}).get("recipe"))
         brief_v4.remove_old_core(folder)
-        files, notice = brief_v4.install(folder, scene_name)
-        written += files + [brief_v4.write_project(data, scene_name, folder, has_context)]
+        files, notice = brief_v4.install(folder, scene_name, recipe)
+        project = brief_v4.write_project(data, scene_name, folder, has_context, recipe)
+        written += files + ([project] if project else [])
         if has_context:
             written.append("context.md")
         if notice:

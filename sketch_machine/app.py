@@ -1600,8 +1600,8 @@ class MainWindow(QMainWindow):
         if not folder:
             return
         target = os.path.join(folder, f"{base}_brief")
-        from . import brief_v4
-        if task.get("kind") != "discuss" and brief_v4.running(target):  # do not swap rules in the middle of a run
+        from . import brief_v4, recipes
+        if task.get("kind") != "discuss" and brief_v4.running(target, recipes.get(task.get("recipe"))):  # do not swap rules in the middle of a run
             if QMessageBox.question(self, tr("Laufender Lauf"), tr("Im Ordner {0} läuft schon ein Lauf. Regeln, Rollen und Hooks bleiben, wie sie sind; neu geschrieben werden nur Inhalt und Bilder (brief.md, project.md, views, notes). Trotzdem exportieren?").format(brief_v4.work_dir(target))) != QMessageBox.Yes:
                 return
         self.note_panel.commit()

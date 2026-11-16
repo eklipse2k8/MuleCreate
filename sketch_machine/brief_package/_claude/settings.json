@@ -1,34 +1,35 @@
 {
-  "statusLine": { "type": "command", "command": "\"C:/Program Files/Git/bin/bash.exe\" \"__BRIEF__/.claude/hooks/statusline.sh\"", "refreshInterval": 60 },
+  "env": { "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "300000" },
+  "statusLine": { "type": "command", "command": "\"{{bash}}\" \"{{brief_dir}}/.claude/hooks/statusline.sh\"", "refreshInterval": 60 },
   "hooks": {
     "SessionStart": [
       { "matcher": "startup|resume|clear|compact",
-        "hooks": [ { "type": "command", "command": "C:/WINDOWS/System32/WindowsPowerShell/v1.0/powershell.exe",
-                     "args": ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "__BRIEF__/.claude/hooks/gate.ps1", "context"], "timeout": 30 } ] }
+        "hooks": [ { "type": "command", "command": "{{powershell}}",
+                     "args": ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "{{brief_dir}}/.claude/hooks/gate.ps1", "context"], "timeout": 30 } ] }
     ],
     "UserPromptSubmit": [
-      { "hooks": [ { "type": "command", "command": "C:/WINDOWS/System32/WindowsPowerShell/v1.0/powershell.exe",
-                     "args": ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "__BRIEF__/.claude/hooks/gate.ps1", "context"], "timeout": 30 } ] }
+      { "hooks": [ { "type": "command", "command": "{{powershell}}",
+                     "args": ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "{{brief_dir}}/.claude/hooks/gate.ps1", "context"], "timeout": 30 } ] }
     ],
     "PreToolUse": [
       { "matcher": "Agent|Task",
-        "hooks": [ { "type": "command", "command": "C:/WINDOWS/System32/WindowsPowerShell/v1.0/powershell.exe",
-                     "args": ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "__BRIEF__/.claude/hooks/gate.ps1", "pretool"], "timeout": 30, "onFailure": "block" } ] },
+        "hooks": [ { "type": "command", "command": "{{powershell}}",
+                     "args": ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "{{brief_dir}}/.claude/hooks/gate.ps1", "pretool"], "timeout": 30, "onFailure": "block" } ] },
       { "matcher": "mcp__houdini.*|mcp__blender.*|Bash|PowerShell|SendMessage|Write|Edit|NotebookEdit",
-        "hooks": [ { "type": "command", "command": "C:/Program Files/Git/bin/bash.exe", "args": ["__BRIEF__/.claude/hooks/pretool_build.sh"], "timeout": 15, "onFailure": "block" } ] }
+        "hooks": [ { "type": "command", "command": "{{bash}}", "args": ["{{brief_dir}}/.claude/hooks/pretool_build.sh"], "timeout": 15, "onFailure": "block" } ] }
     ],
     "PostToolUse": [
-      { "hooks": [ { "type": "command", "command": "C:/Program Files/Git/bin/bash.exe", "args": ["__BRIEF__/.claude/hooks/posttool.sh"], "timeout": 15 } ] }
+      { "hooks": [ { "type": "command", "command": "{{bash}}", "args": ["{{brief_dir}}/.claude/hooks/posttool.sh"], "timeout": 15 } ] }
     ],
     "SubagentStart": [
-      { "hooks": [ { "type": "command", "command": "C:/Program Files/Git/bin/bash.exe", "args": ["__BRIEF__/.claude/hooks/subagent.sh", "start"], "timeout": 15 } ] }
+      { "hooks": [ { "type": "command", "command": "{{bash}}", "args": ["{{brief_dir}}/.claude/hooks/subagent.sh", "start"], "timeout": 15 } ] }
     ],
     "SubagentStop": [
-      { "hooks": [ { "type": "command", "command": "C:/Program Files/Git/bin/bash.exe", "args": ["__BRIEF__/.claude/hooks/subagent.sh", "stop"], "timeout": 15 } ] }
+      { "hooks": [ { "type": "command", "command": "{{bash}}", "args": ["{{brief_dir}}/.claude/hooks/subagent.sh", "stop"], "timeout": 15 } ] }
     ],
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "C:/WINDOWS/System32/WindowsPowerShell/v1.0/powershell.exe",
-                     "args": ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "__BRIEF__/.claude/hooks/gate.ps1", "stop"], "timeout": 30 } ] }
+      { "hooks": [ { "type": "command", "command": "{{powershell}}",
+                     "args": ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", "{{brief_dir}}/.claude/hooks/gate.ps1", "stop"], "timeout": 30 } ] }
     ]
   }
 }

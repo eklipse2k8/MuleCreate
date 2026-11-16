@@ -15,8 +15,25 @@ if [[ -n $tuid && -f "$G/t_${tuid}" ]]; then
 fi
 cf="$G/count_${agent}"; n=0; [[ -f "$cf" ]] && n="$(<"$cf")"; [[ $n =~ ^[0-9]+$ ]] || n=0; n=$((n+1)); echo "$n" > "$cf"
 rules_due=0
-if (( n % ${REMIND_EVERY:-30} == 0 )) || [[ -f "$G/rules_due_${agent}" ]]; then rules_due=1; fi
+# v5.1: the main chat keeps the full rules through CLAUDE.md (also after a compaction); only agents get the headline reminder
+if [[ $agent != main ]] && { (( n % ${REMIND_EVERY:-30} == 0 )) || [[ -f "$G/rules_due_${agent}" ]]; }; then rules_due=1; fi
 msg=""
+# v5.1: a builder whose context passes BUILDER_HINT_AT gets one hint to hand over at a clean point (no block; rule 17)
+if [[ $agent != main && $role == builder && ${BUILDER_HINT_AT:-0} -gt 0 && ! -f "$G/builder_hint_${agent}" ]]; then
+  tp=""; re='"transcript_path": ?"(([^"\]|\.)*)"'; [[ $input =~ $re ]] && tp="${BASH_REMATCH[1]}"; tp="${tp//\\//}"
+  sp="${tp%.jsonl}/subagents/agent-${agent}.jsonl"
+  if [[ -f $sp ]]; then
+    line="$(tail -c 2000000 "$sp" | grep -F '"usage"' | tail -n 1)"; i=0; cc=0; cr=0
+    re='"input_tokens": ?([0-9]+)'; [[ $line =~ $re ]] && i="${BASH_REMATCH[1]}"
+    re='"cache_creation_input_tokens": ?([0-9]+)'; [[ $line =~ $re ]] && cc="${BASH_REMATCH[1]}"
+    re='"cache_read_input_tokens": ?([0-9]+)'; [[ $line =~ $re ]] && cr="${BASH_REMATCH[1]}"
+    ctx=$((i + cc + cr))
+    if (( ctx >= BUILDER_HINT_AT )); then
+      : > "$G/builder_hint_${agent}"
+      msg="GATE: your context is about $((ctx / 1000)) k tokens. Every further step reads all of it again: finish the current step, reach a clean point, write state note and report, and hand the rest over to the next run (rule 17)."
+    fi
+  fi
+fi
 if [[ $agent == main ]]; then
   tp=""; re='"transcript_path": ?"(([^"\]|\.)*)"'; [[ $input =~ $re ]] && tp="${BASH_REMATCH[1]}"; tp="${tp//\\//}"
   if [[ -n $tp && -f $tp ]]; then
@@ -30,7 +47,7 @@ if [[ $agent == main ]]; then
       b=$(( (ctx - HANDOVER_AT) / 100000 ))
       if (( b > last )); then
         echo "$b" > "$mk"; echo "$((ctx / 1000))" > "$G/handover_due"   # v4 #19: the gate holds new agents until the hand-over is newer
-        msg="GATE: your context is about $((ctx / 1000)) k tokens (above $((HANDOVER_AT / 1000)) k). Write the hand-over into review/conductor_handover.md now (state, open lanes, next steps) and ask the artist for a fresh chat, or continue from it after a compaction."
+        msg="GATE: your context is about $((ctx / 1000)) k tokens (above $((HANDOVER_AT / 1000)) k). Write the hand-over into review/conductor_handover.md now (state, open lanes, next steps) and go on: this chat compacts on its own and continues from it."
       fi
     elif (( last != -1 )); then echo "-1" > "$mk"; rm -f "$G/handover_due"
     fi

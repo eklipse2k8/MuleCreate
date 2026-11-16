@@ -1,0 +1,1 @@
+This file holds the notes of this round and the scene – the reference you come back to part by part. The process is in `conductor.md` (main chat), `rules.md`, `levels.md` and `roles/`; goal, round map, task and the pictures of the first round are in `project.md`.{{#has_context}} Notes of later rounds: `context.md` (intent only, no work lines).{{/has_context}}

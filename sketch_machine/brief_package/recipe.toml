@@ -1,0 +1,52 @@
+# Brief recipe: Mule's own working method. Format and the facts Mule offers: docs/recipes.md
+# Changing the package: raise `version`, add a section to PACKAGE_CHANGES.md, run _claude/tests/run_tests.sh.
+id = "default"
+name = "Mule Default"
+version = "v5.1"
+author = "Mule Create"
+description = "Mule's own method: a conducting main chat, builder / referee / QC / viewer / engineer / stand-in agents, gate hooks, levels scout · study · final, visibility map and sketch overlay."
+made_for = ["objects", "creatures", "vehicles", "buildings", "environments"]
+size = "any"
+harness = "claude-code"
+brief_interface = 1
+forked_from = ""
+running_marker = "work/review/gate/agents.log"
+changes = "PACKAGE_CHANGES.md"
+
+[templates]
+project = "templates/project.md"
+brief_head = "templates/brief_head.md"
+start = "templates/start.md"
+review_start = "templates/review_start.md"
+review_intro = "templates/review_intro.md"
+package_update = "templates/package_update.md"
+
+[files]
+"rules.md" = "brief/rules.md"
+"levels.md" = "brief/levels.md"
+"conductor.md" = "brief/conductor.md"
+"roles/" = "brief/roles/"
+"CLAUDE.md" = "brief/CLAUDE.md"
+"_claude/agents/" = "brief/.claude/agents/"
+"_claude/hooks/" = "brief/.claude/hooks/"
+"_claude/settings.json" = "brief/.claude/settings.json"
+"tools/" = "work/tools/"
+
+# gate.conf: written fresh for a new brief; in a running run the artist's values stay and only new keys are added.
+# Changeable live by the artist line "SET: <key>=<value>" (level, max_builders, pause, max_weekly).
+[config]
+file = "brief/.claude/hooks/gate.conf"
+keep = ["brief/.claude/hooks/gate.local.conf"]
+
+[config.values]
+WORK = "{{work_dir}}"
+REMIND_EVERY = "30"
+MAX_BUILDERS = "1"
+SHARED_FILES = ""
+LEVEL = "study"
+MAX_WEEKLY = "90"
+MAX_5H = "90"
+HANDOVER_AT = "250000"
+BUILDER_HINT_AT = "200000"
+STOP_AT = ""
+PAUSE = ""

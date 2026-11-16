@@ -383,8 +383,6 @@ EN = {
         "Recent color {0}",
     "Import fehlgeschlagen":
         "Import failed",
-    "Diese Sitzung muss im Brief-Ordner {1} laufen, nur dort greifen die Hooks. Läuft sie in einem anderen Ordner, mach nichts weiter und sag mir, dass ich eine neue Sitzung in genau diesem Ordner starten soll. Beginne deine erste Nachricht mit dem Block „GATE STATUS“ aus dem Start-Hook, wörtlich zitiert. Fehlt er, mach nichts weiter und sag es mir. Prüfe und besprich den Sketch Brief „{0}“ ({1}). Lies conductor.md, project.md und brief.md und mach die erste Runde, wie sie in conductor.md steht: zuerst die echten Fragen mit markierten Bildern, dann eine Tabelle mit allem Zweifelsfreien, dann die Einheiten mit Abhängigkeiten und Spuren, ganz unten die aktuelle Stufe und wie ich sie ändere. Ich darf per Ausnahme antworten. Nach meinen Antworten kommt dein kurzer Zielvorschlag; gebaut wird erst nach meiner Bestätigung. Hast du die Mule-Werkzeuge, schlag für Referenzbilder ohne Unterschrift je einen Satz vor und speichere, was ich bestätige, mit set_image_captions; das Geklärte der ersten Runde schreibst du mit write_clarified zurück.":
-        "This session must run in the brief folder {1}; only there do the hooks work. If it runs in any other folder, do nothing else and tell me to start a new session in exactly that folder. Start your first message with the “GATE STATUS” block from the start hook, quoted word for word. If it is missing, do nothing else and tell me. Check and discuss the Sketch Brief “{0}” ({1}). Read conductor.md, project.md and brief.md and do the first round as conductor.md describes it: first the real questions with marked pictures, then one table of everything beyond doubt, then the units with dependencies and lanes, and at the very end the current level and how I change it. I may answer by exception. After my answers comes your short goal proposal; building starts only after I confirm. If you have the Mule tools, propose one sentence for each reference picture without a caption and store what I confirm with set_image_captions; write the clarified first-round answers back with write_clarified.",
     "nichts – normaler Export, ein neuer Brief":
         "nothing – normal export, a new brief",
     "Wählen …":
@@ -401,8 +399,6 @@ EN = {
         "Review round {0} – goes to {1} without picking a folder. No new rules, hooks or work folder: it holds only what changed in the notes since the last export, plus the current state. You paste the sentence into the running chat.",
     "Brief-Ordner des laufenden Chats wählen":
         "Choose the brief folder of the running chat",
-    "Review-Runde {0} zu „{1}“ liegt in {2}. Das ist kein neuer Brief und kein neuer Lauf, sondern Feedback für unsere laufende Arbeit: Lies dort review.md ganz und öffne alle Bilder, die sie nennt. Lass das Review in Entscheidungen, Einheiten und Arbeitsliste einfließen, nenn mir, wo es etwas Etabliertes ändert, frag nur, was offen bleibt, und arbeite dann weiter wie bisher – gleiche Regeln, gleiche Stufe.":
-        "Review round {0} for “{1}” is in {2}. This is not a new brief and not a new run but feedback for our running work: read review.md there completely and open every picture it names. Fit the review into decisions, units and the work list, tell me where it changes something established, ask only what stays open, then go on as before – same rules, same level.",
     "Review-Runde":
         "Review round",
     "In {0} liegt kein Sketch Brief (brief.json). Wähl unter „Baut auf“ den Brief-Ordner, in dem der laufende Chat arbeitet.":
@@ -411,8 +407,6 @@ EN = {
         "Review round {0}: {1} files in {2}",
     "Review-Runde {0} in {1} – Satz kopiert: im laufenden Chat einfügen (Strg+V)":
         "Review round {0} in {1} – sentence copied: paste it into the running chat (Ctrl+V)",
-    " Vor dem Bauen: je Hero-Kamera einen Bild-Prompt mit mir abstimmen (set_hero_prompt), Bilder erzeugen lassen, ich wähle aus.":
-        " Before building: agree an image prompt per hero camera with me (set_hero_prompt), have images generated, I pick.",
     "Im Ordner {0} läuft schon ein Lauf. Regeln, Rollen und Hooks bleiben, wie sie sind; neu geschrieben werden nur Inhalt und Bilder (brief.md, project.md, views, notes). Trotzdem exportieren?":
         "A run is already going on in {0}. Rules, roles and hooks stay as they are; only content and pictures are rewritten (brief.md, project.md, views, notes). Export anyway?",
     "Laufender Lauf":
@@ -1758,4 +1752,82 @@ EN = {
         'Open &Recent',
     '&Einstellungen…':
         '&Settings…',
+    'Review-Runde {0} zu „{1}“ liegt in {2}. Lies dort review.md ganz und arbeite weiter.':
+        'Review round {0} for „{1}“ is in {2}. Read review.md there completely and go on with the work.',
+    'Recipe des Bau-Briefs: die ganze Arbeitsweise – Regeln, Rollen, Hooks, Agenten und der Satz für den Chat':
+        "Recipe of the build brief: its whole way of working – rules, roles, hooks, agents and the sentence for the chat",
+    'Recipe importieren (.zip) …':
+        'Import recipe (.zip) …',
+    'Inhalt ansehen …':
+        'Show contents …',
+    'Recipe-Ordner öffnen':
+        'Open recipe folder',
+    'Neu einlesen':
+        'Reload',
+    'Brief-Recipe:':
+        'Brief recipe:',
+    'Mule Default ({0})':
+        'Mule Default ({0})',
+    'Nicht nutzbar: ':
+        'Not usable: ',
+    '„Nur besprechen“ nutzt kein Recipe – der Brief bringt seinen kurzen Kern mit.':
+        '„Discuss only“ uses no recipe – the brief brings its short core.',
+    'Review-Runde: der Brief nutzt „{0}“ {1} – auf diesem Rechner nicht installiert, die Runde bringt keine neue Version mit.':
+        'Review round: the brief uses „{0}“ {1} – not installed on this machine, the round brings no new version.',
+    'Review-Runde: es gilt das Recipe des Briefs – {0}.':
+        "Review round: the brief's recipe applies – {0}.",
+    'Das gespeicherte Recipe „{0}“ ist hier nicht installiert – es gilt Mule Default.':
+        'The saved recipe „{0}“ is not installed here – Mule Default applies.',
+    'von {0}':
+        'by {0}',
+    'für {0}':
+        'for {0}',
+    'Größe: {0}':
+        'size: {0}',
+    '{0} Hook-Befehl(e)':
+        '{0} hook command(s)',
+    'nicht von Mule geprüft – vor dem ersten Lauf ansehen (…)':
+        'not checked by Mule – look at it before the first run (…)',
+    '{0} Stelle(n) mit Netz/Download in Skripten':
+        '{0} place(s) with network/download in scripts',
+    'Rechte-Modus „{0}“':
+        'permission mode „{0}“',
+    'Brief-Recipe':
+        'Brief recipe',
+    'Recipe importieren':
+        'Import recipe',
+    'Recipe (*.zip)':
+        'Recipe (*.zip)',
+    'Dieses Recipe ist nicht nutzbar:':
+        'This recipe is not usable:',
+    'Ein Recipe „{0}“ ist schon installiert – ersetzen?':
+        'A recipe „{0}“ is already installed – replace it?',
+    'Installieren?':
+        'Install?',
+    'Gedacht für: {0}':
+        'Made for: {0}',
+    'Werkzeug: {0} · Brief-Schnittstelle {1}':
+        'Tool: {0} · brief interface {1}',
+    'Abgeleitet von: {0}':
+        'Forked from: {0}',
+    'Dateien: {0} (Brief-Ordner {1}, Arbeitsordner {2})':
+        'Files: {0} (brief folder {1}, work folder {2})',
+    'Prüfsumme: {0}':
+        'Checksum: {0}',
+    'Hooks – Befehle, die Claude Code auf deinem Rechner ausführt ({0}):':
+        'Hooks – commands Claude Code runs on your machine ({0}):',
+    '• keine':
+        '• none',
+    'Freigaben ohne Rückfrage:':
+        'Allowed without asking:',
+    ' · Rechte-Modus „{0}“':
+        ' · permission mode „{0}“',
+    'Eigene MCP-Server: {0}':
+        'Own MCP servers: {0}',
+    'Netz/Download in Skripten ({0}):':
+        'Network/download in scripts ({0}):',
+    '• … und {0} weitere':
+        '• … and {0} more',
+    'Ein Recipe ist Anweisung und Programm zugleich: Regeln und Rollen steuern die KI, Hooks laufen auf deinem Rechner. Diese Übersicht ersetzt kein Lesen der Dateien – nimm nur Recipes, deren Quelle du traust.':
+        'A recipe is instructions and program at once: rules and roles steer the AI, hooks run on your machine. This overview does not replace reading the files – only use recipes whose source you trust.',
 }

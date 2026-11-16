@@ -343,8 +343,9 @@ class Tools:
         with open(path, encoding="utf-8") as fh:
             md = fh.read()
         if (data.get("task") or {}).get("kind") != "discuss":  # build brief (package v4): project document first
-            from . import brief_v4
-            project = "\n".join(brief_v4.project_md(data, self.w.scene_base(), None, has_context))
+            from . import brief_v4, recipes
+            recipe = recipes.get((data.get("task") or {}).get("recipe"))
+            project = "\n".join(brief_v4.project_md(data, self.w.scene_base(), None, has_context, recipe))
             md = project + "\n\n---\n\n" + md
         heroes = brief.board_heroes(scene)
         export = self.w.last_brief

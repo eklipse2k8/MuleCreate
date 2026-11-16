@@ -36,6 +36,8 @@ class _TestSettings(_OrigSettings):
 
 
 QtCore.QSettings = _TestSettings
+# brief recipes of the user (recipes.py): tests see an empty recipe folder of their own, never the real one
+os.environ["MULE_RECIPES"] = os.path.join(_SETTINGS_DIR, "recipes")
 
 from PySide6.QtCore import QEvent, QPoint, QPointF, Qt  # noqa: E402
 

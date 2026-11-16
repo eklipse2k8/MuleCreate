@@ -28,6 +28,8 @@ tracing paper you draw on. Lines become surfaces, and notes are prompts for late
          "start the Claude session in the brief folder; change the level live", "SET: level=scout|study|final"),
         ("Review round: feedback for the running chat – goes to <brief>/review_rounds/ without picking a folder, only "
          "what changed in the notes, no new rules; paste the sentence into the same chat", "“Builds on” in the brief dialog"),
+        ("Choose the build brief's way of working: Mule Default or a recipe of your own (rules, roles, hooks, texts); "
+         "import a recipe as .zip, look at its contents", "“Brief recipe” in the brief dialog · …"),
         ("Visibility map (detail only where it is seen) in Blender, one command; check the tool",
          "tools/vis_map/vis_blender.py · --selftest"),
         ("Export scene as USD (surfaces as polymeshes, meshes referenced)", "[Ctrl]+[Shift]+[E]"),

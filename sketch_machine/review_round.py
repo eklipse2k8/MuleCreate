@@ -4,8 +4,9 @@ for the running chat – like a stack of screenshots handed to it. Mule puts it 
 what changed in the notes since the last export (new, changed, deleted), plus the current state
 for reference (scene.usd, views/, notes/, brief.json). It is compared with the brief.json of the last round or of the
 brief; notes via their fixed identifier (uid), older exports without uid via the heading. If the package in the
-brief folder is older than the one from Mule, the round brings the new one along (brief_v4.update_package) and review.md says what changed
-in the rules (2026-11-16)."""
+brief folder is older than the installed version of the same recipe, the round brings the new one along
+(brief_v4.update_package) and review.md says what changed in the rules (2026-11-16); the texts about how to take it in
+come from the brief's recipe (recipes.py)."""
 import datetime
 import json
 import os
@@ -255,51 +256,42 @@ def _note_block(note, ch=None):
     return lines
 
 
-def _package_block(pkg):
-    """Section for a newer package brought along (brief_v4.update_package)."""
-    from . import brief_v4
-    return ["", f"## The rules were updated: package {pkg['old']} → {pkg['new']}",
-            "Mule copied a newer package into the brief folder with this round: `rules.md`, `levels.md`, "
-            "`conductor.md`, `roles/`, the agent types and hooks in `.claude/`, and the tools in the work folder. "
-            "The run's settings (`gate.conf`, `gate.local.conf`, level), the work folder and everything established "
-            "stay. **The new rules hold from now on, also for the work already done:**",
-            "1. Read `rules.md`, `levels.md` and `conductor.md` again now, and the role files of the agents you start.",
-            "2. Apply the changes below backwards before the next build: check `decisions.md`, `readings.md`, "
-            "`assumed.md` and the open work lines against them; every older reading or built part that contradicts "
-            "them becomes a work line (rule 5). Tell the artist in a few lines what changes for the running work.",
-            "3. Settle what the hooks now ask for (for example a new first-round key) before the next builder.", "",
-            brief_v4.changes_since(pkg["old"] if pkg["old"] != "unknown" else "")]
+def _package_block(pkg, recipe=None):
+    """Section for a newer recipe version brought along (brief_v4.update_package) – text from the recipe."""
+    from . import brief_v4, recipes
+    recipe = pkg.get("recipe") or recipe or recipes.default()
+    changes = brief_v4.changes_since(pkg["old"] if pkg["old"] != "unknown" else "", recipe)
+    text = recipe.render("package_update", {"old": pkg["old"], "new": pkg["new"], "changes": changes,
+                                            "recipe": {"id": recipe.id, "name": recipe.name}})
+    if text is None:
+        text = (f"## The working method was updated: {recipe.name} {pkg['old']} → {pkg['new']}\n"
+                "Mule copied the newer version of the recipe into the brief folder. Read its files again; it holds "
+                "from now on.\n\n" + changes)
+    return [""] + text.rstrip("\n").split("\n")
 
 
-def markdown(d, cur, scene_name, folder, base, prev_folder, pkg=None):
+def _intro(base, pkg, recipe):
+    from . import recipes
+    recipe = recipe or recipes.default()
+    ctx = {"date": datetime.date.today().isoformat(), "base": base.replace(os.sep, "/"), "updated": bool(pkg)}
+    text = recipe.render("review_intro", ctx)
+    if text is None:
+        text = (f"Written by Mule on {ctx['date']}. **This is not a new brief and not a new run.** It continues the "
+                f"run of the brief two folders up (`{ctx['base']}`); everything established there stays. Take this "
+                "review into the running work, ask only what it leaves open, then go on.")
+    return text.rstrip("\n").split("\n") + [""]
+
+
+def markdown(d, cur, scene_name, folder, base, prev_folder, pkg=None, recipe=None):
     n = round_number(folder)
     rel_prev = os.path.relpath(prev_folder, folder).replace(os.sep, "/") if prev_folder else None
-    md = [f"# Review round {n} – {scene_name}", "",
-          f"Written by Mule on {datetime.date.today().isoformat()}. **This is not a new brief and not a new run.** It "
-          f"continues the run of the brief two folders up (`{base.replace(os.sep, '/')}`). Everything established "
-          "there stays as it is – " + ("level, decisions, readings, units, bauwissen, the clarified points, the way "
-                                        "you work with the artist; only the rules were updated (section below). "
-                                        if pkg else
-                                        "rules, roles, hooks, level, decisions, readings, units, bauwissen, the "
-                                        "clarified points, the way you work with the artist. ")
-          + "This folder adds the artist's review: take it like a big stack of screenshots and comments the artist "
-          "drops into the chat.", "",
-          "## How to take it in",
-          "1. Read this file completely and open every picture it names, the whole boards included.",
-          "2. Fit the review into the running work: what it changes in decisions, readings, units and the work list. "
-          "Where a note here contradicts something established, the note wins – list each case in your answer "
-          "(established · now · source).",
-          "3. Ask only what this review leaves open, each question with a picture where the spot is marked – the "
-          "artist may answer by exception.",
-          "4. Then go on with the work as before" + (" under the updated rules. " if pkg else
-                                                      ": same rules, same level, same hooks. ")
-          + "Nothing here asks you to start over.", "",
+    md = [f"# Review round {n} – {scene_name}", "", *_intro(base, pkg, recipe),
           f"Compared with the last export (`{rel_prev}`)." if rel_prev else
           "Mule found no earlier export to compare with – every note below counts as new.",
           "Ids (N#, S#, F#, M#, H#, L#) follow **this round's** `brief.json`; they can shift between exports – "
           "names and paths stay."]
     if pkg:
-        md += _package_block(pkg)
+        md += _package_block(pkg, recipe)
     if d["renames"]:
         md += ["", "Parts whose id moved since the last export:", "", "| was | now | name |", "|---|---|---|"]
         md += [f"| {a} | {b} | {name} |" for a, b, name in d["renames"]]
@@ -349,5 +341,5 @@ def write(cur, folder, scene_name):
     d = delta(prev, cur)
     pkg = brief_v4.update_package(base, scene_name)
     with open(os.path.join(folder, ROUND_FILE), "w", encoding="utf-8") as fh:
-        fh.write(markdown(d, cur, scene_name, folder, base, prev_folder, pkg))
+        fh.write(markdown(d, cur, scene_name, folder, base, prev_folder, pkg, brief_v4.recipe_of(base)))
     return ROUND_FILE

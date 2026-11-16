@@ -21,8 +21,8 @@ def doc_path(*parts):
     return os.path.join(base, *parts)
 
 
-def user_dir():
-    """Folder for the user's data (is created)."""
+def user_dir(create=True):
+    """Folder for the user's data (is created unless create is False)."""
     if sys.platform == "win32":
         base = os.environ.get("APPDATA") or os.path.expanduser("~")
     elif sys.platform == "darwin":
@@ -30,7 +30,8 @@ def user_dir():
     else:
         base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
     path = os.path.join(base, "Mule")
-    os.makedirs(path, exist_ok=True)
+    if create:
+        os.makedirs(path, exist_ok=True)
     return path
 
 

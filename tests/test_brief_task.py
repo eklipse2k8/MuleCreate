@@ -144,7 +144,7 @@ def test_review_round_only_what_is_new(h: H):
     in the notes since the last export (notes via uid, older exports via the title), plus the
     current state. The running run stays untouched; the next round compares with the previous one."""
     import json
-    from sketch_machine import brief_v4, review_round
+    from sketch_machine import brief_v4, recipes, review_round
     root = tempfile.mkdtemp()
     base = os.path.join(root, "alpaka_brief")
     sc = _scene(h)
@@ -187,8 +187,10 @@ def test_review_round_only_what_is_new(h: H):
     assert "## No changed notes" in md2 and "review_01_" in md2
     assert "rules were updated" not in md and "rules were updated" not in md2, "same package: nothing renewed"
     # older package in the running brief (artist 2026-11-16): the review round brings the new one, settings stay
-    pv = os.path.join(base, ".claude", "package_version")
-    open(pv, "w", encoding="utf-8").write("v4.8\n")
+    lock_path = os.path.join(base, recipes.LOCK_FILE)
+    lock = json.load(open(lock_path, encoding="utf-8"))
+    assert lock["id"] == "default" and lock["version"] == brief_v4.VERSION and len(lock["digest"]) == 64
+    json.dump(dict(lock, version="v4.8"), open(lock_path, "w", encoding="utf-8"))
     open(os.path.join(base, "rules.md"), "w", encoding="utf-8").write("OLD RULES\n")
     conf = open(gate, encoding="utf-8").read().replace("LEVEL=study", "LEVEL=final").replace("STOP_AT=\n", "")
     open(gate, "w", encoding="utf-8").write(conf)
@@ -203,7 +205,7 @@ def test_review_round_only_what_is_new(h: H):
     assert "only the rules were updated" in md3 and "apply the changes below backwards".lower() in md3.lower()
     assert open(os.path.join(base, "rules.md"), encoding="utf-8").read() == \
         open(os.path.join(brief_v4.PACKAGE_DIR, "rules.md"), encoding="utf-8").read(), "new rules in the brief"
-    assert open(pv, encoding="utf-8").read().strip() == brief_v4.VERSION
+    assert json.load(open(lock_path, encoding="utf-8"))["version"] == brief_v4.VERSION
     conf3 = open(gate, encoding="utf-8").read()
     assert "LEVEL=final" in conf3 and "WORK=" in conf3 and "STOP_AT=" in conf3, "settings stay, new keys"
     assert open(local, encoding="utf-8").read() == "LEVEL=final\n" and os.path.isfile(work_tool)

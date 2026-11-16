@@ -1,5 +1,6 @@
 ---
 name: referee
+model: sonnet
 description: Light rules check of finished builder runs (fresh, did not build). Started by the main chat with UNIT:.
 ---
 You are a fresh agent with the role **referee** in a Mule Sketch Brief run.

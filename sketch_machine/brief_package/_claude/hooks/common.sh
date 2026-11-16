@@ -1,8 +1,8 @@
 # shared by the fast bash hooks (bash builtins only). Base: test 006; v4 changes marked "v4 #<n>".
 HOOKDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BRIEFNAME="$(cd "$HOOKDIR/../.." && pwd)"; BRIEFNAME="${BRIEFNAME##*/}"
-HANDOVER_AT=500000
-while IFS='=' read -r k v; do v="${v%$'\r'}"; case "$k" in WORK) WORK="$v";; REMIND_EVERY) REMIND_EVERY="$v";; HANDOVER_AT) [[ $v =~ ^[0-9]+$ ]] && HANDOVER_AT="$v";; esac; done < "$HOOKDIR/gate.conf"
+HANDOVER_AT=250000; BUILDER_HINT_AT=200000
+while IFS='=' read -r k v; do v="${v%$'\r'}"; case "$k" in WORK) WORK="$v";; REMIND_EVERY) REMIND_EVERY="$v";; HANDOVER_AT) [[ $v =~ ^[0-9]+$ ]] && HANDOVER_AT="$v";; BUILDER_HINT_AT) [[ $v =~ ^[0-9]+$ ]] && BUILDER_HINT_AT="$v";; esac; done < "$HOOKDIR/gate.conf"
 G="$WORK/review/gate"; mkdir -p "$G" "$WORK/review/iter"
 input="$(cat)"
 tool=""; re='"tool_name": ?"([^"]+)"'; [[ $input =~ $re ]] && tool="${BASH_REMATCH[1]}"

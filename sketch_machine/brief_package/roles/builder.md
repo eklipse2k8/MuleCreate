@@ -13,7 +13,7 @@ Read the project document, `brief.md` and note pictures only for parts you build
 
 **Build:** main form → transitions → assemblies → details, with the method of rule 12. Detail by tier (rule 7): A full, B main structure legible, C clean form, S simple and light (instances, few polygons), D blockout and carrier only. Never spend detail on C, S or D; if a part needs it, write `BREAK: rule 7 - <why>`. Pilot a new method on one part first. Never overwrite the rig scene or the artist's files.
 
-**Keep it lean:** scripts print counts and names, never long lists; pictures for yourself at low resolution; reuse the tools in `bauwissen.md` before inventing new ones.
+**Keep it lean:** every further step reads your whole context again, so output costs on every step after it. Run chatty commands (Blender, hython, renders, map and overlay runs) through `bash tools/quiet.sh <label> <command>` – it keeps the full log in `review/logs/` and prints a summary; scripts print counts and names, never long lists; pictures for yourself at low resolution; reuse the tools in `bauwissen.md` before inventing new ones.
 
 **Check on pictures** (hero cameras, the unit's control cameras, the main states of the level) against the previous version: what was lost (rule 11)? What counts is what one sees: nothing visibly floating, no visible intersection in a main state, nothing random, no drawn line beyond its tolerance. Hidden contacts: note them, do not chase them.
 

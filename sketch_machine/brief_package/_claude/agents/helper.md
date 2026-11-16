@@ -1,5 +1,6 @@
 ---
 name: helper
+model: sonnet
 description: One bounded side task: search, references, rig or scene analysis, first-round pictures, tools/vis_map runs. Builds nothing.
 ---
 You are a fresh agent with the role **helper** in a Mule Sketch Brief run.

@@ -2271,6 +2271,12 @@ Code: `sketch_machine/brief.py` (analysis, pictures, brief.md/brief.json, export
   that the folder holds no `brief.json`. Disabled while "Discuss only" is ticked (but remembered).
 - **Type:** **Discuss only – build nothing** (Nur besprechen – nichts bauen). Writes the old "Core" style brief
   (see below) with no package, no hooks, no work folder.
+- **Brief recipe:** (Brief-Recipe) – the **brief recipe** of a build brief: **Mule Default (v5.0)** or a recipe
+  from the user's recipe folder (§Brief recipes). Greyed-out entries have a problem (tooltip). The grey line below
+  gives description, author, what it is made for and how many hook commands it brings; a recipe that is not Mule's
+  own says "not checked by Mule". **…** opens a menu: **Import recipe (.zip) …**, **Show contents …** (what the
+  recipe runs on this machine), **Open recipe folder**, **Reload**. Disabled with "Discuss only" and in a review
+  round (the round keeps the recipe of its brief). Stored with the scene (only when it is not Mule Default).
 - **Look pre-stage: first generate images from the hero cameras, then build** (Look-Vorstufe). Disabled with
   "Discuss only". Adds the section "Look images (before building)" to `brief.md` and a line to `project.md`: write one
   image prompt per hero camera from the brief, get the artist's OK (prompts already approved with `set_hero_prompt`
@@ -2356,9 +2362,10 @@ Build brief (default) – all files relative to `<scene>_brief/`:
 - `shots/` – only with Shots (timing prototype): frames through each shot camera; brief.md gets a Shots part.
 - `scene.usd` – the scene as USD exactly as "Export scene as USD" (resolution 0.25 × viewport), same ids, notes with
   the paths of their pictures in this folder.
-- The package (see §Way-of-working package): `rules.md`, `levels.md`, `conductor.md`, `roles/*.md`, `CLAUDE.md`,
-  `.claude/agents/*.md`, `.claude/hooks/*`, `.claude/hooks/gate.conf`, `.claude/settings.json`,
-  `.claude/package_version`.
+- The way of working from the chosen recipe (§Brief recipes); with Mule Default (§Way-of-working package):
+  `rules.md`, `levels.md`, `conductor.md`, `roles/*.md`, `CLAUDE.md`, `.claude/agents/*.md`, `.claude/hooks/*`,
+  `.claude/hooks/gate.conf`, `.claude/settings.json`.
+- `.mule_recipe.json` – the lock file: id, name, version, author and digest of the recipe this brief was made with.
 - `.mcp.json` (Claude Code) and `.codex/config.toml` (Codex) – MCP entries so an AI session started in the brief
   folder has the same tools: always `sketch_machine` (`http://127.0.0.1:8770/mcp`), plus every server in the
   `.mcp.json` / `.codex/config.toml` of the repo (from source) or of `%APPDATA%/Mule` (installed program – put your
@@ -2441,18 +2448,46 @@ work folder; `.mcp.json` / `.codex/config.toml` are still written.
 - For a running chat prefer a **review round** over a re-export: a re-export renews the brief without telling the
   chat what changed.
 
+## Brief recipes
+The whole way of working of a build brief is a swappable **recipe**: rules, roles, agent types, hooks, tools, the
+process part of `project.md`, the first lines of `brief.md` and the sentences for the chat. Mule writes the content
+(brief.md, brief.json, scene.usd, views/, notes/) and fills the recipe's templates with its facts. Mule's own recipe
+is **Mule Default** (`sketch_machine/brief_package/`, next section); the user's recipes live in
+`%APPDATA%\Mule\recipes\<id>\` (macOS `~/Library/Application Support/Mule/recipes/`, Linux
+`~/.local/share/Mule/recipes/`; `MULE_RECIPES` overrides). The full format – `recipe.toml`, targets, tokens, every
+template and its facts, review rounds, import – is in `docs/recipes.md`. Code: `sketch_machine/recipes.py`.
+
+- **Choosing:** "Brief recipe" in the brief dialog; the choice is stored in the scene's task as `recipe` (not for
+  Mule Default). A stored recipe that is missing on this machine falls back to Mule Default, and the dialog says so.
+- **Lock file** `.mule_recipe.json` in the brief folder names the recipe and its digest (sha256 over its files).
+  Briefs from before recipes (only `.claude/package_version`) count as Mule Default.
+- **Review rounds** always use the brief's recipe: a newer version of the **same** recipe is copied in (its config
+  file keeps the run's values), never another recipe; the texts of `review.md` and the sentence come from its
+  templates. If that recipe is not installed, the round brings no new version.
+- **A run in progress** (the recipe's `running_marker`, for Mule Default `work_<name>/review/gate/agents.log`): a new
+  export leaves the recipe's files alone.
+- **Safety:** a recipe's hooks run on the user's machine and its rules steer the AI. Import checks the zip (no paths
+  out of it, no links, 50 MB) and shows every hook command, the permissions it grants, its MCP servers and every
+  line that downloads or talks to the network, before anything is installed. Recipe targets cannot leave the brief
+  and work folders or overwrite Mule's own files (brief.md, brief.json, project.md, scene.usd, views/, notes/ …).
+- **Helping a user write one:** start from a copy of `sketch_machine/brief_package/`, give it its own `id`, set
+  `forked_from`, change one thing at a time, raise `version` and add a section to the changes file on every change.
+
 ## Way-of-working package (v5.0)
 
 ### What it is
-A fixed, versioned set of rules, roles and hooks in `sketch_machine/brief_package/` that every build brief carries.
-It turns one Claude Code session in the brief folder into a **conductor** (main chat) that never builds and
-starts fresh sub-agents for each role, guarded by hooks. The version is in `brief_v4.VERSION` (currently `v5.0`) and is written to
-`.claude/package_version` and the head of `project.md`.
+The built-in recipe **Mule Default**: a fixed, versioned set of rules, roles and hooks in
+`sketch_machine/brief_package/` (described by its `recipe.toml`) that every build brief carries unless another recipe
+is chosen. It turns one Claude Code session in the brief folder into a **conductor** (main chat) that never builds
+and starts fresh sub-agents for each role, guarded by hooks. The version is in `recipe.toml` (`brief_v4.VERSION`,
+currently `v5.0`) and is written to the lock file `.mule_recipe.json` and the head of `project.md`.
 
 Copied into the brief: `rules.md`, `levels.md`, `conductor.md`, `roles/`, `CLAUDE.md` (with the project name),
-`.claude/agents/`, `.claude/hooks/` (without the template `gate.conf`; a fresh one is generated), `.claude/settings.json`
-(paths filled in) and the two tools into the work folder. **Not copied:** `STARTPROMPT.md`,
-`hooks_spec.md`, `project_template.md`, `PACKAGE_CHANGES.md` (the latter is quoted into review rounds).
+`.claude/agents/`, `.claude/hooks/` (without the template `gate.conf`; a fresh one is generated from
+`[config.values]`), `.claude/settings.json` (programs and paths filled in) and the two tools into the work folder.
+**Not copied:** `recipe.toml`, `templates/` (Mule fills them: `project.md`, the head of `brief.md`, the sentences for
+the chat, the texts of review rounds), `STARTPROMPT.md`, `hooks_spec.md`, `PACKAGE_CHANGES.md` (the latter is
+quoted into review rounds).
 
 ### Parts and what they do
 - `CLAUDE.md` – loaded automatically by Claude Code in the brief folder: main chat starts with `conductor.md`, then
@@ -2516,7 +2551,7 @@ Copied into the brief: `rules.md`, `levels.md`, `conductor.md`, `roles/`, `CLAUD
 - **`SET:` commands** – a line `SET: <key>=<value>` in a real artist message (not in quoted agent or system text) is
   applied by the hook to `gate.local.conf`: `level=scout|study|final`, `max_builders=1–12`, `max_weekly=1–100`,
   `pause=<reason>` or `pause=off`. Every other key is refused. Agents can never change settings themselves.
-- `project_template.md` – the template `project.md` follows (filled by `brief_v4.project_md`).
+- `recipe.toml` – describes the package as a recipe (files, config, templates, version); `templates/` – the Mustache templates Mule fills: `project.md`, `brief_head.md`, `start.md` (+ `start.de.md`), `review_start.md` (+ `.de`), `review_intro.md`, `package_update.md` (filled by `brief_v4.project_context` and `recipes.render`).
 - `STARTPROMPT.md` – template of the start prompt (same content as the build-brief autoprompt).
 - `PACKAGE_CHANGES.md` – one section per package version with "Take over:" instructions for a running project;
   quoted in a review round that brings a newer package.
@@ -3542,6 +3577,8 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Brennweite → Focal length
 - Brett → board
 - Brief-Ordner des laufenden Chats wählen → Choose the brief folder of the running chat
+- Brief-Recipe → Brief recipe
+- Brief-Recipe: → Brief recipe:
 - Claude arbeitet … → Claude is working …
 - Cleanup: nichts zu tun → Cleanup: nothing to do
 - Cleanup: nichts zu verbinden → Cleanup: nothing to connect
@@ -3554,6 +3591,7 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - des Nulls → of the null
 - Die im Viewport angeklickte Notiz → The note clicked in the viewport
 - Die OBJ-Datei enthält keine Flächen. → The OBJ file contains no faces.
+- Dieses Recipe ist nicht nutzbar: → This recipe is not usable:
 - Doppelklick: durch diese Kamera schauen → Double-click: look through this camera
 - doppelte Linie(n) entfernt → duplicate line(s) removed
 - Doppelte Linien entfernen → Remove duplicate lines
@@ -3608,6 +3646,7 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Fläche → Surface
 - Fläche(n) wieder verknüpft → surface(s) relinked
 - Flächen → Surfaces
+- Freigaben ohne Rückfrage: → Allowed without asking:
 - Geklärt mit der KI → Clarified with the AI
 - Geklärt mit der KI: → Clarified with the AI:
 - Gelb → Yellow
@@ -3633,7 +3672,9 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Import fehlgeschlagen → Import failed
 - In Bleistift umwandeln → Convert to pencil
 - in der Mitte der Auswahl → at the center of the selection
+- Inhalt ansehen … → Show contents …
 - ins Leere → into empty space
+- Installieren? → Install?
 - Kamera → Camera
 - Kamera löschen → Delete camera
 - Kamera umbenennen → Rename camera
@@ -3702,9 +3743,11 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Modus → Mode
 - Mule Create – Handbuch → Mule Create – Manual
 - Neu → New
+- Neu einlesen → Reload
 - Neue Kamera → New camera
 - Neue Kamera (Screenshot ins Brett) → New camera (screenshot onto the board)
 - Nicht mehr fragen → Don't ask again
+- Nicht nutzbar: → Not usable:
 - nichts → nothing
 - Nichts gewählt zum Ausblenden → Nothing selected to hide
 - Nichts gewählt zum Isolieren → Nothing selected to isolate
@@ -3742,6 +3785,9 @@ Short UI names of the program (menus, buttons, tools, labels) as the German inte
 - Punkte ziehen: immer weich → Drag points: always soft
 - Punktgröße → Point size
 - Rechteck → Rectangle
+- Recipe importieren → Import recipe
+- Recipe importieren (.zip) … → Import recipe (.zip) …
+- Recipe-Ordner öffnen → Open recipe folder
 - Review absenden → Send Review
 - Review beenden → Stop Review
 - Review starten → Start Review

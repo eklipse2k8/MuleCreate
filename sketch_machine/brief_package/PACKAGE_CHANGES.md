@@ -1,6 +1,15 @@
 # Package changes – what a running project must take over
 Mule copies a newer package into a running brief with the next review round. The review round's `review.md` quotes the sections newer than the project's old version. Format: one section per version, newest first, `## v<major>.<minor>`.
 
+## v5.1
+Efficiency after measuring a full run (357 agents): no check removed, no new rule – context kept small, rework caught earlier.
+- **Rules arrive whole:** hook text above 10 000 characters reaches the model only as a short preview. Hooks now carry the rule headlines and the status; the full rules stay loaded through `CLAUDE.md` and in every agent prompt. The main chat gets no recurring rule reminder any more (agents still do, as headlines).
+- **Main chat stays small, in the same chat:** `HANDOVER_AT` 500 k → 250 k; the harness compacts about 50 k above it (Claude Code: `CLAUDE_CODE_AUTO_COMPACT_WINDOW` in `settings.json`) and the chat goes on from `conductor_handover.md` – no fresh chat. Looking at many pictures goes to a helper or QC.
+- **Model per role** (`conductor.md`, column *Model*): *strong* for builder, QC, stand-in; *light* for referee, engineer, viewer, helper. Harness-neutral; the Claude Code agent files carry it.
+- **Form against the sketch before detail:** `STAGE: details` needs a sketch overlay newer than the unit's last export (study, final).
+- **Lean agents:** `tools/quiet.sh` runs chatty commands with the full log in `review/logs/` and a short summary; a builder whose context passes `BUILDER_HINT_AT` (200 k) gets one hint to hand over at a clean point. Review rounds bundle the small points of one unit into one builder run.
+- *Take over:* nothing to redo in the work. A running run keeps its own `HANDOVER_AT`; set it lower with the artist if the conductor's context is large.
+
 ## v5.0
 Consolidation after an independent review – no new rules; the same substance in fewer words (rules.md 2360 → about 1800 words), with the rule numbers kept.
 - **Rule 4 is now one order for everyone:** the artist's newest word > approved as built > drawn form within tolerance > construction and fit > measured numbers. Departures, the design hand-over and the veto list sit there. Replaces the scattered sentences of v4.11–v4.14 in rules 4, 6, 10 and 11.

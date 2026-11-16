@@ -130,6 +130,9 @@ touch "$W/review/iter/002_builder.md"; logl referee U2 002; touch "$W/review/ite
 mkdir -p "$W/export/U2"; touch -d '+1 hour' "$W/export/U2/hinge_v003.usd"
 o="$(gate pretool "$(agentj builder 'UNIT: U2\nSTAGE: details')")"; [[ $o == *"older than a changed export"* ]] && ok "#5 new export in export/U2/ -> refused" || bad "#5 export in unit folder" "$o"
 rm -rf "$W/export/U2" "$W/export/review"
+o="$(gate pretool "$(agentj builder 'UNIT: U2
+STAGE: details')")"; isdeny "$o" && [[ $o == *"sketch overlay"* ]] && ok "#v5.1 details without a sketch overlay of the current form -> refused" || bad "#v5.1 overlay before details" "$o"
+mkdir -p "$W/review/overlay"; touch -d '+3 hour' "$W/review/overlay/U2_b001_overlay.md"
 printf 'part | purpose | carrier | reference | binding level | tier\n--- | --- | --- | --- | --- | ---\n' > "$W/review/strategy/U2.md"
 echo "0" > "$G/strategy_U2.lines"; printf 'hinge | turn | rib | photo 3 | basis\n' >> "$W/review/strategy/U2.md"
 expd "#5 new part line without tier -> refused" "$(gate pretool "$(agentj builder 'UNIT: U2\nSTAGE: details')")"
@@ -284,6 +287,9 @@ fx; expd "OLD round QC report only by qc" "$(pre "$(toolj b1 builder Write "{\"f
 echo "== v4 #15 language"
 fx; gate context '{"hook_event_name":"UserPromptSubmit","prompt":"Hallo, bitte weiter"}' >/dev/null
 o="$(gate context '{"hook_event_name":"SessionStart"}')"; [[ $o == *"artist's language"* && $o == *Hallo* ]] && ok "#15 start hook: talk in the artist's language" || bad "#15 language line" "${o: -300}"
+o="$(gate context '{"hook_event_name":"SessionStart","source":"compact"}')"; (( ${#o} < 10000 )) && [[ $o == *"17. Drop what you cannot do well."* && $o == *conductor_handover.md* ]] && ok "#v5.1 start hook under 10 000 characters, rule headlines, hand-over after compaction" || bad "#v5.1 start hook size" "${#o}"
+o="$(gate context '{"hook_event_name":"UserPromptSubmit","prompt":"ok"}')"; (( ${#o} < 10000 )) && [[ $o == *"GATE STATUS"* && $o != *"Headlines"* ]] && ok "#v5.1 artist message: status only" || bad "#v5.1 artist message status only" "${#o}"
+r="$(cat "$G/reminder.json")"; (( ${#r} < 10000 )) && ok "#v5.1 agent reminder under 10 000 characters" || bad "#v5.1 reminder size" "${#r}"
 
 echo "== v4 #9 status line writes usage.txt (no watcher in the main chat)"
 EXTRA="MAX_5H=40" fx

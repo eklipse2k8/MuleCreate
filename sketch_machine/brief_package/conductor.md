@@ -4,15 +4,19 @@ Read `rules.md`, `levels.md`, this file and the project document (`project.md`: 
 ## Roles
 Every agent is fresh. Start it with its agent type (`.claude/agents/<role>.md`) or with a first line `ROLE: <role>`, plus `UNIT: <unit>` and, for builders, `STAGE: <stage>`. The gate adds the rules, the level row, the role contract, the report path, the artist's recent words, `decisions.md` and the matching sections of `bauwissen.md`. So your task stays short: goal, work lines, picture targets, open veto, adopted proposal.
 
-| Role | When | Gives |
-|---|---|---|
-| builder | every build step: one goal, usually one stage of one unit, or a fix (rule 17) | files, sheet, state note, `bauwissen.md` lines, report |
-| referee | after every builder run (level decides) | rule check in minutes, `VERDICT` |
-| qc | `STAGE: targets` at unit start (study, final); check at unit end and before every showing | targets, or a check on pictures with at most 3 work lines, `VERDICT` |
-| engineer | after a finished unit (level decides) | judges adopted proposals (keep/drop/wait), at most 3 new ones; tidies `bauwissen.md` |
-| helper | bounded side tasks: rig or scene analysis, first-round pictures, reference search, visibility map runs | short report |
-| stand-in | questions of taste during the run (rule 6) | answer in `review/standin_answers.md` |
-| viewer | show something to the artist in a live session: open a scene, set a camera or state; never saves | one line; no referee needed |
+| Role | When | Gives | Model |
+|---|---|---|---|
+| builder | every build step: one goal, usually one stage of one unit, or a fix (rule 17) | files, sheet, state note, `bauwissen.md` lines, report | strong |
+| referee | after every builder run (level decides) | rule check in minutes, `VERDICT` | light |
+| qc | `STAGE: targets` at unit start (study, final); check at unit end and before every showing | targets, or a check on pictures with at most 3 work lines, `VERDICT` | strong |
+| engineer | after a finished unit (level decides) | judges adopted proposals (keep/drop/wait), at most 3 new ones; tidies `bauwissen.md` | light |
+| helper | bounded side tasks: rig or scene analysis, first-round pictures, reference search, visibility map runs | short report | light; strong for picture or design work |
+| stand-in | questions of taste during the run (rule 6) | answer in `review/standin_answers.md` | strong |
+| viewer | show something to the artist in a live session: open a scene, set a camera or state; never saves | one line; no referee needed | light |
+
+**Model:** *strong* = the most capable model at hand; *light* = a faster, cheaper model of the same family. Judging form, taste and building need *strong*; rule checks, measuring and showing do well on *light*. The agent definitions of the harness (for Claude Code `.claude/agents/<role>.md`) carry this choice; any other harness picks its own equivalent from this column.
+
+**Keep agents lean:** every step of an agent reads its whole context again, so long tool output costs on every later step. Tools and scripts print a short summary and the path of their full log (`tools/quiet.sh` wraps any chatty command); an agent reads a log only where the summary points to a problem.
 
 **Targets and judging are split:** one fresh QC writes the picture targets of a unit (from notes, readings, references and current pictures; for taste it asks the stand-in), another fresh QC judges against them. You only copy the targets into tasks and the work list. A target names an area of tier A, a camera and what must read there by function, never "like the generated image".
 
@@ -48,7 +52,7 @@ Keep up to `MAX_BUILDERS` builders busy from the start: plan lanes and packages 
 
 ## What the hooks enforce (when one refuses, do what it says; never work around it)
 If a refusal is wrong or asks for something it then refuses itself, do not work around it: send the exact text to the artist, or to the hook session the artist named. Go on with the other units.
-- Rules in context at start, after compaction, with every artist message and every `REMIND_EVERY` tool calls.
+- Rules: always loaded through `CLAUDE.md`; rule headlines and the status at start and after compaction, the status with every artist message, the headlines in every agent every `REMIND_EVERY` tool calls.
 - Agents only with a role; no forks; `SendMessage` only to resume an agent whose report is `ABORTED:` (once), or to another app session (`local_…`).
 - The main chat does not build: no build tools, no scripts, no scene files. Read-only live tools (`inspect`, `geo`, `problems`, `screenshot`) are allowed.
 - Builders: up to `MAX_BUILDERS`, one per unit or package; no new builder of a unit while its referee, QC or engineer is due; `STAGE: details` only with a current visibility map, the unit's lines in `components.md` with views made for every rank the level asks, and `tier` on every new part line; `STAGE: integrate` only when all packages are finished and refereed.
@@ -60,7 +64,7 @@ If a refusal is wrong or asks for something it then refuses itself, do not work 
 - A turn cannot end while a required check is due.
 - Logs: `review/gate/agents.log`, `tools.log`, `artist.log`.
 
-**Your duties, not enforced:** QC before every showing; `usage.txt` is written by the status line (no recurring job: a job in this chat costs your whole context every time); only when the gate says it is missing or old, write it once by hand (usage tool, Write tool). When the budget or `STOP_AT` stops new agents: let running agents finish, write `ABORTED: <why>` as the report of any agent that was cut off, tell the artist where things stand, and go on only when the artist says so or the window has reset; every hand-over and round end names the changes agents made to `tools/`, so they can flow back into Mule; when your context passes about 500 k tokens, the gate starts no new agent until you have written a hand-over into `review/conductor_handover.md` (again every 100 k); then ask the artist for a fresh chat, or continue from it after a compaction.
+**Your duties, not enforced:** QC before every showing; `usage.txt` is written by the status line (no recurring job: a job in this chat costs your whole context every time); only when the gate says it is missing or old, write it once by hand (usage tool, Write tool). When the budget or `STOP_AT` stops new agents: let running agents finish, write `ABORTED: <why>` as the report of any agent that was cut off, tell the artist where things stand, and go on only when the artist says so or the window has reset; every hand-over and round end names the changes agents made to `tools/`, so they can flow back into Mule; keep your own context small – it is read again with every step you take: delegate looking at many pictures to a helper or QC and keep only their verdict. When your context passes `HANDOVER_AT` (default 250 k tokens), the gate starts no new agent until you have written a hand-over into `review/conductor_handover.md` (again every 100 k); then go on in the same chat – it compacts soon after (the harness setting sits about 50 k above `HANDOVER_AT`) and continues from the hand-over, so review rounds stay in this chat.
 
 **Fallback:** every start, compaction and artist message puts a `GATE STATUS` block into your context. If it is missing, the hooks are not running: tell the artist, paste rules, level row, role and report path into every agent prompt yourself, and keep the loop by hand.
 
@@ -69,7 +73,7 @@ If a refusal is wrong or asks for something it then refuses itself, do not work 
 ## First round – before building
 Open the hero pictures and the whole-board pictures, and the section pictures of the notes of the first units. Say in one line how many you opened. A helper does rig or scene analysis and the first-round pictures (the main chat does not render).
 
-**Review rounds.** The artist's review of a running run comes as a folder `review_rounds/review_NN_<date>/` inside this brief folder, written by Mule. It is not a new brief and not a new run: it holds `review.md` (only what changed in the notes since the last export – new, changed, removed notes with their pictures) and the current state for looking things up (`scene.usd`, `views/`, `notes/`, `brief.json`). Take it in as `review.md` says: read it completely and open every picture, fit it into decisions, readings, units and the work list (where a note contradicts something established, the note wins – list each case), ask only what it leaves open, then go on as before. Rules, level, hooks and the work folder stay.
+**Review rounds.** The artist's review of a running run comes as a folder `review_rounds/review_NN_<date>/` inside this brief folder, written by Mule. It is not a new brief and not a new run: it holds `review.md` (only what changed in the notes since the last export – new, changed, removed notes with their pictures) and the current state for looking things up (`scene.usd`, `views/`, `notes/`, `brief.json`). Take it in as `review.md` says: read it completely and open every picture, fit it into decisions, readings, units and the work list (where a note contradicts something established, the note wins – list each case), ask only what it leaves open, then go on as before. Bundle the small points of one unit (a colour, one more part, a shifted piece) into one builder run for that unit instead of one run each. Rules, level, hooks and the work folder stay.
 
 **Exceptions first.** One message, in this order:
 1. The real questions, each with a picture where the part is marked and named.

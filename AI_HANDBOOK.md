@@ -2949,6 +2949,8 @@ Internal names: the Python package is `sketch_machine`, settings live under "Ske
 
 ## Known limits (Alpha 1)
 
+- **The MCP server has no password.** It listens on 127.0.0.1 only (not reachable from other computers), but any
+  program on the same computer can call its tools while Mule is open: read the scene, render views, write notes.
 - **Scene format can change** between versions until the beta; older scenes are not always supported further
   (there is no promise of backward compatibility during the test phase). Tell the user to copy important scenes
   before updating.

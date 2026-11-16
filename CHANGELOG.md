@@ -1,73 +1,81 @@
 # Changelog
 
-## Mule Create Alpha 1 – v0.99.255 (2026-11-16)
+## Unreleased
 
-Erste öffentliche Fassung (Open Source, GPL-3.0). Neu gegenüber v0.99.229:
+- README: picture at the top, direct links to the download, the introduction and the AI handbook.
+- Known limits now say that the local MCP server has no password (it only listens on this computer).
+- Contributing: questions and ideas welcome in GitHub Discussions.
+- This changelog is now in English.
 
-- **`AI_HANDBOOK.md`:** vollständige Dokumentation für KI-Assistenten – alle Funktionen, Kürzel, Abläufe, der Brief
-  und alle MCP-Werkzeuge, mit Glossar Deutsch → Englisch. Fragen zu Mule einfach der eigenen KI mit dieser Datei
-  stellen. Ein Test hält sie mit dem Programm im Gleichstand.
-- **Einführung im Programm:** Diashow mit den 18 Bildern (Hilfe → Einführung in Bildern), oben im Handbuch (F1)
-  als erster Knopf, daneben der Weg zum KI-Handbuch; beim ersten Start fragt Mule einmal nach.
-- **`start.bat`** richtet beim ersten Start unter Windows die Umgebung `.venv` selbst ein (vorher: Fehlermeldung
-  „pythonw.exe nicht gefunden“ in einer frischen Kopie) und installiert fehlende Pakete nach.
-- **Einführung in Bildern:** `docs/INTRODUCTION.md` (auf GitHub durchklicken) und `docs/introduction.html` (Diashow) –
-  18 Bilder aus dem echten Programm zu den wichtigsten Funktionen, erzeugt mit `packaging/handbook_images.py`; ganz
-  oben im Handbuch verlinkt, ihr Text steht für die KI im Handbuch. Abschnitt „Start here“: Stift/Pinsel,
-  Zeichen-/Malmodus, Frei-Modus.
-- **README auf Englisch;** die ausführliche deutsche Funktionsliste heißt jetzt `LIESMICH.md`.
-- Code-Kommentare auf Englisch.
-- **Review:** Werkzeug **Markieren** neben dem Review-Knopf statt F8/F9; Klick auf ein Bild im Brett merkt das
-  Referenzbild für die Notiz zum Teil; **Review absenden** mit Satz für den Chat (auf Englisch, wenn Mule Englisch
-  spricht); „Claude arbeitet …“ geht aus, wenn Claude fertig ist; Claudes Pfeile im Brett folgen Text und Bild.
-- **Baut auf** im Brief-Dialog ist jetzt eine Review-Runde im laufenden Chat (ersetzt die Folgerunde).
-- **Arbeitsweise-Paket v5.0** im Bau-Brief: Skizze zuerst (Form bindet, Toleranz je Linie), Skizzen-Overlay, Wortlaut
-  des Künstlers als Liste, Gestaltung beim Künstler, wo er sie nicht übergibt; verdichtet nach unabhängiger Prüfung.
-- Behoben: Kurvenflächen verloren beim Speichern ihre Randlinie; gemischte Kantenauswahl wurde nicht ganz eingefärbt.
-- Behoben: **Strg+L** (Loop entlang des Netzes) wirkte über die Tastatur nicht; der Druckregler des **Radierers** wirkte
-  nirgends (jetzt: Druck steuert die Größe des Radierkreises); Rechtsklick-Menü nannte für Maximieren Space+B statt
-  Space+F; Info-Spalte im Outliner auf Englisch („missing“, „tris“).
-- Ist Port 8770 belegt (zweite Mule), sagt die Statusleiste jetzt, dass die KI-Anbindung aus ist.
-- Die alte KI-Brief-Prüfung über die Anthropic-API (seit v0.99.78 abgeschaltet) ist ganz entfernt, samt dem Paket
-  `anthropic`; Klären läuft über den Chat und MCP.
-- Für Entwickler: `packaging/public_sync.py` überträgt neue Stände als je einen Commit ins öffentliche Repo,
-  `release.py --public` legt dort das Release an.
-- Die Workflow-Bible im öffentlichen Repo enthält Technik- und Werkzeug-Einträge; wie ein Bau abläuft, regelt das
-  Arbeitsweise-Paket im Brief. Jede KI ergänzt beim Nutzer dessen eigene Kopie.
-- Bau-Brief: die Hooks nehmen die Programme dieses Rechners (Git Bash auch außerhalb des Standardordners; unter
-  Linux/macOS bash und PowerShell 7 `pwsh`, dort noch ungetestet); fehlt eins, nennt es der Brief-Dialog.
-- Anleitungen: Probleme als GitHub-Issue melden, Szenen sind `.mule`-Dateien.
+## Mule Create Alpha 1.2 – v0.99.255 (2026-11-16)
 
-## Mule Create Alpha 1 – v0.99.229 (2026-11-14)
+- **Introduction inside the program:** a slide show with the 18 pictures (Help → Introduction in Pictures); at the
+  top of the manual (F1) as the first button, next to the way to the AI handbook; on the first start Mule asks once.
+- Fixed: closing Mule could end with an error code (the new manual buttons held the window in a reference cycle).
+- Developer tools: the public update stops before changing anything if Mule is running from the public folder.
 
-Erste Fassung zum internen Weitergeben. Neu gegenüber v0.99.227:
+## Mule Create Alpha 1.1 – v0.99.252 (2026-11-16)
 
-- **Transkription einrichten:** Mule richtet Whisper für Review-Transkripte selbst ein (Review-Menü oder Nachfrage
-  beim ersten Review); braucht einmalig ein Python 3.10–3.13 von python.org, etwa 2–4 GB Download.
-- Offizieller Name **Mule Create** in Fenstertitel, Handbuch, Anleitung und Release.
-- Anleitung auf Deutsch (`ANLEITUNG.md`) und Englisch (`GUIDE.md`), dieses Changelog, Quellpaket.
-- Drittlizenzen vollständig, jetzt auch Mesa/LLVM (`opengl32sw.dll`).
+- **`start.bat`** sets up its own Python environment on the first start under Windows (before: "pythonw.exe not
+  found" in a fresh copy) and installs missing packages later.
+- **Introduction in pictures:** `docs/INTRODUCTION.md` (click through on GitHub) and `docs/introduction.html` (slide
+  show) – 18 pictures from the real program, linked at the very top of the AI handbook. New section "Start here":
+  pen and brush, Draw and Paint mode, Free mode.
 
-**Was Mule Create in dieser Fassung kann**
+## Mule Create Alpha 1 – v0.99.249 (2026-11-16) – first public version
 
-- **Skizzieren im Raum:** Linien auf Ebenen, Zeichenflächen und importierten Meshes (OBJ, USD), Frei-Modus ohne
-  Ebene, Geraden und Formen durch Stillhalten, Smooth-Zeichnen, Malen.
-- **Flächen aus Linien:** Kurvennetz mit gemeinsamen Punkten, Loft, Extrudieren, Füllflächen, Symmetrie und Array.
-- **Edit-Modus:** Verschieben, Drehen, Skalieren mit Gizmo, Einrasten, Punkt auf Punkt, Welt / Lokal / Kamera.
-- **Notizen und Notizbrett:** Notizen an Teilen der Zeichnung, Bretter mit Bildern, Videos, Schreibschrift, Pfeilen
-  und Bildunterschriften; Screenshots als Hero-Kameras.
-- **Sketch Brief:** Export als Ordner mit Bildern, Notizen, Klärungsliste und Arbeitsregeln für die KI; Folgerunden,
-  die auf einem früheren Brief aufbauen.
-- **KI-Anbindung über MCP** (lokal, Port 8770) für Claude Code, Codex und andere MCP-fähige KIs: Szene lesen,
-  Ansichten rendern, Notizen diktieren, Bilder einfügen, Brief exportieren.
-- **Review-Modus (neu):** Feedback beim Durchgehen der Szene einsprechen, Stellen markieren,
-  Transkript lokal mit Whisper, die KI legt daraus Entwurfs-Notizen an, die man anhört und übernimmt.
-- **Export:** Szene als USD für Houdini, Blender und Maya; Kurven als USD oder JSON.
-- **Shots und Timing** (Prototyp): Kameras, Timeline, Flipbook-Ebenen.
-- Oberfläche und Handbuch (F1) auf Deutsch und Englisch.
+Open source under GPL-3.0. New since the internal test version v0.99.229:
 
-**Bekannt offen**
+- **`AI_HANDBOOK.md`:** the complete reference for AI assistants – every function, shortcut and workflow, the brief
+  and all MCP tools, with a German → English UI glossary. Give it to your own AI and ask. A test keeps it in step with
+  the program.
+- **English README;** the detailed German feature list is now `LIESMICH.md`. Code comments are in English.
+- **Review:** the **Mark** tool next to the Review button replaces F8/F9; a click on a picture on a board remembers
+  that reference picture for the part's note; **Send Review** puts a sentence for the chat on the clipboard (in
+  English when Mule runs in English); "Claude is working …" ends when Claude is done; Claude's arrows on the board
+  follow text and picture.
+- **Builds on** in the brief dialog is now a review round in the running chat.
+- **Way-of-working package v5.0** in the build brief: sketch first (the drawn shape binds, tolerance per line), sketch
+  overlay, the artist's words as a list, design left to the artist where not handed over.
+- Fixed: **Ctrl+L** (loop along the net) did nothing from the keyboard; the **eraser** pressure slider had no effect
+  (pressure now scales the eraser circle); the right-click menu showed Space+B for Maximize instead of Space+F; the
+  outliner Info column is translated ("missing", "tris"); curve surfaces lost their border line on saving; a mixed
+  edge selection was not fully highlighted.
+- If port 8770 is taken (a second Mule), the status line says that the AI connection is off.
+- Build brief hooks use the programs found on this computer (Git Bash outside its default folder; bash and
+  PowerShell 7 `pwsh` on Linux/macOS, untested there); the brief dialog names what is missing.
+- Removed: the old AI brief check through the Anthropic API (switched off since v0.99.78) and the `anthropic` package;
+  clarifying happens in the chat and over MCP.
+- The workflow bible in the public repository holds technique and tool entries; each user's AI extends its own copy.
+- Guides: report problems as GitHub issues; scenes are `.mule` files.
 
-- Keine eingebaute Funktion „Problem melden“; Python für Whisper muss man selbst installieren.
-- Linux nur aus dem Quellcode, kaum getestet; macOS ungetestet; Programm nicht signiert.
-- Szenenformat kann sich bis zur Beta noch ändern.
+## v0.99.229 (2026-11-14) – internal test version
+
+- **Set up transcription:** Mule sets up Whisper for review transcripts itself (Review menu, or the question at the
+  first review); needs a Python 3.10–3.13 from python.org once, about 2–4 GB of downloads.
+- Official name **Mule Create** in the window title, manual, guides and release.
+- Guides in German (`ANLEITUNG.md`) and English (`GUIDE.md`), this changelog, source package.
+- Third-party licenses complete, including Mesa/LLVM (`opengl32sw.dll`).
+
+**What Mule Create can do in this version**
+
+- **Sketching in space:** lines on planes, drawing surfaces and imported meshes (OBJ, USD), Free mode without a plane,
+  straight lines and shapes by holding still, smooth drawing, painting.
+- **Surfaces from lines:** curve nets with shared points, loft, extrude, fill surfaces, symmetry and array.
+- **Edit mode:** move, rotate, scale with the gizmo, snapping, point onto point, world / local / camera space.
+- **Notes and note boards:** notes on parts of the drawing; boards with pictures, videos, handwriting, arrows and
+  captions; screenshots as hero cameras.
+- **Sketch Brief:** export as a folder with pictures, notes, a clarification list and working rules for the AI.
+- **AI connection over MCP** (local, port 8770) for Claude Code, Codex and other MCP clients: read the scene, render
+  views, dictate notes, insert pictures, export the brief.
+- **Review mode:** talk your feedback while walking through the scene, mark places, local transcript with Whisper;
+  the AI turns it into draft notes you listen to and accept.
+- **Export:** the scene as USD for Houdini, Blender and Maya; curves as USD or JSON.
+- **Shots and timing** (prototype): cameras, timeline, flipbook layers.
+- Interface and manual (F1) in German and English.
+
+**Known open points**
+
+- No built-in "Report a problem" yet; Python for Whisper has to be installed by the user.
+- Linux from source only and hardly tested; macOS untested; the program is not signed.
+- The scene format can still change until the beta.

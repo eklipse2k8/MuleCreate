@@ -106,6 +106,8 @@ the environment variable `SM_WHISPER_PYTHON`.
 - Internally, package, settings, scene format and MCP server are still called “Sketch Machine”.
 - Large scenes can get slow while drawing.
 - Videos on the note board play without sound.
+- The MCP server has no password: it only listens on this computer (127.0.0.1), but any program running on this
+  computer could read the open scene and write notes while Mule is open.
 
 ## Reporting problems
 

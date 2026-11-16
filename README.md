@@ -2,6 +2,11 @@
 
 **Sketch in 3D space with lines – and hand the sketch to an AI that builds it.**
 
+![Mule Create: modes, tools, viewport, outliner and status line](docs/handbook/01_overview.png)
+
+**[Download for Windows](https://github.com/felixbfx/MuleCreate/releases)** · **[Introduction in pictures](docs/INTRODUCTION.md)** (18 pictures, two
+minutes) · Questions about Mule: give [`AI_HANDBOOK.md`](AI_HANDBOOK.md) to your AI and ask it.
+
 Mule Create (short: Mule) is a standalone program for technical sketching in 3D. You draw lines on planes that you
 place in space, like tracing paper. Lines can become surfaces, lofts and curve nets. You attach notes, reference
 pictures, videos and spoken feedback to the parts of the drawing. Then you export a **Sketch Brief**: a folder with
@@ -9,7 +14,7 @@ pictures, notes, a USD file of the scene and working rules, from which an AI (fo
 rebuilds the object in Houdini or Blender. While Mule is open, the AI can also look at the scene directly through a
 local MCP server.
 
-**Status: Alpha 1.** Expect bugs. The Windows package is tested; Linux runs from source and is hardly tested;
+**Status: Alpha.** Expect bugs. The Windows package is tested; Linux runs from source and is hardly tested;
 macOS is not tested. Scene files may change between alpha versions.
 
 ## What you can do
@@ -27,7 +32,8 @@ macOS is not tested. Scene files may change between alpha versions.
 
 ## Install and start
 
-**Windows (recommended):** download `Mule_Windows.zip` from the releases, unzip it into a folder of its own and start
+**Windows (recommended):** download `Mule_Windows.zip` from the [releases](https://github.com/felixbfx/MuleCreate/releases) (the newest one is at the
+top), unzip it into a folder of its own and start
 `Mule\Mule.exe`. No Python needed. The program is not signed yet: on the first start Windows SmartScreen warns –
 click "More info", then "Run anyway".
 

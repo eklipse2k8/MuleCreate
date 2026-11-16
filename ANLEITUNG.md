@@ -103,6 +103,8 @@ oder über die Umgebungsvariable `SM_WHISPER_PYTHON`.
 - Intern heißen Paket, Einstellungen, Szenenformat und MCP-Server noch „Sketch Machine“.
 - Große Szenen können beim Zeichnen langsam werden.
 - Videos im Notizbrett spielen stumm.
+- Der MCP-Server hat kein Passwort: Er lauscht nur auf diesem Rechner (127.0.0.1), aber jedes Programm auf diesem
+  Rechner könnte die offene Szene lesen und Notizen schreiben, solange Mule läuft.
 
 ## Probleme melden
 

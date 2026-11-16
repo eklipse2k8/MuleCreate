@@ -12,7 +12,8 @@ Please open an **Issue** on GitHub:
 - **Workflow with an AI:** what worked well or badly when handing a Sketch Brief to an AI.
   This is just as valuable as a bug report.
 
-For anything that does not fit an issue, write to **mulecreate@gmail.com**.
+Questions, ideas to discuss, and things you made with Mule: **Discussions** on GitHub.
+For anything that does not fit there, write to **mulecreate@gmail.com**.
 
 ## Code contributions: not accepted at the moment
 
@@ -36,6 +37,6 @@ are not covered by the license: please do not use them for modified versions.
 ## Deutsch (kurz)
 
 Rückmeldungen, Fehlerberichte und Ideen bitte als **Issue** auf GitHub, gern mit Szene oder Screenshot.
-Alles andere an **mulecreate@gmail.com**.
+Fragen und Ideen zum Besprechen gern unter **Discussions**, alles andere an **mulecreate@gmail.com**.
 Code-Beiträge (Pull Requests) werden während der Alpha **nicht angenommen**. Mule steht unter der
 GPL 3.0; Name „Mule Create“ und Logo sind davon ausgenommen.

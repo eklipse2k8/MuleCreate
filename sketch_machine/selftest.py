@@ -71,7 +71,7 @@ def run(window, app, out):
 
     def manual():
         from .manual import ManualWindow
-        result["_manual"] = ManualWindow()  # hold on to it: otherwise Python deletes the window immediately
+        result["_manual"] = ManualWindow(window)  # with its parent, as in the program: Qt deletes it with the window
         return result["_manual"].tabs.count()
 
     def scene_file():

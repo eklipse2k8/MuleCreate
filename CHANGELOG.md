@@ -1,6 +1,6 @@
 # Changelog
 
-## Mule Create Alpha 1 – v0.99.254 (2026-11-16)
+## Mule Create Alpha 1 – v0.99.255 (2026-11-16)
 
 Erste öffentliche Fassung (Open Source, GPL-3.0). Neu gegenüber v0.99.229:
 

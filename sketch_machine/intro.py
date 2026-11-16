@@ -60,10 +60,10 @@ class IntroWindow(QWidget):
         self.count.setObjectName("count")
         self.prev = QPushButton("←")
         self.next = QPushButton("→")
-        self.prev.clicked.connect(lambda: self.show_picture(self.k - 1))
-        self.next.clicked.connect(lambda: self.show_picture(self.k + 1))
+        self.prev.clicked.connect(self.previous_picture)  # bound methods, no lambda holding self: no cycle
+        self.next.clicked.connect(self.next_picture)
         ask = QPushButton(tr("Mit der eigenen KI fragen (AI_HANDBOOK.md)"))
-        ask.clicked.connect(lambda: show_ai_handbook(self))
+        ask.clicked.connect(self._ask_ai)
         bar.addWidget(self.title, 1)
         bar.addWidget(ask)
         bar.addSpacing(12)
@@ -85,6 +85,15 @@ class IntroWindow(QWidget):
             self.next.setEnabled(False)
         else:
             self.show_picture(0)
+
+    def next_picture(self):
+        self.show_picture(self.k + 1)
+
+    def previous_picture(self):
+        self.show_picture(self.k - 1)
+
+    def _ask_ai(self):
+        show_ai_handbook(self)
 
     def show_picture(self, k):
         if not self.items:

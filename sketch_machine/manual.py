@@ -309,15 +309,14 @@ class ManualWindow(QWidget):
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         # first thing in the manual: the introduction in pictures and the way to the AI handbook
-        from . import intro
         top = QHBoxLayout()
         top.setContentsMargins(10, 8, 10, 4)
         self.intro_button = QPushButton(tr("▶  Einführung in Bildern"))
         self.intro_button.setStyleSheet(f"QPushButton {{ background: {ui.ACCENT}; color: {ui.BG}; font-weight: 600; "
                                         f"border: 0; border-radius: 5px; padding: 7px 16px; }}")
-        self.intro_button.clicked.connect(lambda: intro.show_intro(self.parent() or self))
+        self.intro_button.clicked.connect(self._open_intro)  # bound methods, no lambda holding self: no cycle
         self.ai_button = QPushButton(tr("Mit der eigenen KI fragen (AI_HANDBOOK.md)"))
-        self.ai_button.clicked.connect(lambda: intro.show_ai_handbook(self))
+        self.ai_button.clicked.connect(self._open_ai_handbook)
         top.addWidget(self.intro_button)
         top.addWidget(self.ai_button)
         top.addStretch(1)
@@ -330,6 +329,14 @@ class ManualWindow(QWidget):
             page.setHtml(f"<body>{html}</body>")
             self.tabs.addTab(page, title.replace("&", "&&"))  # & would otherwise be swallowed as a shortcut marker
         lay.addWidget(self.tabs)
+
+    def _open_intro(self):
+        from . import intro
+        intro.show_intro(self.parent() or self)
+
+    def _open_ai_handbook(self):
+        from . import intro
+        intro.show_ai_handbook(self)
 
     def open_at(self, title):
         """Show and jump to tab title (e.g. that of the current mode)."""

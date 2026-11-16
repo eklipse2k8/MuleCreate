@@ -2,9 +2,13 @@
 
 **Sketch in 3D space with lines – and hand the sketch to an AI that builds it.**
 
+### [⬇ Download Mule for Windows](https://github.com/felixbfx/MuleCreate/releases/latest/download/Mule_Windows.zip)
+
+The newest version in one click: unzip, start `Mule\Mule.exe` – no installation, no Python. [All versions, source code, Linux](https://github.com/felixbfx/MuleCreate/releases)
+
 ![Mule Create: modes, tools, viewport, outliner and status line](docs/handbook/01_overview.png)
 
-**[Download for Windows](https://github.com/felixbfx/MuleCreate/releases)** · **[Introduction in pictures](docs/INTRODUCTION.md)** (18 pictures, two
+**[All releases](https://github.com/felixbfx/MuleCreate/releases)** · **[Introduction in pictures](docs/INTRODUCTION.md)** (18 pictures, two
 minutes) · **[Example scene](https://github.com/felixbfx/MuleCreate/releases/download/v0.99.255/Example_Alpaca_Monowheel.zip)** · Questions about Mule: give [`AI_HANDBOOK.md`](AI_HANDBOOK.md) to your AI and ask it.
 
 Mule Create (short: Mule) is a standalone program for technical sketching in 3D. You draw lines on planes that you
@@ -42,9 +46,8 @@ Free to use, also commercially, under [CC BY 4.0](https://creativecommons.org/li
 
 ## Install and start
 
-**Windows (recommended):** download `Mule_Windows.zip` from the [releases](https://github.com/felixbfx/MuleCreate/releases) (the newest one is at the
-top), unzip it into a folder of its own and start
-`Mule\Mule.exe`. No Python needed. The program is not signed yet: on the first start Windows SmartScreen warns –
+**Windows (recommended):** **[download `Mule_Windows.zip`](https://github.com/felixbfx/MuleCreate/releases/latest/download/Mule_Windows.zip)** (always the newest version; older ones are under
+[releases](https://github.com/felixbfx/MuleCreate/releases)), unzip it into a folder of its own and start `Mule\Mule.exe`. No Python needed. The program is not signed yet: on the first start Windows SmartScreen warns –
 click "More info", then "Run anyway".
 
 **From source (Windows):**

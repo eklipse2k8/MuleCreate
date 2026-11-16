@@ -134,7 +134,9 @@ def publish(tag, files):
             sys.exit("--public only in the public checkout (after packaging/public_sync.py), not in the private repo.")
         changes = this_release_changes(os.path.join(WORK, "quelle", "CHANGELOG.md"))
         for attempt in range(3):  # GitHub occasionally answers uploads with a 502
-            done = subprocess.run(["gh", "release", "create", tag, *files, "--verify-tag", "--prerelease",
+            # a regular release marked latest (2026-11-17): the README's one-click link
+            # .../releases/latest/download/Mule_Windows.zip always gets the newest – "Alpha" is in the name
+            done = subprocess.run(["gh", "release", "create", tag, *files, "--verify-tag", "--latest",
                                    "--title", f"Mule Create {PUBLIC} ({tag})",
                                    "--notes", PUBLIC_NOTES.format(name=PUBLIC, changes=changes)], cwd=ROOT)
             if done.returncode == 0:

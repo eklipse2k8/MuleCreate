@@ -8,7 +8,8 @@ This is an early public alpha. There will be bugs – please report them (see be
 
 ## Install and start
 
-**Windows (recommended):** unzip `Mule_Windows.zip` into a folder of its own and start `Mule\Mule.exe`.
+**Windows (recommended):** **[download `Mule_Windows.zip`](https://github.com/felixbfx/MuleCreate/releases/latest/download/Mule_Windows.zip)** (always the newest version; all versions:
+[releases](https://github.com/felixbfx/MuleCreate/releases)), unzip it into a folder of its own and start `Mule\Mule.exe`.
 No Python and no installation needed.
 
 **Windows warning on first start:** the program is not signed yet, so Windows SmartScreen shows

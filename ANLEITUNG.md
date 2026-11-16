@@ -15,7 +15,7 @@ Kein Python, keine Installation nötig. Windows SmartScreen warnt, weil das Prog
 **Linux / aus dem Quellcode:** `Mule_Quellcode.zip` entpacken, dann
 - Linux: `./start.sh` (richtet beim ersten Start mit [uv](https://docs.astral.sh/uv/) ein eigenes Python 3.14
   im Ordner ein, braucht dafür einmal Internet),
-- Windows: `start.bat`, oder von Hand `py -3.14 -m venv .venv`, `.venv\Scripts\pip install -r requirements.txt`,
+- Windows: `start.bat` (der erste Start richtet alles selbst ein, braucht Python 3.14 und einmal Internet), oder von Hand `py -3.14 -m venv .venv`, `.venv\Scripts\pip install -r requirements.txt`,
   `.venv\Scripts\python -m sketch_machine`.
 
 Unter Linux ist Mule bisher kaum getestet.

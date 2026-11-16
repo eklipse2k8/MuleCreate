@@ -17,7 +17,7 @@ py -3.14 -m venv .venv
 .venv\Scripts\python -m sketch_machine
 ```
 
-oder Doppelklick auf `start.bat`. Nach einem Update mit neuen Paketen (v0.84.2: scipy) einmal
+oder Doppelklick auf `start.bat` (richtet beim ersten Start `.venv` selbst ein und installiert fehlende Pakete nach). Von Hand nach einem Update mit neuen Paketen einmal
 `.venv\Scripts\pip install -r requirements.txt` ausführen.
 
 ## Start (Linux)

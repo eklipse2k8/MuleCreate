@@ -39,7 +39,8 @@ py -3.14 -m venv .venv
 .venv\Scripts\python -m sketch_machine
 ```
 
-or double-click `start.bat`.
+or double-click `start.bat`: on the first start it sets up `.venv` itself (needs Python 3.14 from python.org
+and internet once; keep the folder on a short path such as `C:\Mule`, Windows limits path length).
 
 **From source (Linux):** `./start.sh`. On the first start it sets up its own Python 3.14 inside the project folder
 with [uv](https://docs.astral.sh/uv/) (internet needed once; the system Python is not touched). If Qt reports

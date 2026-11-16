@@ -1,12 +1,14 @@
 # Changelog
 
-## Mule Create Alpha 1 – v0.99.251 (2026-11-16)
+## Mule Create Alpha 1 – v0.99.252 (2026-11-16)
 
 Erste öffentliche Fassung (Open Source, GPL-3.0). Neu gegenüber v0.99.229:
 
 - **`AI_HANDBOOK.md`:** vollständige Dokumentation für KI-Assistenten – alle Funktionen, Kürzel, Abläufe, der Brief
   und alle MCP-Werkzeuge, mit Glossar Deutsch → Englisch. Fragen zu Mule einfach der eigenen KI mit dieser Datei
   stellen. Ein Test hält sie mit dem Programm im Gleichstand.
+- **`start.bat`** richtet beim ersten Start unter Windows die Umgebung `.venv` selbst ein (vorher: Fehlermeldung
+  „pythonw.exe nicht gefunden“ in einer frischen Kopie) und installiert fehlende Pakete nach.
 - **Einführung in Bildern:** `docs/INTRODUCTION.md` (auf GitHub durchklicken) und `docs/introduction.html` (Diashow) –
   18 Bilder aus dem echten Programm zu den wichtigsten Funktionen, erzeugt mit `packaging/handbook_images.py`; ganz
   oben im Handbuch verlinkt, ihr Text steht für die KI im Handbuch. Abschnitt „Start here“: Stift/Pinsel,

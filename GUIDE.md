@@ -18,7 +18,7 @@ No Python and no installation needed.
 **Linux / from source:** unzip `Mule_Quellcode.zip`, then
 - Linux: `./start.sh` (on first start it sets up its own Python 3.14 inside the folder with
   [uv](https://docs.astral.sh/uv/); this needs internet once),
-- Windows: `start.bat`, or by hand `py -3.14 -m venv .venv`, `.venv\Scripts\pip install -r requirements.txt`,
+- Windows: `start.bat` (the first start sets everything up itself, needs Python 3.14 and internet once), or by hand `py -3.14 -m venv .venv`, `.venv\Scripts\pip install -r requirements.txt`,
   `.venv\Scripts\python -m sketch_machine`.
 
 Linux has hardly been tested so far.

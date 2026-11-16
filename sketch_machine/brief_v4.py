@@ -155,8 +155,8 @@ def install(folder, scene_name):
     through here, but as feedback into the running run (review_round.py)."""
     work = work_dir(folder)
     if running(folder):
-        return [], (f"Im Arbeitsordner {work} läuft schon ein Lauf – Regeln, Rollen und Hooks wurden nicht "
-                    "überschrieben, nur Inhalt (brief.md, project.md, Bilder) ist neu.")
+        return [], (f"A run is already active in the work folder {work} - rules, roles and hooks were not "
+                    "overwritten, only content (brief.md, project.md, images) is new.")
     return _write_package(folder, scene_name, work, fresh_conf=True), None
 
 

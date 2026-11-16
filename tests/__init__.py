@@ -1,1 +1,1 @@
-"""Automatische Tests für Sketch Machine – Lauf: python tests/run.py (siehe dort)."""
+"""Automatic tests for Sketch Machine – run: python tests/run.py (see there)."""

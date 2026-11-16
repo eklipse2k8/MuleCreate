@@ -406,7 +406,7 @@ class Recorder(QObject):
                 if "/sketch_machine/" in name and not name.endswith("recorder.py"):
                     parts.append(f"{name.rsplit('/', 1)[-1][:-3]}.{frame.f_code.co_name}:{frame.f_lineno}")
                 frame = frame.f_back
-            self._hang_where = " < ".join(parts) or "außerhalb von Mule (Qt, Grafiktreiber)"
+            self._hang_where = " < ".join(parts) or "outside Mule (Qt, graphics driver)"
 
     def _shot(self):
         self._busy = True

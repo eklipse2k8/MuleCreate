@@ -1,6 +1,6 @@
-"""Videos im Notizbrett: Bild mit Wiedergabe – Pfeile wie bei Bildern, Datei neben der Szene, im Brief nur auf Nachfrage.
+"""Videos on the note board: picture with playback – arrows as with pictures, file next to the scene, in the brief only on request.
 
-tests/assets/clip.mp4: 3 s, 320 x 180, Farbe läuft von Blau nach Rot."""
+tests/assets/clip.mp4: 3 s, 320 x 180, colour runs from blue to red."""
 import json
 import os
 import shutil
@@ -21,7 +21,7 @@ CLIP = os.path.join(ROOT, "tests", "assets", "clip.mp4")
 
 def _board(h: H):
     h.new_scene()
-    note = Note("Bewegung", np.array([0.0, 0.0, 0.0]))
+    note = Note("Motion", np.array([0.0, 0.0, 0.0]))
     h.sc.notes.append(note)
     h.v.set_notes_mode(True)
     h.v.ws.active_note = note.id
@@ -59,18 +59,18 @@ def _click(h: H, board, item, local):
     h.pump(0.02)
 
 
-def test_video_hineinziehen_wird_bild_mit_vorschau(h: H):
+def test_dropping_a_video_becomes_a_picture_with_preview(h: H):
     note, board = _board(h)
     item = _drop(h, board)
     assert isinstance(item, ImageItem) and 2500 < item.duration < 3500, item and item.duration
-    assert item.pixmap().width() == 320, "Vorschau in Originalgröße (kleiner als FRAME_MAX)"
+    assert item.pixmap().width() == 320, "preview at original size (smaller than FRAME_MAX)"
     entry = note.board["items"][0]
     assert entry["kind"] == "image" and entry["video"]["path"] == os.path.abspath(CLIP)
-    assert h.sc.asset_bytes(entry["file"]), "Vorschau liegt in der Szene wie ein Bild"
+    assert h.sc.asset_bytes(entry["file"]), "preview lies in the scene like a picture"
 
 
-def test_abspielen_anhalten_und_scrubben(h: H):
-    """Knopf spielt, die Elementgröße bleibt; die Zeitleiste springt an die Stelle und hält dort an."""
+def test_play_pause_and_scrub(h: H):
+    """Button plays, the element size stays; the timeline jumps to the spot and stops there."""
     _, board = _board(h)
     item = _drop(h, board)
     size = item.pixmap().size()
@@ -78,7 +78,7 @@ def test_abspielen_anhalten_und_scrubben(h: H):
     center, _ = item._button()
     _click(h, board, item, center)
     assert item.playing and board.video_item is item
-    assert _wait(h, lambda: item.position > 800), f"läuft nicht: {item.position}"
+    assert _wait(h, lambda: item.position > 800), f"not running: {item.position}"
     assert item.pixmap().size() == size and item.sceneBoundingRect() == rect
     _click(h, board, item, center)
     assert not item.playing
@@ -86,28 +86,28 @@ def test_abspielen_anhalten_und_scrubben(h: H):
     _click(h, board, item, QPointF(bar.left() + bar.width() * 0.95, bar.center().y()))
     assert not item.playing and _wait(h, lambda: _rgb(item)[0] > 180 and _rgb(item)[2] < 90), _rgb(item)
     _click(h, board, item, QPointF(bar.left() + 3, bar.center().y()))
-    assert _wait(h, lambda: _rgb(item)[2] > 180 and _rgb(item)[0] < 90), f"zurück am Anfang blau: {_rgb(item)}"
+    assert _wait(h, lambda: _rgb(item)[2] > 180 and _rgb(item)[0] < 90), f"back at the start, blue: {_rgb(item)}"
 
 
-def test_nur_ein_video_laeuft(h: H):
+def test_only_one_video_plays(h: H):
     _, board = _board(h)
     a = _drop(h, board)
-    other = os.path.join(tempfile.mkdtemp(), "zweites.mp4")
+    other = os.path.join(tempfile.mkdtemp(), "second.mp4")
     shutil.copy(CLIP, other)
     b = board.add_video(other, QPointF(500, 0))
     board.toggle_video(a)
     board.toggle_video(b)
     assert board.video_item is b and b.playing and not a.playing
     p = b.position
-    assert _wait(h, lambda: b.position > p), "zweite Datei läuft im neuen Player"
+    assert _wait(h, lambda: b.position > p), "second file runs in the new player"
 
 
-def test_pfeil_und_unterschrift_wie_beim_bild(h: H):
-    """Pfeil von einem Text aufs Video: Verbindung im Brief, auch nach dem Abspielen an derselben Stelle."""
+def test_arrow_and_caption_as_with_the_picture(h: H):
+    """Arrow from a text onto the video: connection in the brief, at the same spot even after playing."""
     from sketch_machine import board_links
     note, board = _board(h)
     item = _drop(h, board)
-    text = TextBlock("Das Scharnier")
+    text = TextBlock("The hinge")
     text.setPos(-420, 40)
     board.gscene.addItem(text)
     r = item.sceneBoundingRect()
@@ -121,15 +121,15 @@ def test_pfeil_und_unterschrift_wie_beim_bild(h: H):
     board.toggle_video(item)
     assert abs(board_links.stroke_link(board.gscene, arrow)["uv"][0] - 0.25) < 0.01
     from sketch_machine.note_board import set_image_captions
-    set_image_captions(h.v, {item.file: "nur wie die Klappe öffnet"})
-    assert item.caption and brief.image_captions(h.sc)[item.file].startswith("nur wie")
+    set_image_captions(h.v, {item.file: "only how the flap opens"})
+    assert item.caption and brief.image_captions(h.sc)[item.file].startswith("only how")
 
 
-def test_beim_speichern_neben_die_szene_kopiert_und_relativ(h: H):
+def test_saving_copies_next_to_the_scene_and_relative(h: H):
     note, board = _board(h)
     item = _drop(h, board)
     folder = tempfile.mkdtemp()
-    path = os.path.join(folder, "szene.sketch.json")
+    path = os.path.join(folder, "scene.sketch.json")
     board.commit()
     h.sc.save(path)
     copy = os.path.join(folder, "videos", "clip.mp4")
@@ -137,31 +137,31 @@ def test_beim_speichern_neben_die_szene_kopiert_und_relativ(h: H):
     with open(path, encoding="utf-8") as f:
         saved = json.load(f)
     assert saved["notes"][0]["board"]["items"][0]["video"]["path"] == "videos/clip.mp4"
-    assert note.board["items"][0]["video"]["path"] == copy, "im Speicher absolut"
+    assert note.board["items"][0]["video"]["path"] == copy, "absolute in memory"
     h.sc.dirty = False
     board.commit()
-    assert item.path == copy, "offenes Brett übernimmt die Kopie"
-    assert not h.sc.dirty, "kein Undo-Schritt durchs Speichern"
-    h.sc.save(path)  # zweites Speichern: keine zweite Kopie
+    assert item.path == copy, "open board takes over the copy"
+    assert not h.sc.dirty, "no undo step from saving"
+    h.sc.save(path)  # second save: no second copy
     assert os.listdir(os.path.join(folder, "videos")) == ["clip.mp4"]
-    moved = tempfile.mkdtemp()  # Ordner samt Szene weitergegeben
+    moved = tempfile.mkdtemp()  # folder passed on together with the scene
     shutil.copytree(folder, os.path.join(moved, "x"))
-    scene, _ = Scene.load(os.path.join(moved, "x", "szene.sketch.json"))
+    scene, _ = Scene.load(os.path.join(moved, "x", "scene.sketch.json"))
     assert os.path.isfile(scene.notes[0].board["items"][0]["video"]["path"])
 
 
-def test_gleicher_name_andere_datei_ueberschreibt_nichts(h: H):
+def test_same_name_different_file_overwrites_nothing(h: H):
     from sketch_machine import video
     folder = tempfile.mkdtemp()
     other = os.path.join(tempfile.mkdtemp(), "clip.mp4")
     with open(other, "wb") as f:
-        f.write(b"anders")
+        f.write(b"different")
     first, second = video.adopt(CLIP, folder), video.adopt(other, folder)
     assert first != second and os.path.getsize(first) == os.path.getsize(CLIP) and second.endswith("clip_2.mp4")
     assert video.adopt(first, folder) == first and video.adopt(CLIP, folder) == first
 
 
-def test_brief_kopiert_video_und_fragt_nach_statt_zu_zerlegen(h: H):
+def test_brief_copies_video_and_asks_instead_of_splitting(h: H):
     note, board = _board(h)
     _drop(h, board)
     board.commit()
@@ -169,14 +169,14 @@ def test_brief_kopiert_video_und_fragt_nach_statt_zu_zerlegen(h: H):
     files = brief.export(h.sc, h.v, target, "video")
     assert "videos/clip.mp4" in files and "videos/clip_overview.jpg" in files
     frames = [f for f in os.listdir(os.path.join(target, "videos")) if f.endswith((".jpg", ".png"))]
-    assert frames == ["clip_overview.jpg"], f"Video nicht zerlegt: {frames}"
+    assert frames == ["clip_overview.jpg"], f"video not split: {frames}"
     from PySide6.QtGui import QImage
     sheet = QImage(os.path.join(target, "videos", "clip_overview.jpg"))
-    assert sheet.width() == 320 * 3 and sheet.height() == 180 * 2, "sechs Bilder im Raster"
+    assert sheet.width() == 320 * 3 and sheet.height() == 180 * 2, "six pictures in a grid"
     with open(os.path.join(target, "brief.md"), encoding="utf-8") as f:
         md = f.read()
     with open(os.path.join(target, "project.md"), encoding="utf-8") as f:
-        project = f.read()   # Bau-Brief (Paket v4): erste Runde im Projekt-Dokument
+        project = f.read()   # build brief (package v4): first round in the project document
     assert "**Videos** (1)" in project and "Do not cut a video into frames" in project
     assert "`videos/clip.mp4`" in md and "`videos/clip_overview.jpg`" in md
     with open(os.path.join(target, "brief.json"), encoding="utf-8") as f:
@@ -185,17 +185,17 @@ def test_brief_kopiert_video_und_fragt_nach_statt_zu_zerlegen(h: H):
     assert entry["poster"] in json.load(open(os.path.join(target, "brief.json"), encoding="utf-8"))["notes"][0]["uncaptioned"]
 
 
-def test_ohne_video_kein_videoschritt_im_brief(h: H):
+def test_without_video_no_video_step_in_the_brief(h: H):
     _board(h)
     target = os.path.join(tempfile.mkdtemp(), "brief")
-    brief.export(h.sc, h.v, target, "ohne")
+    brief.export(h.sc, h.v, target, "without")
     with open(os.path.join(target, "project.md"), encoding="utf-8") as f:
         assert "**Videos**" not in f.read()
     assert not os.path.exists(os.path.join(target, "videos"))
 
 
-def test_fehlende_datei_bleibt_vorschau_und_steht_im_brief(h: H):
-    gone = os.path.join(tempfile.mkdtemp(), "weg.mp4")
+def test_missing_file_stays_a_preview_and_is_named_in_the_brief(h: H):
+    gone = os.path.join(tempfile.mkdtemp(), "gone.mp4")
     shutil.copy(CLIP, gone)
     note, board = _board(h)
     item = _drop(h, board, gone)
@@ -203,25 +203,25 @@ def test_fehlende_datei_bleibt_vorschau_und_steht_im_brief(h: H):
     os.remove(gone)
     assert item.absent and item.control_at(item._button()[0]) is None
     folder = tempfile.mkdtemp()
-    h.sc.save(os.path.join(folder, "s.sketch.json"))  # Speichern scheitert nicht
+    h.sc.save(os.path.join(folder, "s.sketch.json"))  # saving does not fail
     target = os.path.join(tempfile.mkdtemp(), "brief")
-    brief.export(h.sc, h.v, target, "fehlt")
+    brief.export(h.sc, h.v, target, "missing")
     with open(os.path.join(target, "brief.md"), encoding="utf-8") as f:
         md = f.read()
     assert "video file(s) not found" in md and "MISSING" in md
-    assert not os.path.exists(os.path.join(target, "videos", "weg.mp4"))
+    assert not os.path.exists(os.path.join(target, "videos", "gone.mp4"))
 
 
-def test_kaputte_datei_gibt_meldung_statt_text(h: H):
-    bad = os.path.join(tempfile.mkdtemp(), "kaputt.mp4")
+def test_broken_file_gives_a_message_instead_of_text(h: H):
+    bad = os.path.join(tempfile.mkdtemp(), "broken.mp4")
     with open(bad, "wb") as f:
-        f.write(b"kein video" * 100)
+        f.write(b"no video" * 100)
     note, board = _board(h)
     assert _drop(h, board, bad) is None
-    assert not note.board.get("items"), "kein Element und kein Text mit dem Pfad"
+    assert not note.board.get("items"), "no element and no text with the path"
 
 
-def test_standbild_und_loeschen_waehrend_es_laeuft(h: H):
+def test_still_frame_and_delete_while_playing(h: H):
     note, board = _board(h)
     item = _drop(h, board)
     board.seek_video(item, 0.9)
@@ -232,25 +232,25 @@ def test_standbild_und_loeschen_waehrend_es_laeuft(h: H):
     board.toggle_video(item)
     board.gscene.removeItem(item)
     board.commit()
-    assert _wait(h, lambda: board.video_item is None), "Wiedergabe endet mit dem Element"
+    assert _wait(h, lambda: board.video_item is None), "playback ends with the element"
     board.undo()
     h.pump(0.05)
-    assert any(isinstance(i, VideoItem) for i in board.gscene.items()), "Undo holt das Video zurück"
+    assert any(isinstance(i, VideoItem) for i in board.gscene.items()), "undo brings the video back"
 
 
-def test_brett_wechseln_haelt_das_video_an(h: H):
+def test_switching_board_stops_the_video(h: H):
     note, board = _board(h)
     item = _drop(h, board)
     board.toggle_video(item)
     board.commit()
-    second = Note("Andere", np.array([1.0, 0.0, 0.0]))
+    second = Note("Other", np.array([1.0, 0.0, 0.0]))
     h.sc.notes.append(second)
     board.open(h.v, second.id)
     h.pump(0.1)
     assert board.video_item is None and board._player is None
 
 
-def test_mcp_liest_nur_gewuenschte_bilder(h: H):
+def test_mcp_reads_only_requested_frames(h: H):
     from sketch_machine import mcp_server
     from tests.test_mcp_server import _call
     note, board = _board(h)
@@ -260,6 +260,6 @@ def test_mcp_liest_nur_gewuenschte_bilder(h: H):
     try:
         out = _call(h, server, "video_frames", video="videos/clip.mp4", times=[0.2, 2.8])["content"]
         assert [c["type"] for c in out].count("image") == 2 and "at 2.80 s" in " ".join(c.get("text", "") for c in out)
-        assert _call(h, server, "video_frames", video="fehlt.mp4")["isError"]
+        assert _call(h, server, "video_frames", video="missing.mp4")["isError"]
     finally:
         server.stop()

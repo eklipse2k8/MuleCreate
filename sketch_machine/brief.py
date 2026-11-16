@@ -326,7 +326,7 @@ def analyse(scene, locate=True, focus=None):
             if found:
                 entry["members"] = found  # note octopus: further parts the anchor also means (by hand, possibly incomplete)
             anchors.append(entry)
-        out.append({"id": nid[n.id], "uid": n.uid, "title": n.title or "(ohne Überschrift)", "position": _r(n.pos),
+        out.append({"id": nid[n.id], "uid": n.uid, "title": n.title or "(untitled)", "position": _r(n.pos),
                     "size": n.size,
                     "anchors": anchors, **_board_info(n.board, f"notes/board_{nid[n.id]}.png", scene),
                     **({"review_draft": True} if n.review else {})})

@@ -1,4 +1,4 @@
-"""Ein-/Ausblenden: Ebenen-Schalter (Linien, Farblinien, Malerei), H / Shift+H / Alt+H, Auge im Outliner."""
+"""Hide/show: layer switches (lines, colour lines, paint), H / Shift+H / Alt+H, eye in the outliner."""
 import numpy as np
 
 from tests.harness import H, Qt, line
@@ -15,24 +15,24 @@ def _scene(h: H):
     return sc
 
 
-def test_schalter_blenden_aus_und_sperren(h: H):
+def test_switches_hide_and_lock(h: H):
     sc = _scene(h)
     base = h.grab()
     for name in ("lines", "brush"):
         h.w.layer_checks[name].setChecked(False)
         h.pump(0.02)
-        assert h.w.layers_action.isChecked(), "Knopf leuchtet, solange etwas fehlt"
-        assert h.diff(base, h.grab()) > 0, f"{name}: Bild ändert sich"
+        assert h.w.layers_action.isChecked(), "button lights up as long as something is missing"
+        assert h.diff(base, h.grab()) > 0, f"{name}: image changes"
         h.w.layer_checks[name].setChecked(True)
         h.pump(0.02)
     assert h.diff(base, h.grab()) == 0 and not h.w.layers_action.isChecked()
     h.w.layer_checks["lines"].setChecked(False)
     h.edit_mode("edge")
-    assert h.v._curve_under(h.scrf(sc.curves[1].points[5]), 8)[0] is None, "ausgeblendete Linie nicht wählbar"
+    assert h.v._curve_under(h.scrf(sc.curves[1].points[5]), 8)[0] is None, "hidden line not selectable"
     h.w.layer_checks["lines"].setChecked(True)
 
 
-def test_radierer_laesst_ausgeblendete_linien(h: H):
+def test_eraser_leaves_hidden_lines(h: H):
     sc = _scene(h)
     h.w.layer_checks["lines"].setChecked(False)
     before = [c.points.copy() for c in h.curves() if c.style != "brush"]
@@ -41,11 +41,11 @@ def test_radierer_laesst_ausgeblendete_linien(h: H):
     h.w.layer_checks["lines"].setChecked(True)
     after = [c.points for c in h.curves() if c.style != "brush"]
     assert len(after) == len(before) and all(np.array_equal(a, b) for a, b in zip(after, before)), \
-        "ausgeblendete Linien bleiben"
+        "hidden lines stay"
     h.v.set_draw_tool("pen")
 
 
-def test_h_shift_h_alt_h_und_auge(h: H):
+def test_h_shift_h_alt_h_and_eye(h: H):
     sc = _scene(h)
     h.edit_mode("edge")
     st = sc.strokes[0]
@@ -62,6 +62,6 @@ def test_h_shift_h_alt_h_und_auge(h: H):
     o = h.w.outliner
     o.rebuild()
     o._on_clicked(o.strokes_root.child(0), EYE)
-    assert h.sc.strokes[0].hidden, "Auge blendet aus"
+    assert h.sc.strokes[0].hidden, "eye hides"
     o._on_clicked(o.strokes_root.child(0), EYE)
     assert not h.sc.strokes[0].hidden

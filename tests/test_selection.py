@@ -1,4 +1,4 @@
-"""Auswahl: Klick, Doppelklick, Auswahl im Undo, Geschwindigkeit des Doppelklicks auf Flächen."""
+"""Selection: click, double click, selection in undo, speed of the double click on surfaces."""
 import time
 
 import numpy as np
@@ -22,7 +22,7 @@ def _edge_ids(h: H):
     return sorted(r[2] for r in h.v.edge_selection)
 
 
-def test_klick_und_shift_klick(h: H):
+def test_click_and_shift_click(h: H):
     lines = _three_lines(h)
     h.edit_mode("edge")
     h.click(h.scr(lines[0].points[5]))
@@ -33,7 +33,7 @@ def test_klick_und_shift_klick(h: H):
     assert _edge_ids(h) == [lines[1].id]
 
 
-def test_auswahl_im_undo(h: H):
+def test_selection_in_undo(h: H):
     lines = _three_lines(h)
     h.edit_mode("edge")
     h.click(h.scr(lines[0].points[5]))
@@ -41,12 +41,12 @@ def test_auswahl_im_undo(h: H):
     h.click(h.scr(lines[1].points[5]))
     b = _edge_ids(h)
     h.key(Qt.Key_Z, Qt.ControlModifier)
-    assert _edge_ids(h) == a, "Undo stellt die vorige Auswahl her"
+    assert _edge_ids(h) == a, "undo restores the previous selection"
     h.key(Qt.Key_Z, Qt.ControlModifier | Qt.ShiftModifier)
-    assert _edge_ids(h) == b, "Redo stellt die Auswahl wieder her"
+    assert _edge_ids(h) == b, "redo restores the selection"
 
 
-def test_undo_einer_operation_bringt_auswahl_zurueck(h: H):
+def test_undo_of_an_operation_brings_the_selection_back(h: H):
     lines = _three_lines(h)
     h.edit_mode("edge")
     h.click(h.scr(lines[1].points[5]))
@@ -57,7 +57,7 @@ def test_undo_einer_operation_bringt_auswahl_zurueck(h: H):
     assert len(h.curves()) == 3 and _edge_ids(h) == before
 
 
-def test_auswahlklicks_verdraengen_keine_arbeit(h: H):
+def test_selection_clicks_do_not_push_out_work(h: H):
     import sketch_machine.scene as S
     lines = _three_lines(h)
     h.edit_mode("edge")
@@ -74,9 +74,9 @@ def test_auswahlklicks_verdraengen_keine_arbeit(h: H):
     assert geo == 5, geo
 
 
-def test_doppelklick_auf_flaeche_schnell(h: H):
-    """Kurvenfläche mit dichtem Nebel, dazu viel gebundener Nebel einer Nachbarfläche im Umfeld (wie im
-    Skyscraper, wo ein Doppelklick 59 s dauerte)."""
+def test_double_click_on_surface_fast(h: H):
+    """Curve surface with a dense net, plus a lot of bound net of a neighboring surface nearby (as in the
+    Skyscraper, where a double click took 59 s)."""
     sc = h.sc
     sc.new_stroke()
     t = np.linspace(0, 1, 16)
@@ -100,7 +100,7 @@ def test_doppelklick_auf_flaeche_schnell(h: H):
     t0 = time.perf_counter()
     h.v.select_loop(h.scrf(centre), "replace")
     dt = time.perf_counter() - t0
-    assert dt < 1.0, f"Doppelklick dauerte {dt:.2f} s"
+    assert dt < 1.0, f"double click took {dt:.2f} s"
     return f"{dt * 1000:.0f} ms"
 
 
@@ -108,9 +108,9 @@ def _ids(h: H):
     return {r[2] for r in h.v.edge_selection} | {r[2] for r in h.v.seg_selection}
 
 
-def test_l_shift_l_nur_ueber_punkt_ids(h: H):
-    """L: im eigenen Objekt verbunden; Shift+L: auch über Objektgrenzen; nie über die Lage – ein Ende, das auf dem
-    Bildschirm nur knapp neben einer Linie liegt (Lücke), zählt nicht (vorher: 12 px Bildschirmnähe)."""
+def test_l_shift_l_only_via_point_ids(h: H):
+    """L: connected within its own object; Shift+L: also across object boundaries; never via position – an end that lies
+    only just next to a line on the screen (gap) does not count (before: 12 px screen proximity)."""
     sc = h.sc
     a = sc.new_stroke()
     square = [([0, 0, 0], [1, 0, 0]), ([1, 0, 0], [1, 0, 1]), ([1, 0, 1], [0, 0, 1]), ([0, 0, 1], [0, 0, 0])]
@@ -120,46 +120,46 @@ def test_l_shift_l_nur_ueber_punkt_ids(h: H):
         own.append(sc.curves[-1])
     h.v._changed()
     b = sc.new_stroke()
-    sc.add_curve(line([1, 0, 1], [2, 0, 2], 8), None)  # anderes Objekt, an der Ecke verbunden
+    sc.add_curve(line([1, 0, 1], [2, 0, 2], 8), None)  # other object, connected at the corner
     other = sc.curves[-1]
     sc.new_stroke()
-    sc.add_curve(line([1.01, 0, 0], [2, 0, -1], 8), None)  # Lücke: nur in der Nähe
+    sc.add_curve(line([1.01, 0, 0], [2, 0, -1], 8), None)  # gap: only nearby
     near = sc.curves[-1]
     h.v._changed()
-    h.camera([1, 0, 0.5], 12, [0.0, 1.0, 0.02])  # weit weg: die Lücke ist auf dem Bildschirm < 12 px
+    h.camera([1, 0, 0.5], 12, [0.0, 1.0, 0.02])  # far away: the gap is < 12 px on the screen
     h.edit_mode("edge")
     start = ("line", a.id, own[0].id)
     h.v.edge_selection = [start]
     h.v.select_linked("object")
-    assert _ids(h) == {c.id for c in own}, "L: genau das eigene, verbundene Quadrat"
+    assert _ids(h) == {c.id for c in own}, "L: exactly its own connected square"
     h.v.edge_selection = [start]
     h.v.select_linked("all")
-    assert _ids(h) == {c.id for c in own} | {other.id}, "Shift+L: dazu die verbundene Linie im anderen Objekt"
+    assert _ids(h) == {c.id for c in own} | {other.id}, "Shift+L: plus the connected line in the other object"
     assert near.id not in _ids(h) and b.id != near.id
 
 
-def test_strg_l_loop_nach_netzfluss(h: H):
-    """Strg+L: an Kreuzungen (4 Kanten) geradeaus weiter, an T-Stößen (3) Ende."""
+def test_ctrl_l_loop_by_net_flow(h: H):
+    """Ctrl+L: straight on at crossings (4 edges), ends at T-junctions (3)."""
     sc = h.sc
     sc.new_stroke()
     row = []
     for x in range(3):
         sc.add_curve(line([x, 0, 1], [x + 1, 0, 1], 8), None)
         row.append(sc.curves[-1])
-    for x in range(4):  # senkrechte Linien in zwei Stücken, an der Reihe gestoßen
+    for x in range(4):  # vertical lines in two pieces, butting against the row
         for z0, z1 in ((0, 1), (1, 2)):
             sc.add_curve(line([x, 0, z0], [x, 0, z1], 8), None)
     h.v._changed()
     h.edit_mode("edge")
     st = sc.strokes[-1]
     h.v.edge_selection = [("line", st.id, row[1].id)]
-    h.key(Qt.Key_L, Qt.ControlModifier)  # über die Tastatur wie der Künstler (lief früher ins Leere)
-    assert _ids(h) == {c.id for c in row}, f"Loop: die ganze Reihe, nichts Senkrechtes ({len(_ids(h))} Linien)"
+    h.key(Qt.Key_L, Qt.ControlModifier)  # via the keyboard like the artist (used to do nothing)
+    assert _ids(h) == {c.id for c in row}, f"loop: the whole row, nothing vertical ({len(_ids(h))} lines)"
 
 
-def test_doppelklick_loop_ohne_bildschirm_naehe(h: H):
-    """Doppelklick-Loop nimmt nur echt verbundene Linien: ein offenes Quadrat mit einer Lücke, die auf dem
-    Bildschirm kleiner als 12 px ist, ergibt keinen Loop über die Lücke."""
+def test_double_click_loop_without_screen_proximity(h: H):
+    """Double-click loop takes only truly connected lines: an open square with a gap that is smaller than
+    12 px on the screen gives no loop across the gap."""
     sc = h.sc
     st = sc.new_stroke()
     pts = [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1], [0, 0, 0.01]]
@@ -170,12 +170,12 @@ def test_doppelklick_loop_ohne_bildschirm_naehe(h: H):
     h.edit_mode("edge")
     first = sc.curves[-4]
     h.v.select_loop(h.scrf(first.points[4]), "replace")
-    assert _ids(h) == {first.id}, f"kein Loop über die Lücke ({len(_ids(h))} Linien gewählt)"
+    assert _ids(h) == {first.id}, f"no loop across the gap ({len(_ids(h))} lines selected)"
 
 
-def test_doppelklick_flaeche_markiert_stroke_objekt_im_outliner(h: H):
-    """Edit, Kantenmodus: Doppelklick auf eine Fläche wählt ihre Linien – der Outliner markiert dazu das Stroke-Objekt,
-    zu dem sie gehören."""
+def test_double_click_surface_marks_stroke_object_in_outliner(h: H):
+    """Edit, edge mode: double click on a surface selects its lines – the outliner then marks the stroke object
+    they belong to."""
     from sketch_machine.outliner import ID_ROLE
     from PySide6.QtWidgets import QTreeWidgetItemIterator
     sc = h.sc
@@ -190,11 +190,11 @@ def test_doppelklick_flaeche_markiert_stroke_objekt_im_outliner(h: H):
     h.edit_mode("edge")
     h.dclick(h.scr([1.0, 0.0, 1.0]))
     h.pump(0.05)
-    assert {r[2] for r in h.v.edge_selection} == {c.id for c in st.curves}, "die vier Randlinien gewählt"
+    assert {r[2] for r in h.v.edge_selection} == {c.id for c in st.curves}, "the four border lines selected"
     marked = set()
     it = QTreeWidgetItemIterator(h.w.outliner)
     while it.value() is not None:
         if it.value().isSelected():
             marked.add(it.value().data(0, ID_ROLE))
         it += 1
-    assert st.id in marked, "Outliner markiert das Stroke-Objekt der gewählten Linien"
+    assert st.id in marked, "outliner marks the stroke object of the selected lines"

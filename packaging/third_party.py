@@ -15,20 +15,20 @@ QT = ("LGPL-3.0-only", ["LGPL-3.0.txt", "GPL-3.0.txt"])
 OVERRIDES = {"pyside6": QT, "pyside6-essentials": QT, "pyside6-addons": QT, "pyside6-pdf": QT, "shiboken6": QT}
 SKIP_FILES = ("licenseref-qt-commercial",)
 
-QT_NOTE = """Qt for Python (PySide6, shiboken6) und die Qt-Bibliotheken stehen unter der GNU LGPL 3.0
-(licenses/LGPL-3.0.txt, sie baut auf licenses/GPL-3.0.txt auf). Mule verwendet sie unverändert.
-Die Bibliotheken liegen als einzelne Dateien im Ordner _internal/PySide6 und können gegen eine eigene,
-kompatible Fassung ausgetauscht werden. Quellcode: https://download.qt.io/official_releases/QtForPython/
-und https://download.qt.io/official_releases/qt/ (Version {version})."""
-FFMPEG_NOTE = """FFmpeg (avcodec, avformat, avutil, swresample, swscale) kommt mit Qt Multimedia und steht unter der
-GNU LGPL 2.1 oder später (licenses/LGPL-2.1.txt), gebaut ohne GPL- und Nonfree-Teile. Mule verwendet es
-unverändert zum Abspielen von Videos im Notizbrett. Die Dateien liegen in _internal/PySide6 und können
-ausgetauscht werden. Quellcode: https://ffmpeg.org/download.html; welche FFmpeg-Fassung Qt {version}
-verwendet, steht in der Qt-Dokumentation zu Qt Multimedia."""
+QT_NOTE = """Qt for Python (PySide6, shiboken6) and the Qt libraries are licensed under the GNU LGPL 3.0
+(licenses/LGPL-3.0.txt, which builds on licenses/GPL-3.0.txt). Mule uses them unmodified.
+The libraries are individual files in the folder _internal/PySide6 and can be replaced by your own
+compatible version. Source code: https://download.qt.io/official_releases/QtForPython/
+and https://download.qt.io/official_releases/qt/ (version {version})."""
+FFMPEG_NOTE = """FFmpeg (avcodec, avformat, avutil, swresample, swscale) comes with Qt Multimedia and is licensed under the
+GNU LGPL 2.1 or later (licenses/LGPL-2.1.txt), built without GPL and nonfree parts. Mule uses it
+unmodified to play videos on the note board. The files are in _internal/PySide6 and can be
+replaced. Source code: https://ffmpeg.org/download.html; which FFmpeg version Qt {version}
+uses is stated in the Qt documentation for Qt Multimedia."""
 
-MESA_NOTE = """`opengl32sw.dll` ist Mesa (llvmpipe, Software-Rendering), von Qt vorgebaut mitgeliefert und mit LLVM gebaut.
-Mesa steht unter der MIT-Lizenz (licenses/Mesa-MIT.txt), LLVM unter der University of Illinois/NCSA-Lizenz
-(licenses/LLVM-NCSA.txt). Quellcode: https://archive.mesa3d.org/ und https://releases.llvm.org/."""
+MESA_NOTE = """`opengl32sw.dll` is Mesa (llvmpipe, software rendering), shipped prebuilt by Qt and built with LLVM.
+Mesa is licensed under the MIT license (licenses/Mesa-MIT.txt), LLVM under the University of Illinois/NCSA license
+(licenses/LLVM-NCSA.txt). Source code: https://archive.mesa3d.org/ and https://releases.llvm.org/."""
 
 
 def _top(name):
@@ -106,35 +106,35 @@ def write(bundle, modules, binaries=()):
             shutil.copy2(src, dst)
         rows.append((name, version, _license(d), f"licenses/{folder}/"))
     if missing:
-        raise SystemExit(f"Kein Lizenztext gefunden für: {', '.join(missing)} – in packaging/third_party.py eintragen.")
+        raise SystemExit(f"No license text found for: {', '.join(missing)} – add it in packaging/third_party.py.")
     python_license = os.path.join(sys.base_prefix, "LICENSE.txt")
     if not os.path.isfile(python_license):
         python_license = os.path.join(sys.base_prefix, "LICENSE")
     shutil.copy2(python_license, os.path.join(target, "Python-LICENSE.txt"))
-    rows.append(("Python", sys.version.split()[0], "PSF-2.0 (mit OpenSSL, libffi, zlib u. a.)", "licenses/Python-LICENSE.txt"))
+    rows.append(("Python", sys.version.split()[0], "PSF-2.0 (with OpenSSL, libffi, zlib etc.)", "licenses/Python-LICENSE.txt"))
     has_ffmpeg = any("avcodec" in _top_file(b) for b in binaries)
     if has_ffmpeg:
-        rows.append(("FFmpeg (über Qt Multimedia)", "Qt-Build", "LGPL-2.1-or-later", "licenses/LGPL-2.1.txt"))
+        rows.append(("FFmpeg (via Qt Multimedia)", "Qt build", "LGPL-2.1-or-later", "licenses/LGPL-2.1.txt"))
     has_mesa = any(_top_file(b) == "opengl32sw.dll" for b in binaries)
     if has_mesa:  # Qt software OpenGL (Mesa llvmpipe, built with LLVM), steps in when no driver supports OpenGL
-        rows.append(("Mesa llvmpipe (opengl32sw.dll, über Qt)", "Qt-Build", "MIT; darin LLVM: NCSA",
+        rows.append(("Mesa llvmpipe (opengl32sw.dll, via Qt)", "Qt build", "MIT; including LLVM: NCSA",
                      "licenses/Mesa-MIT.txt, licenses/LLVM-NCSA.txt"))
 
-    lines = ["# Fremde Software in Mule Create", "",
+    lines = ["# Third-party software in Mule Create", "",
              "Mule Create – Copyright (C) 2026 Felix Barthel.", "",
-             "Mule Create selbst ist freie Software unter der GNU General Public License v3.0 (`LICENSE.txt`).",
-             "Der Name „Mule Create“ und das Mule-Logo sind davon ausgenommen und vorbehalten.", "",
-             "Mule Create enthält die folgenden Programme und Bibliotheken anderer Leute. Ihre Lizenztexte liegen im",
-             "Ordner `licenses/` neben dieser Datei. Diese Liste entsteht beim Bauen automatisch.", "",
-             "| Paket | Version | Lizenz | Lizenztext |", "|---|---|---|---|"]
+             "Mule Create itself is free software under the GNU General Public License v3.0 (`LICENSE.txt`).",
+             "The name \"Mule Create\" and the Mule logo are excluded from that and reserved.", "",
+             "Mule Create contains the following programs and libraries by other people. Their license texts are in the",
+             "folder `licenses/` next to this file. This list is generated automatically when building.", "",
+             "| Package | Version | License | License text |", "|---|---|---|---|"]
     lines += [f"| {n} | {v} | {lic} | {where} |" for n, v, lic, where in rows]
-    lines += ["", "## Qt", "", QT_NOTE.format(version=qt_version or "siehe oben")]
+    lines += ["", "## Qt", "", QT_NOTE.format(version=qt_version or "see above")]
     if has_ffmpeg:
         lines += ["", "## FFmpeg", "", FFMPEG_NOTE.format(version=qt_version or "")]
     if has_mesa:
         lines += ["", "## Mesa", "", MESA_NOTE]
     lines += ["", "## Microsoft Visual C++ Runtime", "",
-              "`VCRUNTIME140.dll`, `MSVCP140.dll` und verwandte Dateien sind von Microsoft zur Weitergabe mit Programmen freigegeben.", ""]
+              "`VCRUNTIME140.dll`, `MSVCP140.dll` and related files are released by Microsoft for redistribution with programs.", ""]
     with open(os.path.join(bundle, "THIRD_PARTY_NOTICES.md"), "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines))
     return rows

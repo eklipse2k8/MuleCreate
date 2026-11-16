@@ -19,20 +19,19 @@ DOCS = ("ANLEITUNG.md", "GUIDE.md", "AI_HANDBOOK.md", "CHANGELOG.md")  # sit in 
 # Source package: everything tracked except measurement scripts (they point to private scenes) and the studio guide
 SOURCE_EXCLUDE = ("bench", "packaging/LIESMICH_Studio.txt")
 PUBLIC = sys.argv[sys.argv.index("--public") + 1] if "--public" in sys.argv else None
+if PUBLIC:  # the public repository is English only: no German guide, an English file name for the source
+    DOCS = tuple(d for d in DOCS if d != "ANLEITUNG.md")
+SOURCE_ZIP = "Mule_Source.zip" if PUBLIC else "Mule_Quellcode.zip"
 ALPHA = PUBLIC or (sys.argv[sys.argv.index("--alpha") + 1] if "--alpha" in sys.argv else None)
 PUBLIC_NOTES = """**Mule Create {name}** – sketch in 3D space with lines, add notes, pictures and spoken feedback, and export a Sketch Brief from which an AI (Claude Code, Codex, …) builds the object in Houdini or Blender. This is an alpha: expect bugs, and scene files may change between versions.
 
 **Downloads**
 - **Windows:** `Mule_Windows.zip` – unzip into a folder of its own and start `Mule.exe` in the `Mule` folder. No Python needed. The program is not signed yet: on the first start Windows SmartScreen warns – click "More info", then "Run anyway". The package passed its self-test in English and German.
-- **Source / Linux:** `Mule_Quellcode.zip` – run `./start.sh` (Linux) or `start.bat` (Windows). Linux is hardly tested.
-- **Guides:** `GUIDE.md` (English), `ANLEITUNG.md` (German), `CHANGELOG.md`.
+- **Source / Linux:** `Mule_Source.zip` – run `./start.sh` (Linux) or `start.bat` (Windows). Linux is hardly tested.
+- **Guides:** `GUIDE.md`, `CHANGELOG.md`; the introduction in pictures is in `docs/` and in the program (Help menu).
 - **`AI_HANDBOOK.md`:** the complete reference, written for AI assistants. Give it to your AI and ask your questions about Mule.
 
 Needs a graphics card with OpenGL 3.3. Bugs and ideas: please open an issue. Contact: mulecreate@gmail.com.
-
----
-
-**Deutsch:** Windows: `Mule_Windows.zip` entpacken und im Ordner `Mule` die `Mule.exe` starten (bei der SmartScreen-Warnung „Weitere Informationen“ → „Trotzdem ausführen“). Anleitung: `ANLEITUNG.md`. Fragen zu Mule beantwortet deine KI mit `AI_HANDBOOK.md`. Fehler und Ideen bitte als Issue.
 
 Mule Create is free software under the GNU GPL v3.0. The name "Mule Create" and the Mule logo are reserved.
 
@@ -49,13 +48,13 @@ def version():
     """Version tag of the current commit; aborts if the commit is not on GitHub."""
     tags = [t for t in git("tag", "--points-at", "HEAD").split() if t.startswith("v")]
     if not tags:
-        sys.exit("Der aktuelle Commit hat keinen Versions-Tag.")
+        sys.exit("The current commit has no version tag.")
     if not git("branch", "-r", "--contains", "HEAD"):
-        sys.exit("Der aktuelle Commit ist noch nicht gepusht.")
+        sys.exit("The current commit has not been pushed yet.")
     if not git("ls-remote", "--tags", "origin", tags[0]):
-        sys.exit(f"Der Tag {tags[0]} ist noch nicht gepusht.")
+        sys.exit(f"The tag {tags[0]} has not been pushed yet.")
     if subprocess.run(["gh", "release", "view", tags[0]], cwd=ROOT, capture_output=True).returncode == 0:
-        sys.exit(f"Das Release {tags[0]} gibt es schon.")
+        sys.exit(f"The release {tags[0]} already exists.")
     return tags[0]
 
 
@@ -88,8 +87,8 @@ def selftest(program):
         with open(result, encoding="utf-8") as fh:
             report = json.load(fh)
         if code != 0 or not report.get("ok"):
-            sys.exit(f"Selbsttest {lang} nicht bestanden (Exit {code}): {result}")
-        print(f"Selbsttest {lang}: {len(report['checks'])} ok", flush=True)
+            sys.exit(f"Self-test {lang} failed (exit {code}): {result}")
+        print(f"Self-test {lang}: {len(report['checks'])} ok", flush=True)
 
 
 def pack(program, tag):
@@ -105,7 +104,7 @@ def pack(program, tag):
     git("archive", "--format=tar.gz", "--prefix=Mule/", "-o", linux, "HEAD", *LINUX_FILES)
     if ALPHA:  # Source code instead of the Linux extract, plus guide and changelog as separate files
         os.remove(linux)
-        linux = os.path.join(out, "Mule_Quellcode.zip")
+        linux = os.path.join(out, SOURCE_ZIP)
         git("archive", "--format=zip", "--prefix=Mule/", "-o", linux, "HEAD", "--", ".",
             *(f":(exclude){p}" for p in SOURCE_EXCLUDE))
         docs = [os.path.join(out, name) for name in DOCS]
@@ -119,11 +118,18 @@ def pack(program, tag):
     return [windows, linux, readme]
 
 
+def this_release_changes(path):
+    """The newest section of CHANGELOG.md (the one at the top), without its heading."""
+    text = open(path, encoding="utf-8").read()
+    sections = text.split("\n## ")[1:]
+    return sections[0].split("\n", 1)[1].strip() if sections else ""
+
+
 def publish(tag, files):
     if PUBLIC:
         if os.path.exists(os.path.join(ROOT, "packaging", "LIESMICH_Studio.txt")):
             sys.exit("--public only in the public checkout (after packaging/public_sync.py), not in the private repo.")
-        changes = open(os.path.join(WORK, "quelle", "CHANGELOG.md"), encoding="utf-8").read().split("\n", 2)[2]
+        changes = this_release_changes(os.path.join(WORK, "quelle", "CHANGELOG.md"))
         for attempt in range(3):  # GitHub occasionally answers uploads with a 502
             done = subprocess.run(["gh", "release", "create", tag, *files, "--verify-tag", "--prerelease",
                                    "--title", f"Mule Create {PUBLIC} ({tag})",
@@ -131,19 +137,19 @@ def publish(tag, files):
             if done.returncode == 0:
                 return
             time.sleep(30)
-        sys.exit("Hochladen dreimal fehlgeschlagen; auf GitHub nach einem halben Release sehen.")
+        sys.exit("Upload failed three times; check GitHub for a half-created release.")
     if ALPHA:
         changes = open(os.path.join(WORK, "quelle", "CHANGELOG.md"), encoding="utf-8").read().split("\n", 2)[2]
-        notes = ("Entwurf, nur intern – nicht öffentlich. Windows: Mule_Windows.zip entpacken, Mule.exe starten "
-                 "(im Paket geprüft). Quellcode für Linux und zum Nachbauen: Mule_Quellcode.zip. "
-                 "Alles Weitere in ANLEITUNG.md (English: GUIDE.md); Fragen an die eigene KI: AI_HANDBOOK.md.\n\n"
+        notes = ("Draft, internal only – not public. Windows: unpack Mule_Windows.zip, start Mule.exe "
+                 "(tested in the package). Source code for Linux and for rebuilding: Mule_Quellcode.zip. "
+                 "Everything else is in GUIDE.md (German: ANLEITUNG.md); questions for your own AI: AI_HANDBOOK.md.\n\n"
                  + changes)
         done = subprocess.run(["gh", "release", "create", tag, *files, "--verify-tag", "--draft", "--latest=false",
                                "--title", f"Mule Create {ALPHA} ({tag})", "--notes", notes], cwd=ROOT)
         if done.returncode != 0:
-            sys.exit("Hochladen fehlgeschlagen; auf GitHub nach einem halben Entwurf sehen.")
+            sys.exit("Upload failed; check GitHub for a half-created draft.")
         return
-    notes = ("Testpaket, im Paket selbst geprüft (Windows). Linux: Quellcode mit start.sh, ungeprüft.\n\n"
+    notes = ("Test package, tested in the package itself (Windows). Linux: source code with start.sh, untested.\n\n"
              + git("log", "-1", "--format=%s"))
     for attempt in range(3):  # GitHub occasionally answers uploads with a 502
         done = subprocess.run(["gh", "release", "create", tag, *files, "--verify-tag", "--latest",
@@ -151,7 +157,7 @@ def publish(tag, files):
         if done.returncode == 0:
             return
         time.sleep(30)
-    sys.exit("Hochladen dreimal fehlgeschlagen; auf GitHub nach einem halben Entwurf sehen.")
+    sys.exit("Upload failed three times; check GitHub for a half-created draft.")
 
 
 if __name__ == "__main__":

@@ -337,7 +337,7 @@ def _epoch_key(fn):
         if (fast is not None and fast[0] == POINTS_EPOCH[0] and fast[1] == SURF_EPOCH[0] and fast[2] is rows
                 and fast[3] == len(rows) and fast[4] == SurfaceObject.display_res and fast[5] == SurfaceObject.auto_res):
             if SurfaceObject.VERIFY_KEY:
-                assert fast[6] == fn(self), f"gemerkter Schlüssel von „{self.name}“ gilt nicht mehr"
+                assert fast[6] == fn(self), f"remembered key of \"{self.name}\" is no longer valid"
             return fast[6]
         key = fn(self)
         d["_key_fast"] = (POINTS_EPOCH[0], SURF_EPOCH[0], rows, len(rows), SurfaceObject.display_res,
@@ -1709,13 +1709,13 @@ class Scene(SurfaceSyncMixin):
             objs = lists[at[0]]
             if at[1] < len(objs) and objs[at[1]].id == oid:
                 if self.VERIFY_INDEX:
-                    assert objs[at[1]] is self._object_scan(oid), f"Verzeichnis liefert für id {oid} ein anderes Objekt"
+                    assert objs[at[1]] is self._object_scan(oid), f"directory returns a different object for id {oid}"
                 return objs[at[1]]
         miss = self.__dict__.get("_object_miss")
         stamp = self._lists_stamp()
         if miss is not None and oid in miss[1] and self._stamp_same(miss[0], stamp):
             if self.VERIFY_INDEX:
-                assert self._object_scan(oid) is None, f"Verzeichnis kennt id {oid} nicht, es gibt sie aber"
+                assert self._object_scan(oid) is None, f"directory does not know id {oid}, but it exists"
             return None
         counters.C["suche_objekt"] += 1
         index = self._object_index = {}
@@ -1928,13 +1928,13 @@ class Scene(SurfaceSyncMixin):
             st, j = at
             if j < len(st.curves) and st.curves[j] is curve and self.object_by_id(st.id) is st:
                 if self.VERIFY_INDEX:
-                    assert st is self._owner_scan(curve), "Verzeichnis nennt ein anderes Objekt als die Suche"
+                    assert st is self._owner_scan(curve), "directory names a different object than the search"
                 return st
         miss = self.__dict__.get("_owner_miss")
         stamp = self._lists_stamp()
         if miss is not None and id(curve) in miss[1] and self._stamp_same(miss[0], stamp):
             if self.VERIFY_INDEX:
-                assert self._owner_scan(curve) is None, "Verzeichnis kennt die Linie nicht, sie gehört aber zu einem Objekt"
+                assert self._owner_scan(curve) is None, "directory does not know the line, but it belongs to an object"
             return None
         counters.C["suche_besitzer"] += 1
         index = self._owner_index = {}
@@ -2074,7 +2074,7 @@ class Scene(SurfaceSyncMixin):
         stamp = self._lists_stamp()
         if miss is not None and cid in miss[1] and self._stamp_same(miss[0], stamp):
             if self.VERIFY_INDEX:
-                assert not any(c.id == cid for s in self.strokes for c in s.curves),                     f"Verzeichnis kennt Linie {cid} nicht, es gibt sie aber"
+                assert not any(c.id == cid for s in self.strokes for c in s.curves),                     f"directory does not know line {cid}, but it exists"
             return None
         index = self._curve_index = {c.id: (i, j) for i, s in enumerate(self.strokes) for j, c in enumerate(s.curves)}
         counters.C["linien_index"] += len(index)
@@ -2480,8 +2480,8 @@ class Scene(SurfaceSyncMixin):
                 records[id(s)] = (s, None, None, memo[id(s)])
         self._twins = records
         if self.VERIFY_UNDO:
-            why = _diff(snap, self._shared_copy(state, {}), set(), "Szene")
-            assert why is None, f"Undo-Kopie mit geteilten Abbildern weicht von der vollen Kopie ab – {why}"
+            why = _diff(snap, self._shared_copy(state, {}), set(), "scene")
+            assert why is None, f"undo copy with shared images differs from the full copy - {why}"
         return snap
 
     # --- Undo copy only for what changed ---
@@ -2560,8 +2560,8 @@ class Scene(SurfaceSyncMixin):
             records[id(s)] = (s, None, None, t)
         self._twins = records
         if self.VERIFY_UNDO:
-            why = _diff(live, self._shared_copy(snap, {}), set(), "Szene")
-            assert why is None, f"Zurückgeholter Stand weicht vom Schnappschuss ab – {why}"
+            why = _diff(live, self._shared_copy(snap, {}), set(), "scene")
+            assert why is None, f"restored state differs from the snapshot - {why}"
         return live
 
     def _restore(self, snap, fresh=False):

@@ -184,8 +184,8 @@ Code: `sketch_machine/app.py` (`main`, `MainWindow`), `sketch_machine/startup.py
   next start of Mule, including the in-app manual. A message box says so in both languages.
 - Default language is **German**. The environment variable `MULE_LANG=en` (or `de`) overrides the setting for one
   run.
-- Not translated: internal names, the file format, and the artist's own notes. `README.md` and `GUIDE.md` are
-  English, `LIESMICH.md` and `ANLEITUNG.md` German.
+- Not translated: internal names, the file format, and the artist's own notes. All documentation in the
+  repository is English.
 - The AI talks to the artist in the UI language (brief and MCP texts follow it).
 
 Code: `sketch_machine/i18n.py`, `sketch_machine/i18n_en.py` (German UI string → English).
@@ -2446,13 +2446,12 @@ work folder; `.mcp.json` / `.codex/config.toml` are still written.
 ### What it is
 A fixed, versioned set of rules, roles and hooks in `sketch_machine/brief_package/` that every build brief carries.
 It turns one Claude Code session in the brief folder into a **conductor** (main chat) that never builds and
-starts fresh sub-agents for each role, guarded by hooks. The agent-facing files are English; `LIESMICH.md` is
-German for the artist/developer. The version is in `brief_v4.VERSION` (currently `v5.0`) and is written to
+starts fresh sub-agents for each role, guarded by hooks. The version is in `brief_v4.VERSION` (currently `v5.0`) and is written to
 `.claude/package_version` and the head of `project.md`.
 
 Copied into the brief: `rules.md`, `levels.md`, `conductor.md`, `roles/`, `CLAUDE.md` (with the project name),
 `.claude/agents/`, `.claude/hooks/` (without the template `gate.conf`; a fresh one is generated), `.claude/settings.json`
-(paths filled in) and the two tools into the work folder. **Not copied:** `STARTPROMPT.md`, `LIESMICH.md`,
+(paths filled in) and the two tools into the work folder. **Not copied:** `STARTPROMPT.md`,
 `hooks_spec.md`, `project_template.md`, `PACKAGE_CHANGES.md` (the latter is quoted into review rounds).
 
 ### Parts and what they do
@@ -2518,10 +2517,9 @@ Copied into the brief: `rules.md`, `levels.md`, `conductor.md`, `roles/`, `CLAUD
   applied by the hook to `gate.local.conf`: `level=scout|study|final`, `max_builders=1–12`, `max_weekly=1–100`,
   `pause=<reason>` or `pause=off`. Every other key is refused. Agents can never change settings themselves.
 - `project_template.md` – the template `project.md` follows (filled by `brief_v4.project_md`).
-- `STARTPROMPT.md` – German template of the start prompt (same content as the build-brief autoprompt).
+- `STARTPROMPT.md` – template of the start prompt (same content as the build-brief autoprompt).
 - `PACKAGE_CHANGES.md` – one section per package version with "Take over:" instructions for a running project;
   quoted in a review round that brings a newer package.
-- `LIESMICH.md` – German overview of the package and its known gaps for the artist/developer.
 
 ### Starting a build session correctly
 1. Mule must be running with the scene open (for the MCP tools).
@@ -3028,7 +3026,7 @@ Code: `sketch_machine/paths.py`, `sketch_machine/backup.py`, `sketch_machine/rev
   there is no workaround in Mule.
 - Unzip `Mule_Windows.zip` into a folder of its own and start `Mule\Mule.exe`; no installation, no Python needed.
 
-### Linux start problems (from LIESMICH/README and `start.sh`)
+### Linux start problems (from README and `start.sh`)
 - First start needs `uv` and internet once: `start.sh` creates its own Python 3.14 in `runtime/python` and `.venv`
   with the pinned `requirements.txt`. The system Python is neither used nor changed; no admin rights.
   Install uv without admin: `curl -LsSf https://astral.sh/uv/install.sh | sh`.
@@ -3046,9 +3044,9 @@ Code: `sketch_machine/paths.py`, `sketch_machine/backup.py`, `sketch_machine/rev
 ### Package self-test (diagnosis on a user's machine)
 - `Mule.exe --selftest result.json` runs, with throwaway settings and no dialogs, these checks and writes them to
   the JSON file (`"ok": true/false`, per-check info or traceback): `opengl` (viewport framebuffer), `usd` (USD import),
-  `bible` (bible writable), `brief` (export writes `brief.md`, `brief.json`, `scene.usd`), `manual`, `szene`
-  (save and reload), `video` (QtMultimedia present, H.264 decoding), `startanimation`, `aufnahme` (WebSocket for OBS,
-  recordings folder), `lizenzen` (license files next to `Mule.exe`). Exit code 0 = all passed.
+  `bible` (bible writable), `brief` (export writes `brief.md`, `brief.json`, `scene.usd`), `manual`, `scene`
+  (save and reload), `video` (QtMultimedia present, H.264 decoding), `start_animation`, `recording` (WebSocket for OBS,
+  recordings folder), `licenses` (license files next to `Mule.exe`). Exit code 0 = all passed.
   From source: `python -m sketch_machine --selftest result.json`.
   Code: `sketch_machine/selftest.py`
 
@@ -3157,7 +3155,7 @@ Code: `sketch_machine/video.py`
 ## Performance with large scenes
 
 - Known: drawing, dragging with the gizmo and undo get slower as the scene grows; the rework of the internals aims at
-  "cost depends on the size of the change, not of the scene" and is not finished (`tests/test_messlatte.py` lists
+  "cost depends on the size of the change, not of the scene" and is not finished (`tests/test_benchmark.py` lists
   which work counters still grow with scene size: point dragging, new lines, object dragging, undo snapshots).
 - Measured on a large reference scene: with **Light** on, a gizmo drag frame took about twice as long as without
   (shadow map). Turning Light off (Light icon) while editing heavy scenes is a reasonable first step
@@ -3225,9 +3223,7 @@ Tracked and public:
   program, not in the Linux package, included in the source zip.
 - `sketches/szene.sketch.json` – one sample scene.
 - `.github/` – issue templates and PR template (no active workflows).
-- Top-level files: `README.md` (English overview), `LIESMICH.md` (detailed German feature list), `AI_HANDBOOK.md`
-  (this file), `GUIDE.md` (English tester
-  guide), `ANLEITUNG.md` (German), `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`, `requirements.txt`,
+- Top-level files: `README.md` (overview), `AI_HANDBOOK.md` (this file), `GUIDE.md` (short guide), `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`, `requirements.txt`,
   `requirements-build.txt` (PyInstaller), `start.bat`, `start.sh`.
 
 Not in the repository (`.gitignore`, generated or local): `.venv/`, `runtime/`, `build/`, `dist/`, `tests/_out/`,
@@ -3367,7 +3363,7 @@ Review
 - Not translated: internal names, file format, the artist's notes. `i18n.artist_language()` tells the AI which
   language to talk in.
 - `manual.py` and `manual_en.py` are kept structurally identical: same tabs, same number of `<h2>` and `<tr>` per tab.
-- `tests/test_sprache.py` checks: every `tr()` literal has an English entry with matching placeholders; with
+- `tests/test_language.py` checks: every `tr()` literal has an English entry with matching placeholders; with
   `MULE_LANG=en` no visible widget text looks German; default stays German; manual tabs match; language menu has
   exactly one checked entry.
 - Adding a UI string: write it in German inside `tr()`, add the pair to `i18n_en.py`, run `tests/run.py sprache`.
@@ -3376,26 +3372,26 @@ Review
 
 - `python tests/run.py` – every `tests/test_*.py` in its own subprocess (own app window, off screen, real mouse and
   key events); throwaway settings, real settings untouched. Name filters: `tests/run.py loft undo`.
-- Three stages (`tests/LIESMICH.md`):
-  1. **Kern** (core): files with the line `STUFE = "kern"`; no window, tests receive `h = None`; seconds;
-     run after every change: `tests/run.py --kern`.
+- Three stages (`tests/README.md`):
+  1. **Core**: files with the line `LEVEL = "core"`; no window, tests receive `h = None`; seconds;
+     run after every change: `tests/run.py --core`.
   2. **Bedienung** (interaction): all other files; real window; minutes; run the affected area while working, all
      before a commit touching shared core.
   3. **Groß** (large): `tests/run.py --gross`; measurement runs on a large reference scene that is not part of the
      public repository, so this stage is not available outside the developer's machine.
-- Without flags stages 1 and 2 run, core first. Results: `OK`, `FEHLER` (failure), `ERWARTET` (known problem marked
-  `@expected_failure("reason")`), `BEHOBEN` (known problem now passes – remove the marker). Exit code 1 on any FEHLER.
+- Without flags stages 1 and 2 run, core first. Results: `OK`, `FAIL`, `EXPECTED` (known problem marked
+  `@expected_failure("reason")`), `FIXED` (known problem now passes – remove the marker). Exit code 1 on any FAIL.
   Stage 2 can give focus-related false alarms if someone uses the machine meanwhile; rerun singly.
 - `tests/harness.py` (`H`): drives the real app; redirects `QSettings` to a temp file before importing the app; turns
   on verify modes (`Renderer.VERIFY_STROKES`, `DisplayListMixin.VERIFY_LISTS`, `SurfaceSyncMixin.VERIFY_SYNC`,
   `Scene.VERIFY_UNDO`, `Scene.VERIFY_INDEX`, `SurfaceObject.VERIFY_KEY`) unless `SM_FAST=1`; Qt callback errors fail
-  the test. Read the scene through harness questions (`h.welt`, `h.objekt_von`, `h.verbunden`, `h.flaechen_von`,
-  `h.form`), not internal fields.
+  the test. Read the scene through harness questions (`h.world`, `h.object_of`, `h.connected`, `h.surfaces_of`,
+  `h.shape`), not internal fields.
 - Pixel comparison: first run creates per-machine reference images in `tests/_baseline/`; after intended display
   changes `tests/run.py render --update-baseline`. Run images go to `tests/_out/`. Compare images only with fixed
   texture seed (`surface.seed = 1.0`).
-- Rules: check speed with work counters (`counters.py`, `tests/test_messlatte.py`), never with the clock; never
-  compare nets by point count alone. `test_messlatte.BEKANNT` lists counters that still grow with scene size; a new
+- Rules: check speed with work counters (`counters.py`, `tests/test_benchmark.py`), never with the clock; never
+  compare nets by point count alone. `test_benchmark.BEKANNT` lists counters that still grow with scene size; a new
   growing counter or a no-longer-growing listed one fails the test.
 
 ## Packaging and release
@@ -3407,8 +3403,8 @@ Review
   actually bundled; aborts the build if a license text is missing (add it to `OVERRIDES`). Notes for Qt (LGPL-3.0),
   FFmpeg, Mesa/LLVM. `packaging/licenses/` holds GPL-3.0, LGPL-2.1, LGPL-3.0, LLVM-NCSA, Mesa-MIT texts.
 - `packaging/release.py` – builds from the tagged, pushed commit via `git archive` (never the working folder), runs
-  the self-test in German and English outside the project, packs `Mule_Windows.zip` (with ANLEITUNG, GUIDE,
-  CHANGELOG, CONTRIBUTING) and the Linux source tar or, with `--alpha "Alpha 1"`, `Mule_Quellcode.zip` plus docs,
+  the self-test in German and English outside the project, packs `Mule_Windows.zip` (with GUIDE, AI_HANDBOOK,
+  CHANGELOG, CONTRIBUTING, docs/) and the Linux source tar or, with `--alpha`/`--public`, a source zip plus docs,
   then `gh release create` (alpha: draft, not latest). With `--public "Alpha 2"`, run in the public checkout: same
   files, published as a pre-release with the public release text. Refuses without a version tag `v…`,
   unpushed commit/tag, or an existing release.
@@ -3426,7 +3422,7 @@ Review
   `<private>/.venv/Scripts/python.exe packaging/release.py --public "Alpha N"`.
 - `packaging/mule.iss` – Inno Setup installer script (`ISCC.exe packaging\mule.iss` → `dist\Mule_Setup.exe`).
   `packaging/mule.ico`, `packaging/mule_main.py` (PyInstaller entry).
-- `packaging/github-build.yml` (build + self-test on Windows/Linux/macOS, manual) and `github-kern-tests.yml` (core
+- `packaging/github-build.yml` (build + self-test on Windows/Linux/macOS, manual) and `github-core-tests.yml` (core
   tests on push, Windows/Linux, `QT_QPA_PLATFORM=offscreen`) are **drafts, not active**: they must be moved to
   `.github/workflows/` to run; neither has ever run.
 - Versioning: commits are titled `v0.99.NNN: …`; releases are tagged `v0.99.NNN`; the brief package has its own

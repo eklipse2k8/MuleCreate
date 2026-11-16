@@ -1,0 +1,39 @@
+# DRAFT – not active yet. Automatic run of the core tests (level 1, no windows) on GitHub at every push,
+# on Windows and Linux.
+#
+# Switching it on (artist):
+#   1. Copy this file to .github/workflows/kern-tests.yml and commit it.
+#   2. The push needs a GitHub token with the "workflow" scope (Claude's token does not have it:
+#      gh auth refresh -s workflow), or create the file in the browser on GitHub.
+#   Cost: private repo = Actions minutes from the free quota (Windows counts double); a run takes about
+#   two minutes, almost all of it installing the packages.
+#
+# The tests with windows (level 2) deliberately do not run here: they need a graphics card or a
+# software renderer and have not been tried there yet.
+name: Core tests
+on:
+  push:
+    branches: [main, etappe-2]
+  workflow_dispatch:
+jobs:
+  kern:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Libraries for Qt without a display (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
+      - run: pip install -r requirements.txt
+      - name: Core tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PYTHONIOENCODING: utf-8
+        run: python tests/run.py --core

@@ -55,7 +55,7 @@ def run(window, app, out):
     def usd():
         tree = window.viewport.import_mesh(_usd_file(folder))
         parts = [tree] if hasattr(tree, "geo") else [o for o in window.viewport.scene.descendants(tree) if hasattr(o, "geo")]
-        assert parts, "keine Meshes aus der USD-Datei"
+        assert parts, "no meshes from the USD file"
         return len(parts)
 
     def bible():
@@ -104,7 +104,7 @@ def run(window, app, out):
 
     def licenses():
         if not getattr(sys, "frozen", False):
-            return "nur im Paket"
+            return "only in the package"
         bundle = os.path.dirname(sys.executable)
         with open(os.path.join(bundle, "THIRD_PARTY_NOTICES.md"), encoding="utf-8") as fh:
             text = fh.read()
@@ -117,8 +117,8 @@ def run(window, app, out):
         return len(os.listdir(os.path.join(bundle, "licenses")))
 
     for name, fn in (("opengl", opengl), ("usd", usd), ("bible", bible), ("brief", export), ("manual", manual),
-                     ("szene", scene_file), ("video", videos), ("startanimation", animation), ("aufnahme", recording),
-                     ("lizenzen", licenses)):
+                     ("scene", scene_file), ("video", videos), ("start_animation", animation), ("recording", recording),
+                     ("licenses", licenses)):
         check(name, fn)
     keep = result.pop("_manual", None)  # noqa: F841 – stays alive until the end
     result["ok"] = all(c["ok"] for c in result["checks"].values())

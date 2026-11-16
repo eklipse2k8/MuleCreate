@@ -87,15 +87,14 @@ Review transcripts use [faster-whisper](https://github.com/SYSTRAN/faster-whispe
   this file to your AI (Claude, ChatGPT, Codex, …) and ask it. It covers every function, shortcut, workflow, the
   brief format and the MCP tools.
 - **F1** in the program – the manual (English and German).
-- `GUIDE.md` – short guide for testers (German: `ANLEITUNG.md`).
-- `LIESMICH.md` – the detailed feature list in German.
+- `GUIDE.md` – short guide: install, main workflows, reporting problems.
 - `CHANGELOG.md` – changes per release.
 - `bible/sketch_machine_bible.md` – lessons from AI build sessions, kept by the AIs that worked with Mule.
 
 ## For developers
 
-Tests: `python tests/run.py --kern` (fast, no window), `python tests/run.py` (core plus the real program in
-off-screen windows with real mouse events). Details in `tests/LIESMICH.md`. The code layout is described in
+Tests: `python tests/run.py --core` (fast, no window), `python tests/run.py` (core plus the real program in
+off-screen windows with real mouse events). Details in `tests/README.md`. The code layout is described in
 `AI_HANDBOOK.md`, chapter "Source code". Some test names and the German UI strings (which are also the keys of the
 English translation in `sketch_machine/i18n_en.py`) stay German.
 

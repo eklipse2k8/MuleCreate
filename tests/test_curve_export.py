@@ -1,4 +1,4 @@
-"""Nur Kurven exportieren (curve_export): USD und JSON, Dicke je Punkt, Malerei, Ausgeblendetes, doppelte Striche."""
+"""Exporting curves only (curve_export): USD and JSON, thickness per point, paint, hidden items, duplicate strokes."""
 import json
 import os
 import tempfile
@@ -10,8 +10,8 @@ from sketch_machine import curve_export, usd_export
 
 
 def _szene(h: H):
-    """Zwei Linien und ein Malstrich mit Dickenverlauf, ein exakt doppelter Malstrich, ein ausgeblendetes Objekt, eine
-    Fläche (die im Kurven-Export fehlen muss)."""
+    """Two lines and a paint stroke with a thickness profile, an exactly duplicated paint stroke, a hidden object, a
+    surface (which must be missing from the curve export)."""
     h.load("tests/scenes/teetasse.sketch.json")
     sc = h.sc
     def add(*args):
@@ -34,7 +34,7 @@ def _alle(data):
     return [c for o in data["objects"] for c in o["curves"]]
 
 
-def test_json_lesbar_mit_dicke_und_ohne_doppelte(h: H):
+def test_json_readable_with_thickness_and_without_duplicates(h: H):
     st, keep, paint, gone = _szene(h)
     folder = tempfile.mkdtemp()
     path = os.path.join(folder, "k.curves.json")
@@ -47,10 +47,10 @@ def test_json_lesbar_mit_dicke_und_ohne_doppelte(h: H):
     gemalt = [c for c in curves if c["paint"]]
     assert len(gemalt) == 1 and gemalt[0]["order"] == 7 and gemalt[0]["color"] == "#ff8000"
     assert np.allclose(gemalt[0]["widths"], [.1, .2, .3, .2, .1]) and np.allclose(gemalt[0]["points"], paint.points)
-    assert not any(np.allclose(c["points"][0], gone.points[0]) for c in curves), "Ausgeblendetes nur auf Wunsch"
+    assert not any(np.allclose(c["points"][0], gone.points[0]) for c in curves), "hidden items only on request"
 
 
-def test_kennungen_wie_im_brief_ausgeblendetes_zaehlt_weiter(h: H):
+def test_ids_as_in_brief_hidden_items_keep_counting(h: H):
     from sketch_machine import brief
     _, _, _, gone = _szene(h)
     _, maps = brief.index(h.sc)
@@ -61,10 +61,10 @@ def test_kennungen_wie_im_brief_ausgeblendetes_zaehlt_weiter(h: H):
         assert twin_dropped or curves[name]["hidden"] is False
     late = [c for c in curves.values() if c["hidden"]]
     assert len(late) == 1 and np.allclose(late[0]["points"], gone.points)
-    assert int(late[0]["id"][1:]) > len(maps["lid"]), "Sichtbares behält seine Nummer"
+    assert int(late[0]["id"][1:]) > len(maps["lid"]), "visible items keep their number"
 
 
-def test_usd_nur_kurven_und_roehren_auch_fuer_malerei(h: H):
+def test_usd_curves_only_and_tubes_also_for_paint(h: H):
     from pxr import Usd, UsdGeom
     _, _, paint, _ = _szene(h)
     folder = tempfile.mkdtemp()
@@ -75,13 +75,13 @@ def test_usd_nur_kurven_und_roehren_auch_fuer_malerei(h: H):
     curves = [p for p in prims if p.IsA(UsdGeom.BasisCurves)]
     meshes = [p for p in prims if p.IsA(UsdGeom.Mesh)]
     assert len(curves) == count and dropped == 1
-    assert len(meshes) == count and all(p.GetName().endswith("_tube") for p in meshes), "keine Flächen, nur Röhren"
+    assert len(meshes) == count and all(p.GetName().endswith("_tube") for p in meshes), "no surfaces, only tubes"
     breiten = [np.array(UsdGeom.BasisCurves(p).GetWidthsAttr().Get()) for p in curves]
-    assert any(len(w) == 5 and np.allclose(w, paint.widths, atol=1e-5) for w in breiten), "Dicke je Punkt"
+    assert any(len(w) == 5 and np.allclose(w, paint.widths, atol=1e-5) for w in breiten), "thickness per point"
     assert not [p for p in prims if p.GetName() == "notes"]
 
 
-def test_szenen_usd_roehren_fuer_malerei(h: H):
+def test_scene_usd_tubes_for_paint(h: H):
     from pxr import Usd
     _, _, paint, _ = _szene(h)
     out = os.path.join(tempfile.mkdtemp(), "s.usda")
@@ -92,10 +92,10 @@ def test_szenen_usd_roehren_fuer_malerei(h: H):
     assert any(p.GetName() == f"{name}_tube" for p in stage.Traverse())
 
 
-def test_menue_exportieren_mit_usd_und_kurven(h: H):
+def test_menu_export_with_usd_and_curves(h: H):
     window = h.v.window()
     datei = window.menuBar().actions()[0].menu()
-    # das Export-Untermenü (seit v0.99.143 steht „Zuletzt geöffnet“ davor)
+    # the export submenu (since v0.99.143 “Zuletzt geöffnet” precedes it)
     sub = next(a.menu() for a in datei.actions() if a.menu() and any("USD" in x.text() for x in a.menu().actions()))
     texte = [a.text() for a in sub.actions()]
     assert len(texte) == 2 and "USD" in texte[0], texte

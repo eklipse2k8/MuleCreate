@@ -1,5 +1,5 @@
-; Inno Setup: Installer aus dist/Mule (zuerst packaging/mule.spec bauen). Bauen: ISCC.exe packaging\mule.iss
-; Ergebnis: dist\Mule_Setup.exe. Ohne Code-Signatur warnt Windows SmartScreen („Trotzdem ausführen“).
+; Inno Setup: installer from dist/Mule (build packaging/mule.spec first). Build: ISCC.exe packaging\mule.iss
+; Result: dist\Mule_Setup.exe. Without a code signature Windows SmartScreen warns ("Run anyway").
 #define AppVersion "0.99-alpha"
 
 [Setup]

@@ -1,9 +1,9 @@
-"""Schlanker MCP-Server für Houdini: Claude/Astra arbeiten per Python (hou) und VEX statt über hunderte Einzelwerkzeuge.
-Läuft in Houdini auf http://127.0.0.1:PORT/mcp (nur lokal, Streamable HTTP, Antworten als JSON) – gleiches Muster wie
-sketch_machine/mcp_server.py. Jeder Aufruf läuft im Hauptthread (hdefereval); in hython direkt, hinter einer Sperre.
+"""Slim MCP server for Houdini: Claude/Astra work through Python (hou) and VEX instead of hundreds of single tools.
+Runs in Houdini on http://127.0.0.1:PORT/mcp (local only, Streamable HTTP, answers as JSON) – same pattern as
+sketch_machine/mcp_server.py. Every call runs in the main thread (hdefereval); in hython directly, behind a lock.
 
-Start: automatisch über das Houdini-Package (uiready.py), von Hand: import sm_houdini_mcp; sm_houdini_mcp.start()
-Einbinden (.mcp.json): {"mcpServers": {"houdini_code": {"type": "http", "url": "http://127.0.0.1:8771/mcp"}}}"""
+Start: automatically via the Houdini package (uiready.py), by hand: import sm_houdini_mcp; sm_houdini_mcp.start()
+Hooking up (.mcp.json): {"mcpServers": {"houdini_code": {"type": "http", "url": "http://127.0.0.1:8771/mcp"}}}"""
 import base64
 import contextlib
 import io
@@ -17,10 +17,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import hou
 
 PORT = int(os.environ.get("SM_HOUDINI_MCP_PORT", "8771"))
-VERSIONS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")  # die neueste zuerst
-TEXT_MAX = 4000      # längere Antworten landen vollständig in einer Datei, im Chat nur der Anfang
+VERSIONS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")  # newest first
+TEXT_MAX = 4000      # longer answers go completely into a file, only the beginning in the chat
 IMAGE_MAX = 1280
-# unter der Zeitgrenze des Clients (Claude Code: 60 s), sonst schreibt Houdini später in eine geschlossene Verbindung
+# below the client's time limit (Claude Code: 60 s), otherwise Houdini later writes into a closed connection
 TIMEOUT = float(os.environ.get("SM_HOUDINI_MCP_TIMEOUT", "50"))
 OUT_DIR = os.path.join(tempfile.gettempdir(), "houdini_code_mcp")
 
@@ -99,7 +99,7 @@ def _node(path):
 
 
 def _cut(text, name):
-    """Kurz halten: bis TEXT_MAX Zeichen, sonst Anfang + Datei mit allem."""
+    """Keep it short: up to TEXT_MAX characters, otherwise the beginning + a file with everything."""
     if len(text) <= TEXT_MAX:
         return text
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -210,7 +210,7 @@ def inspect(path="/obj", depth=1, code=False):
 
     lines.append(head(node, ""))
     defn = node.type().definition()
-    if defn is not None and not os.path.basename(defn.libraryFilePath()).startswith("OPlib"):  # nur eigene HDAs
+    if defn is not None and not os.path.basename(defn.libraryFilePath()).startswith("OPlib"):  # own HDAs only
         lines.append(f"  HDA {defn.nodeTypeName()} from {defn.libraryFilePath()}")
     body(node, "", True)
     with contextlib.suppress(hou.Error):
@@ -280,7 +280,7 @@ def problems(path="/"):
     return "\n".join(out) or f"no errors or warnings below {path}"
 
 
-# --- Werkzeuge (laufen im Hauptthread) ----------------------------------------------------------------------------
+# --- Tools (run in the main thread) ----------------------------------------------------------------------------
 
 class Tools:
     def __init__(self):
@@ -353,12 +353,12 @@ class Tools:
         sv = next((t for t in viewers if t.isCurrentTab()), viewers[0])
         vp = sv.curViewport()
         old_cam, old_view = vp.camera(), vp.defaultCamera().stash()
-        # Flipbook rendert still nichts, wenn der Scene Viewer hinter einem anderen Reiter liegt
+        # the flipbook silently renders nothing if the Scene Viewer is behind another tab
         front = None if sv.isCurrentTab() else next((t for t in sv.pane().tabs() if t.isCurrentTab()), None)
         os.makedirs(OUT_DIR, exist_ok=True)
         out = os.path.join(OUT_DIR, "screenshot.png").replace("\\", "/")
         if os.path.exists(out):
-            os.remove(out)  # sonst käme bei stillem Fehlschlag das alte Bild zurück
+            os.remove(out)  # otherwise a silent failure would return the old image
         f = hou.frame() if frame is None else float(frame)
         try:
             if front is not None:
@@ -405,13 +405,13 @@ class Tools:
         return [{"type": "text", "text": hou.hipFile.path()}], False
 
 
-# --- Hauptthread --------------------------------------------------------------------------------------------------
+# --- Main thread --------------------------------------------------------------------------------------------------
 
 _lock = threading.Lock()
 
 
 def _in_main(fn):
-    """fn im Hauptthread ausführen (UI: hdefereval, mit Zeitgrenze); in hython direkt hinter einer Sperre."""
+    """Run fn in the main thread (UI: hdefereval, with a time limit); in hython directly behind a lock."""
     if not hou.isUIAvailable():
         with _lock:
             return fn()
@@ -435,7 +435,7 @@ def _in_main(fn):
     return box["result"]
 
 
-# --- MCP über HTTP ------------------------------------------------------------------------------------------------
+# --- MCP over HTTP ------------------------------------------------------------------------------------------------
 
 class _Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
@@ -450,10 +450,10 @@ class _Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
-        except ConnectionError:  # Client hat aufgegeben (Zeitgrenze) – kein Traceback in Houdinis Shell
+        except ConnectionError:  # client gave up (time limit) – no traceback in Houdini's shell
             pass
 
-    def do_GET(self):  # kein Server-Push (SSE): nur Anfrage/Antwort
+    def do_GET(self):  # no server push (SSE): request/response only
         self._send(405)
 
     def do_DELETE(self):
@@ -491,7 +491,7 @@ class Server:
         self.httpd.server_close()
 
     def handle(self, m):
-        """Eine JSON-RPC-Nachricht; None für Benachrichtigungen (ohne id)."""
+        """One JSON-RPC message; None for notifications (without id)."""
         if not isinstance(m, dict) or "method" not in m:
             return None
         rid, method, params = m.get("id"), m["method"], m.get("params") or {}
@@ -529,7 +529,7 @@ _server = None
 
 
 def start(port=PORT):
-    """Server starten (einmal je Houdini-Sitzung); None, wenn der Port belegt ist."""
+    """Start the server (once per Houdini session); None if the port is taken."""
     global _server
     if _server is not None:
         return _server

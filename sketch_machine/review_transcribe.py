@@ -58,7 +58,7 @@ def transcribe(audio, name, language):
         segs, info = model.transcribe(audio, **kw)
         return list(segs), info  # the segments are only produced while iterating - errors surface here
     except Exception as exc:
-        print(f"GPU nicht nutzbar ({exc}) – rechne auf dem Prozessor", file=sys.stderr)
+        print(f"GPU not usable ({exc}) - computing on the CPU", file=sys.stderr)
     model = WhisperModel(name, device="cpu", compute_type="int8")
     segs, info = model.transcribe(audio, **kw)
     return list(segs), info

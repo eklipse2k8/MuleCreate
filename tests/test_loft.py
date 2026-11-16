@@ -1,8 +1,8 @@
-"""Lofts (Shift+F) als Kurvenfläche: Robustheit der Form und des Gitters (Feedback loft_test).
+"""Lofts (Shift+F) as a curve surface: robustness of the shape and the grid (feedback loft_test).
 
-Ein offener Loft wird eine Kurvenfläche (Rand: erster Querschnitt, Seitenlinie, letzter Querschnitt, Seitenlinie);
-die mittleren Querschnitte sind Linien darauf. Erwartet wird die Form eines Lofts: quer zu den Querschnitten glatte
-Kurven durch alle Querschnitte (überblendete Kreisbögen), kein Zelt zwischen ihnen – auch nach dem Bearbeiten.
+An open loft becomes a curve surface (border: first cross section, side line, last cross section, side line);
+the middle cross sections are lines on it. The expected shape is that of a loft: across the cross sections smooth
+curves through all cross sections (blended circular arcs), no tent between them – also after editing.
 """
 import numpy as np
 
@@ -12,7 +12,7 @@ from sketch_machine.scene import PatchSurface
 
 
 def _arc(center, rx, ry, z, n=40, flat=False, a0=0.0, a1=np.pi):
-    """Bogen in der Ebene z (stehend) bzw. auf dem Boden (flat: in XZ, Scheitel in +z)."""
+    """Arc in the plane z (upright) or on the ground (flat: in XZ, apex in +z)."""
     t = np.linspace(a0, a1, n)
     cx, cy = center
     if flat:
@@ -21,7 +21,7 @@ def _arc(center, rx, ry, z, n=40, flat=False, a0=0.0, a1=np.pi):
 
 
 def _make_loft(h: H, sections):
-    """Querschnitte als Linien zeichnen und wie der Artist loften (Shift+F im Kantenmodus, in dieser Reihenfolge)."""
+    """Draw cross sections as lines and loft them like the artist (Shift+F in edge mode, in this order)."""
     sc = h.sc
     sc.new_stroke()
     lines = []
@@ -39,18 +39,18 @@ def _make_loft(h: H, sections):
     h.v.do_loft()
     del h.v._track_pick_order
     surf = sc.surfaces[-1]
-    assert isinstance(surf, PatchSurface), f"offener Loft ist {type(surf).__name__}, keine Kurvenfläche"
+    assert isinstance(surf, PatchSurface), f"open loft is {type(surf).__name__}, not a curve surface"
     sc.sync_lofts()
     return surf, [sc.curve_by_id(c.id) for c in lines]
 
 
 def _net_row(surf, k=0):
-    """Gitterreihe der k-ten Quer-Netzlinie (z. B. mittlerer Querschnitt)."""
+    """Grid row of the k-th cross net line (e.g. middle cross section)."""
     return surf.net["u"][k][1]
 
 
 def _row_hard(surf, k=1):
-    """Härte entlang der k-ten Quer-Netzlinie (0: Rand unten)."""
+    """Hardness along the k-th cross net line (0: bottom border)."""
     return surf._net_geo["hard_u"][k]
 
 
@@ -65,7 +65,7 @@ def _seg_dist(p, a, b):
 
 
 def _dist_to_mesh(pts, verts, tris):
-    """Abstand jedes Punkts zum Dreiecksnetz (genau: Fläche innen, sonst nächste Kante)."""
+    """Distance of each point to the triangle mesh (exact: inside the face, otherwise nearest edge)."""
     a, b, c = verts[tris[:, 0]], verts[tris[:, 1]], verts[tris[:, 2]]
     n = np.cross(b - a, c - a)
     nn = np.maximum(np.einsum("ij,ij->i", n, n), 1e-18)
@@ -84,13 +84,13 @@ def _dist_to_mesh(pts, verts, tris):
 
 
 def _ideal(lines):
-    """So sähe der Loft aus: glatte Kurven durch die (jetzigen) Querschnitte."""
+    """This is what the loft would look like: smooth curves through the (current) cross sections."""
     secs, _ = loft.prepare([c.points for c in lines])
     return loft.grid(secs)
 
 
 def _deviation(surf, ideal, inner=0.15):
-    """Größter Abstand der Fläche von der idealen Loft-Form (ohne die Randstreifen an den Seitenlinien)."""
+    """Largest distance of the surface from the ideal loft shape (without the border strips at the side lines)."""
     m = ideal.shape[1]
     lo, hi = int(m * inner), int(m * (1 - inner))
     verts, tris = surf.fill_mesh()[:2]
@@ -99,43 +99,43 @@ def _deviation(surf, ideal, inner=0.15):
 
 
 UNEVEN = [_arc((0, 0), 1.0, 1.0, 0.0), _arc((0.4, 0), 2.2, 2.8, 1.4, n=55), _arc((0, 0), 1.2, 0.8, 4.0, n=31)]
-FELIX = [_arc((0, 0), 4.0, 3.0, 0.0, flat=True), _arc((0, 0), 4.0, 5.0, 4.0), _arc((0, 0), 4.0, 3.0, 8.0, flat=True)]
+FLAT_HIGH_FLAT = [_arc((0, 0), 4.0, 3.0, 0.0, flat=True), _arc((0, 0), 4.0, 5.0, 4.0), _arc((0, 0), 4.0, 3.0, 8.0, flat=True)]
 
 
-def test_loft_form_glatt_durch_ungleiche_boegen(h: H):
-    """Drei ungleiche Bögen (Größe, Punktzahl, Abstand): die Fläche schwingt rund durch alle drei wie ein Loft."""
+def test_loft_shape_smooth_through_uneven_arcs(h: H):
+    """Three uneven arcs (size, point count, distance): the surface swings round through all three like a loft."""
     surf, lines = _make_loft(h, UNEVEN)
     dev = _deviation(surf, _ideal(lines))
-    assert dev < 0.01, f"Fläche weicht {dev:.1%} von der Loft-Form ab (Zelt statt Rundung?)"
+    assert dev < 0.01, f"surface deviates {dev:.1%} from the loft shape (tent instead of rounding?)"
 
 
-def test_loft_form_flache_enden_hoher_mittelbogen(h: H):
-    """Wie Kurvenfläche 4 des Artists: erster und letzter Bogen liegen auf dem Boden, der mittlere steht hoch – seitlich
-    gesehen ein runder Bogen, keine Pyramide."""
-    surf, lines = _make_loft(h, FELIX)
+def test_loft_shape_flat_ends_high_middle_arc(h: H):
+    """Like the artist's curve surface 4: first and last arc lie on the ground, the middle one stands high – seen from
+    the side a round arc, not a pyramid."""
+    surf, lines = _make_loft(h, FLAT_HIGH_FLAT)
     dev = _deviation(surf, _ideal(lines))
-    assert dev < 0.01, f"Fläche weicht {dev:.1%} von der Loft-Form ab (Zelt statt Rundung?)"
+    assert dev < 0.01, f"surface deviates {dev:.1%} from the loft shape (tent instead of rounding?)"
 
 
-def test_loft_gitter_folgt_den_querschnitten(h: H):
-    """Topologie: der mittlere Querschnitt liegt auf einer Gitterreihe, deren Enden genau auf den Punkten der
-    Seitenlinien sitzen; die Gitterreihen kreuzen ihn nicht schräg."""
+def test_loft_grid_follows_the_cross_sections(h: H):
+    """Topology: the middle cross section lies on a grid row whose ends sit exactly on the points of the
+    side lines; the grid rows do not cross it obliquely."""
     surf, lines = _make_loft(h, UNEVEN)
     g = surf.grid()
     att = surf.attached[lines[1].id]
     rows = np.asarray(att["uv"])[:, 0]
-    assert np.ptp(rows) < 0.05, f"mittlerer Querschnitt läuft schräg durchs Gitter (Reihen {rows.min():.2f} … {rows.max():.2f})"
+    assert np.ptp(rows) < 0.05, f"middle cross section runs obliquely through the grid (rows {rows.min():.2f} … {rows.max():.2f})"
     row = int(round(rows.mean()))
     ends = lines[1].points[[0, -1]]
     corner = np.array([g[row, 0], g[row, -1]])
     gap = min(np.linalg.norm(corner - ends, axis=1).max(), np.linalg.norm(corner - ends[::-1], axis=1).max())
-    assert gap < 1e-3 * _size(g), f"Gitterreihe endet {gap:.4f} neben den Punkten der Seitenlinien"
+    assert gap < 1e-3 * _size(g), f"grid row ends {gap:.4f} beside the points of the side lines"
 
 
-def test_loft_mittelbogen_anheben_bleibt_loft(h: H):
-    """Mittleren Bogen als Kante anheben: die Seitenlinien gehen an ihren Punkten mit, die Fläche bleibt an
-    Bogen und Seitenlinien und schwingt weiter rund (kein Zelt, keine Lücke zur Außenlinie)."""
-    surf, lines = _make_loft(h, FELIX)
+def test_loft_raising_middle_arc_stays_loft(h: H):
+    """Raise the middle arc as an edge: the side lines go along at their points, the surface stays on the
+    arc and side lines and keeps swinging round (no tent, no gap to the outer line)."""
+    surf, lines = _make_loft(h, FLAT_HIGH_FLAT)
     sc = h.sc
     mid = lines[1]
     sc.checkpoint()
@@ -146,15 +146,15 @@ def test_loft_mittelbogen_anheben_bleibt_loft(h: H):
     for r in rails:
         knot = network.knot_at(r, mid.points[0]) if np.linalg.norm(r.points - mid.points[0], axis=1).min() < 1e-6 \
             else network.knot_at(r, mid.points[-1])
-        assert np.linalg.norm(r.points[knot] - mid.points[[0, -1]], axis=1).min() < 1e-6, "Seitenlinie geht mit"
+        assert np.linalg.norm(r.points[knot] - mid.points[[0, -1]], axis=1).min() < 1e-6, "side line goes along"
     verts, tris = surf.fill_mesh()[:2]
     size = _size(verts)
     for c in [mid] + rails:
         d = _dist_to_mesh(c.points, verts, tris).max()
-        assert d < 0.005 * size, f"Fläche löst sich von Linie {c.id} ({d / size:.2%})"
-    # rund bleiben: kein Knick am (weichen) Querschnitt quer zu ihm – die Fläche geht durch Querschnitte und die
-    # weich mitgezogenen Seitenlinien (der Unterschied zum reinen Loft verteilt sich glatt über die Breite)
-    # (verglichen mit dem reinen Loft durch die Querschnitte bei gleicher Einteilung: eine enge Rundung ist kein Zelt)
+        assert d < 0.005 * size, f"surface detaches from line {c.id} ({d / size:.2%})"
+    # stay round: no kink at the (soft) cross section across it – the surface goes through cross sections and the
+    # softly co-dragged side lines (the difference from the pure loft is distributed smoothly across the width)
+    # (compared with the pure loft through the cross sections at the same subdivision: a tight rounding is not a tent)
     g = surf.grid()
     rows = [0, _net_row(surf), g.shape[0] - 1]
     secs, _ = loft.prepare([c.points for c in lines])
@@ -164,11 +164,11 @@ def test_loft_mittelbogen_anheben_bleibt_loft(h: H):
         col, cr = int(round(f * (g.shape[1] - 1))), int(round(f * (ref.shape[1] - 1)))
         k = components.kink_deg(g[row::-1, col], g[row:, col])
         k_ref = components.kink_deg(ref[row::-1, cr], ref[row:, cr])
-        assert k < k_ref + 8, f"Zelt am Querschnitt: {k:.0f}° Knick, Loft {k_ref:.0f}° (Spalte {col})"
+        assert k < k_ref + 8, f"tent at the cross section: {k:.0f}° kink, loft {k_ref:.0f}° (column {col})"
 
 
-def test_loft_punkt_einfuegen_und_gleiten_aendert_nichts(h: H):
-    """Punkt auf dem mittleren Bogen einfügen und gleiten lassen (S): die Linie behält ihre Form – die Fläche auch."""
+def test_loft_insert_point_and_slide_changes_nothing(h: H):
+    """Insert a point on the middle arc and let it slide (S): the line keeps its shape – so does the surface."""
     surf, lines = _make_loft(h, UNEVEN)
     sc = h.sc
     mid = lines[1]
@@ -177,7 +177,7 @@ def test_loft_punkt_einfuegen_und_gleiten_aendert_nichts(h: H):
     sc.sync_lofts()
     after_insert = surf.grid()
     d = float(np.abs(after_insert - before).max()) / _size(before)
-    assert d < 1e-3, f"Punkt einfügen verändert die Fläche ({d:.2%})"
+    assert d < 1e-3, f"inserting a point changes the surface ({d:.2%})"
     st = sc.owner_of(mid).id
     h.v.point_selection = [("pt", st, mid.id, k)]
     h.frame(before.reshape(-1, 3))
@@ -188,12 +188,12 @@ def test_loft_punkt_einfuegen_und_gleiten_aendert_nichts(h: H):
         sc.sync_lofts()
         g = surf.grid()
         d = float(np.abs(g - before).max()) / _size(before)
-        assert d < 2e-3, f"Gleiten um {dx} px verschiebt die Fläche um {d:.2%}"
+        assert d < 2e-3, f"sliding by {dx} px moves the surface by {d:.2%}"
     h.v.finish_slide(True)
 
 
-def test_loft_punkt_ziehen_formt_weich(h: H):
-    """Eingefügten Punkt auf dem mittleren Bogen ziehen: die Fläche folgt dem Bogen, das Gitter faltet nicht."""
+def test_loft_dragging_point_shapes_softly(h: H):
+    """Drag an inserted point on the middle arc: the surface follows the arc, the grid does not fold."""
     surf, lines = _make_loft(h, UNEVEN)
     sc = h.sc
     mid = lines[1]
@@ -204,16 +204,16 @@ def test_loft_punkt_ziehen_formt_weich(h: H):
     verts, tris = surf.fill_mesh()[:2]
     size = _size(verts)
     d = _dist_to_mesh(mid.points, verts, tris).max()
-    assert d < 0.005 * size, f"Fläche liegt {d / size:.2%} neben dem gezogenen Bogen"
+    assert d < 0.005 * size, f"surface lies {d / size:.2%} beside the dragged arc"
     g = surf.grid()
-    for axis in (0, 1):  # benachbarte Zellkanten zeigen nie gegeneinander (keine Falte)
+    for axis in (0, 1):  # neighbouring cell edges never point against each other (no fold)
         e = np.diff(g, axis=axis)
         dots = np.einsum("...i,...i->...", e[:-1] if axis == 0 else e[:, :-1], e[1:] if axis == 0 else e[:, 1:])
-        assert dots.min() > 0, f"Gitter faltet (Richtung {axis})"
+        assert dots.min() > 0, f"grid folds (direction {axis})"
 
 
-def test_loft_speichern_laden_bleibt_loft(h: H):
-    """Speichern und Laden: die Kurvenfläche weiß weiter, dass sie ein Loft ist (gleiche Form, Querschnitte formen sie)."""
+def test_loft_save_load_stays_loft(h: H):
+    """Saving and loading: the curve surface still knows it is a loft (same shape, cross sections shape it)."""
     import os, tempfile
     from sketch_machine.scene import Scene
     surf, lines = _make_loft(h, UNEVEN)
@@ -223,52 +223,52 @@ def test_loft_speichern_laden_bleibt_loft(h: H):
     new = Scene.load(path)[0]
     new.sync_lofts()
     s2 = next(s for s in new.surfaces if isinstance(s, PatchSurface))
-    assert s2.net and len(s2.net["u"]) == 1, "Querschnitt nach dem Laden bekannt"
+    assert s2.net and len(s2.net["u"]) == 1, "cross section known after loading"
     d = float(np.abs(s2.grid() - g).max()) / _size(g)
-    assert d < 1e-3, f"Form nach dem Laden anders ({d:.2%})"
+    assert d < 1e-3, f"shape different after loading ({d:.2%})"
 
 
-def test_loft_alte_szene_wird_wiedererkannt(h: H):
-    """loft_test des Artists (gespeichert vor v0.99.4, ohne loft_rows): die Lofts werden beim Laden wiedererkannt und schwingen rund
-    durch ihren mittleren Bogen. (Ihre Seitenlinien sind gespeicherte Linien – mit der damaligen Loft-Form; die Fläche
-    folgt ihnen, daher hier kein Vergleich mit einer neu gerechneten Loft-Form.)"""
+def test_loft_old_scene_is_recognized(h: H):
+    """The artist's loft_test (saved before v0.99.4, without loft_rows): the lofts are recognized on loading and swing round
+    through their middle arc. (Their side lines are saved lines – with the loft shape of that time; the surface
+    follows them, so no comparison with a freshly computed loft shape here.)"""
     import os
     path = os.path.join(os.path.dirname(__file__), "scenes", "loft_alt.sketch.json")
     h.load(path)
     sc = h.sc
     sc.sync_lofts()
     lofts = [s for s in sc.surfaces if isinstance(s, PatchSurface) and s.net and s.net["u"]]
-    assert len(lofts) == 4, f"{len(lofts)} von 4 Lofts wiedererkannt"
+    assert len(lofts) == 4, f"{len(lofts)} of 4 lofts recognized"
     for s in lofts:
         verts, tris = s.fill_mesh()[:2]
         size = _size(verts)
         mids = [sc._chain_points([i for cid in ids for i in sc.split_pieces(cid)]) for ids, _ in s.net["u"]]
         for c in mids + [b.points for b in sc.patch_border(s)]:
             d = _dist_to_mesh(c, verts, tris).max() / size
-            assert d < 0.005, f"{s.name}: {d:.1%} neben einer ihrer Linien"
+            assert d < 0.005, f"{s.name}: {d:.1%} beside one of its lines"
         g = s.grid()
         row = _net_row(s)
         bend = max(components.kink_deg(g[row::-1, c], g[row:, c]) for c in range(2, g.shape[1] - 2, 4))
-        # die gespeicherten Seitenlinien haben noch die Catmull-Rom-Form (vor v0.99.14): mit dem Kreisbogen-Loft
-        # gemischt bleibt am Bogen ein leichter Knick (bis ~15°); frisch angelegte Lofts: siehe unten (< 5°)
-        assert bend < 20, f"{s.name}: knickt am mittleren Bogen ({bend:.0f}°) statt rund hindurch"
+        # the saved side lines still have the Catmull-Rom shape (before v0.99.14): blended with the circular-arc loft
+        # a slight kink remains at the arc (up to ~15°); freshly created lofts: see below (< 5°)
+        assert bend < 20, f"{s.name}: kinks at the middle arc ({bend:.0f}°) instead of passing round through it"
 
 
-def test_loft_frisch_rund_durch_den_mittleren_bogen(h: H):
-    """Frisch angelegter Loft (Profile des Artists: flach, hoch, flach): die Fläche läuft ohne Knick durch den mittleren
-    Querschnitt (Kreisbögen überblendet; mit Catmull-Rom waren es ~19°)."""
-    for sections in (FELIX, UNEVEN):
+def test_loft_fresh_round_through_the_middle_arc(h: H):
+    """Freshly created loft (the artist's profiles: flat, high, flat): the surface runs through the middle cross
+    section without a kink (circular arcs blended; with Catmull-Rom it was ~19°)."""
+    for sections in (FLAT_HIGH_FLAT, UNEVEN):
         h.new_scene()
         surf, _ = _make_loft(h, sections)
         g = surf.grid()
         row = _net_row(surf)
         bend = max(components.kink_deg(g[row::-1, c], g[row:, c]) for c in range(2, g.shape[1] - 2, 4))
-        assert bend < 5, f"knickt am mittleren Querschnitt ({bend:.1f}°)"
+        assert bend < 5, f"kinks at the middle cross section ({bend:.1f}°)"
 
 
-def test_loft_querschnitt_loeschen(h: H):
-    """Mittleren Querschnitt löschen: die Fläche verliert ihn und liegt weiter an allen übrigen Linien (Rand), nichts
-    bricht."""
+def test_loft_delete_cross_section(h: H):
+    """Delete the middle cross section: the surface loses it and stays on all remaining lines (border), nothing
+    breaks."""
     from tests.test_topology import _delete_lines
     surf, lines = _make_loft(h, UNEVEN)
     _delete_lines(h, [lines[1]])
@@ -279,12 +279,12 @@ def test_loft_querschnitt_loeschen(h: H):
     size = _size(verts)
     for c in h.sc.patch_border(surf):
         d = _dist_to_mesh(c.points, verts, tris).max()
-        assert d < 0.005 * size, f"Fläche löst sich von Randlinie {c.id} ({d / size:.2%})"
+        assert d < 0.005 * size, f"surface detaches from border line {c.id} ({d / size:.2%})"
 
 
-def test_loft_anheben_rueckgaengig(h: H):
-    """Anheben und rückgängig: dieselbe Form wie vorher."""
-    surf, lines = _make_loft(h, FELIX)
+def test_loft_raise_undo(h: H):
+    """Raise and undo: the same shape as before."""
+    surf, lines = _make_loft(h, FLAT_HIGH_FLAT)
     sc = h.sc
     before = surf.grid().copy()
     sc.checkpoint()
@@ -294,12 +294,12 @@ def test_loft_anheben_rueckgaengig(h: H):
     sc.sync_lofts()
     s = next(x for x in sc.surfaces if x.id == surf.id)
     d = float(np.abs(s.grid() - before).max()) / _size(before)
-    assert d < 1e-6, f"nach Rückgängig {d:.2%} anders"
+    assert d < 1e-6, f"after undo {d:.2%} different"
 
 
-def test_linie_auf_flaeche_gleiten_aendert_nichts(h: H):
-    """Eine gewöhnliche Linie auf der Fläche (längs, von Querschnitt zu Querschnitt): Punkt einfügen und gleiten – die
-    Fläche bleibt, wie sie ist (die Linie behält ihre Form)."""
+def test_line_on_surface_slide_changes_nothing(h: H):
+    """An ordinary line on the surface (lengthwise, from cross section to cross section): insert a point and slide – the
+    surface stays as it is (the line keeps its shape)."""
     surf, lines = _make_loft(h, UNEVEN)
     sc = h.sc
     g = surf.grid()
@@ -320,13 +320,13 @@ def test_linie_auf_flaeche_gleiten_aendert_nichts(h: H):
         h.v._slide_update(type(start)(start.x(), start.y() + dy))
         sc.sync_lofts()
         d = float(np.abs(surf.grid() - before).max()) / _size(before)
-        assert d < 2e-3, f"Gleiten um {dy} px verschiebt die Fläche um {d:.2%}"
+        assert d < 2e-3, f"sliding by {dy} px moves the surface by {d:.2%}"
     h.v.finish_slide(True)
 
 
-def test_loft_harter_querschnitt_knickt_die_flaeche(h: H):
-    """Mittleren Querschnitt hart stellen (Kantenmodus, Shift+K): die Seitenlinien knicken an ihm, der Loft wird dort
-    geteilt – die Fläche hat eine Falte genau am Querschnitt und liegt weiter an allen Linien. Weich (Alt+K): wieder rund."""
+def test_loft_hard_cross_section_kinks_the_surface(h: H):
+    """Set the middle cross section hard (edge mode, Shift+K): the side lines kink at it, the loft is split there
+    – the surface has a fold exactly at the cross section and stays on all lines. Soft (Alt+K): round again."""
     surf, lines = _make_loft(h, UNEVEN)
     sc = h.sc
     mid = lines[1]
@@ -336,63 +336,63 @@ def test_loft_harter_querschnitt_knickt_die_flaeche(h: H):
         col, row = g.shape[1] // 2, _net_row(surf)
         return components.kink_deg(g[row::-1, col], g[row:, col])
     soft_kink = kink()
-    # grobes Gitter, starke Rundung: ein paar Grad zwischen zwei Gitterstücken sind kein Knick (hart erst ab 15°)
-    assert soft_kink < 12 and not _row_hard(surf).any(), f"anfangs rund ({soft_kink:.0f}°)"
+    # coarse grid, strong rounding: a few degrees between two grid pieces are not a kink (hard only from 15°)
+    assert soft_kink < 12 and not _row_hard(surf).any(), f"round at first ({soft_kink:.0f}°)"
     h.frame(surf.grid().reshape(-1, 3))
     h.edit_mode("edge")
     h.v.edge_selection = [("line", sc.owner_of(mid).id, mid.id)]
     before = mid.points.copy()
     h.v.set_hardness(1.0)
     sc.sync_lofts()
-    assert np.array_equal(mid.points, before), "der Querschnitt selbst bleibt"
-    # ganz hart = beide Seiten gerade auf den Punkt zu; wie hart das ist, sagt der Winkel (eine flache Seitenlinie
-    # knickt dabei nur ~31° -> 0,55), über den Querschnitt anteilig
-    assert _row_hard(surf).max() > 0.99 and _row_hard(surf).min() > 0.5, "Querschnitt ist hart"
-    assert kink() > 30, f"Falte am Querschnitt ({kink():.0f}°)"
+    assert np.array_equal(mid.points, before), "the cross section itself stays"
+    # fully hard = both sides straight towards the point; how hard that is, the angle tells (a flat side line
+    # kinks only ~31° -> 0.55), proportionally across the cross section
+    assert _row_hard(surf).max() > 0.99 and _row_hard(surf).min() > 0.5, "cross section is hard"
+    assert kink() > 30, f"fold at the cross section ({kink():.0f}°)"
     verts, tris = surf.fill_mesh()[:2]
     size = _size(verts)
     for c in [mid] + sc.patch_border(surf):
         d = _dist_to_mesh(c.points, verts, tris).max()
-        assert d < 0.005 * size, f"Fläche löst sich von Linie {c.id} ({d / size:.2%})"
+        assert d < 0.005 * size, f"surface detaches from line {c.id} ({d / size:.2%})"
     h.v.set_hardness(0.0)
     sc.sync_lofts()
-    assert not _row_hard(surf).any() and kink() < 12, f"wieder rund ({kink():.0f}°)"
+    assert not _row_hard(surf).any() and kink() < 12, f"round again ({kink():.0f}°)"
 
 
-def test_loft_querschnitt_als_ganze_linie_anheben(h: H):
-    """loft_test_v002: den mittleren Querschnitt als ganze Linie wählen (Kantenmodus) und mit dem Gizmo anheben – die
-    Seitenlinien laufen mittendurch seine Enden und müssen mitgehen (gleiche Punkte bleiben verbunden), die Fläche
-    bleibt an allen Linien."""
+def test_loft_raise_cross_section_as_whole_line(h: H):
+    """loft_test_v002: select the middle cross section as a whole line (edge mode) and raise it with the gizmo – the
+    side lines run through its ends and must go along (same points stay connected), the surface
+    stays on all lines."""
     from sketch_machine import edges
-    surf, lines = _make_loft(h, FELIX)
+    surf, lines = _make_loft(h, FLAT_HIGH_FLAT)
     sc = h.sc
     mid = lines[1]
     network.sync(sc)
     ends = [network.pid_of(mid, 0), network.pid_of(mid, len(mid.points) - 1)]
     group = edges.handles_for(sc, [edges.curve_to_ref(sc, mid)])[0]
-    for _ in range(3):  # wie das Gizmo: in Schritten
+    for _ in range(3):  # like the gizmo: in steps
         group.translate(np.array([0.0, 1.0, 0.3]))
     sc.sync_lofts()
     network.sync(sc)
-    assert [network.pid_of(mid, 0), network.pid_of(mid, len(mid.points) - 1)] == ends, "Enden bleiben dieselben Punkte"
+    assert [network.pid_of(mid, 0), network.pid_of(mid, len(mid.points) - 1)] == ends, "ends stay the same points"
     refs = network.refs_by_pid(sc)
     for pid in ends:
         pts = [o.points[j] for o, j in refs[pid]]
-        assert len(pts) >= 2 and max(np.linalg.norm(p - pts[0]) for p in pts) < 1e-9, "Seitenlinie ging mit"
+        assert len(pts) >= 2 and max(np.linalg.norm(p - pts[0]) for p in pts) < 1e-9, "side line went along"
     verts, tris = surf.fill_mesh()[:2]
     size = _size(verts)
     for c in [mid] + sc.patch_border(surf):
         d = _dist_to_mesh(c.points, verts, tris).max()
-        assert d < 0.005 * size, f"Fläche löst sich von Linie {c.id} ({d / size:.2%})"
+        assert d < 0.005 * size, f"surface detaches from line {c.id} ({d / size:.2%})"
 
 
-def test_falte_bekommt_hartes_licht(h: H):
-    """Licht-Normalen je Dreiecksecke: an einer Falte (Knick ab 45°) bekommt jede Seite ihre eigene Normale, eine
-    glatte Rundung bleibt glatt (wie gemittelt)."""
+def test_fold_gets_hard_light(h: H):
+    """Light normals per triangle corner: at a fold (kink from 45°) each side gets its own normal, a
+    smooth rounding stays smooth (as averaged)."""
     from sketch_machine import renderer
     u, v = np.meshgrid(np.linspace(-1, 1, 21), np.linspace(0, 1, 11), indexing="ij")
-    roof = np.stack([u, 0.8 * (1 - np.abs(u)), v], axis=2)  # Dach: 77° Knick in der Mitte
-    tube = np.stack([np.cos(u * 1.5), np.sin(u * 1.5), v], axis=2)  # glatte Rundung
+    roof = np.stack([u, 0.8 * (1 - np.abs(u)), v], axis=2)  # roof: 77° kink in the middle
+    tube = np.stack([np.cos(u * 1.5), np.sin(u * 1.5), v], axis=2)  # smooth rounding
     for grid, folded in ((roof, True), (tube, False)):
         verts, tris, _ = loft.build(None, False, g=grid)
         corner, split = renderer._corner_normals(verts, tris)
@@ -404,18 +404,18 @@ def test_falte_bekommt_hartes_licht(h: H):
             own = np.cross(b - a, c - a)
             own = np.repeat((own / np.linalg.norm(own, axis=1, keepdims=True))[:, None], 3, axis=1)
             off = np.degrees(np.arccos(np.clip(np.einsum("tki,tki->tk", corner, own), -1, 1)))
-            assert off[on_ridge].max() < 1.0 and dev[on_ridge].min() > 20, "an der Falte: Normale der eigenen Seite"
+            assert off[on_ridge].max() < 1.0 and dev[on_ridge].min() > 20, "at the fold: normal of its own side"
             assert split[on_ridge].min() > 0.3 and dev[~on_ridge].max() < 1e-3, (split[on_ridge].min(), dev[~on_ridge].max())
         else:
-            assert dev.max() < 0.5 and split.max() < 1e-9, "glatt bleibt glatt"
+            assert dev.max() < 0.5 and split.max() < 1e-9, "smooth stays smooth"
 
 
-def test_loft_harter_querschnitt_mit_laengslinie(h: H):
-    """loft_test_v002: harter Querschnitt, darüber eine Linie längs von Querschnitt zu Querschnitt, verbunden an der
-    Kreuzung. Die Querschnitts-Reihe bleibt genau auf dem Querschnitt (keine Beule zwischen Stützstellen), und den
-    Kreuzungspunkt anheben verformt die Fläche weich – keine Nadel, die Fläche bleibt an allen Linien. Der Querschnitt
-    hat mehr Punkte als Stützstellen genommen werden (wie in der Szene)."""
-    surf, lines = _make_loft(h, [FELIX[0], _arc((0, 0), 4.0, 5.0, 4.0, n=60), FELIX[2]])
+def test_loft_hard_cross_section_with_lengthwise_line(h: H):
+    """loft_test_v002: hard cross section, above it a line lengthwise from cross section to cross section, connected at the
+    crossing. The cross-section row stays exactly on the cross section (no bulge between support points), and
+    raising the crossing point deforms the surface softly – no needle, the surface stays on all lines. The cross section
+    has more points than support points are taken (as in the scene)."""
+    surf, lines = _make_loft(h, [FLAT_HIGH_FLAT[0], _arc((0, 0), 4.0, 5.0, 4.0, n=60), FLAT_HIGH_FLAT[2]])
     sc = h.sc
     mid = lines[1]
     h.frame(surf.grid().reshape(-1, 3))
@@ -424,7 +424,7 @@ def test_loft_harter_querschnitt_mit_laengslinie(h: H):
     h.v.set_hardness(1.0)
     sc.sync_lofts()
     g = surf.grid()
-    col = g[:, g.shape[1] // 2 + 3].copy()  # längs, kreuzt den Querschnitt
+    col = g[:, g.shape[1] // 2 + 3].copy()  # lengthwise, crosses the cross section
     sc.add_curve(col, surf.id)
     line = sc.curves[-1]
     sc.sync_lofts()
@@ -434,45 +434,45 @@ def test_loft_harter_querschnitt_mit_laengslinie(h: H):
     size = _size(g)
     row = _net_row(surf)
     dev = float(np.linalg.norm(g[row] - b[row], axis=1).max()) / size
-    assert dev < 1e-3, f"Querschnitts-Reihe weicht {dev:.2%} ab"
+    assert dev < 1e-3, f"cross-section row deviates {dev:.2%}"
     shared = set(line.pids.values()) & set(mid.pids.values())
-    assert len(shared) == 1, "Kreuzung ist ein gemeinsamer Punkt"
+    assert len(shared) == 1, "crossing is a shared point"
     k = next(j for j, p in line.pids.items() if p in shared)
     top = g[..., 1].max()
     sc.checkpoint()
     components.ComponentGroup(sc, [(line, k)], []).translate(np.array([0.0, 1.0, 0.0]))
     sc.sync_lofts()
     g = surf.grid()
-    assert g[..., 1].max() < top + 1.0 + 0.02 * size, f"Nadel: Fläche steigt {g[..., 1].max() - top:.2f} statt 1"
+    assert g[..., 1].max() < top + 1.0 + 0.02 * size, f"needle: surface rises {g[..., 1].max() - top:.2f} instead of 1"
     verts, tris = surf.fill_mesh()[:2]
     for c in [mid, line] + sc.patch_border(surf):
         d = _dist_to_mesh(c.points[::2], verts, tris).max()
-        assert d < 0.01 * size, f"Fläche löst sich von Linie {c.id} ({d / size:.2%})"
+        assert d < 0.01 * size, f"surface detaches from line {c.id} ({d / size:.2%})"
 
 
-def test_kreuzung_neben_ecke_ein_punkt(h: H):
-    """Kreuzt eine neue Linie eine andere ganz nah an ihrer eigenen Ecke (Strich knickt über eine Falte), wird daraus
-    ein Punkt – kein zweiter direkt daneben (der sich beim Ziehen zur Nadel auszöge)."""
+def test_crossing_next_to_corner_one_point(h: H):
+    """If a new line crosses another very close to its own corner (stroke kinks over a fold), this becomes
+    one point – no second one right beside it (which would be pulled into a needle when dragging)."""
     sc = h.sc
     sc.new_stroke()
     t = np.linspace(0, 1, 81)
-    sc.add_curve(np.stack([t * 4, 1 - np.abs(t * 4 - 2) * 0.5, np.zeros_like(t)], 1), None)  # Dach, Ecke bei x = 2
+    sc.add_curve(np.stack([t * 4, 1 - np.abs(t * 4 - 2) * 0.5, np.zeros_like(t)], 1), None)  # roof, corner at x = 2
     roof = sc.curves[-1]
-    sc.add_curve(np.stack([np.full(21, 2.06), np.linspace(-1, 2, 21), np.zeros(21)], 1), None)  # kreuzt bei x = 2,06
+    sc.add_curve(np.stack([np.full(21, 2.06), np.linspace(-1, 2, 21), np.zeros(21)], 1), None)  # crosses at x = 2.06
     other = sc.curves[-1]
     network.sync(sc)
     inner = [k for k in components.knots(roof) if 0 < k < len(roof.points) - 1]
-    assert len(inner) == 1 and abs(roof.points[inner[0], 0] - 2.0) < 0.06, "Ecke erkannt"
+    assert len(inner) == 1 and abs(roof.points[inner[0], 0] - 2.0) < 0.06, "corner recognized"
     network.connect_crossings(sc, roof, [other], 0.05, radius=0.2)
     network.sync(sc)
     inner = [k for k in components.knots(roof) if 0 < k < len(roof.points) - 1]
-    assert len(inner) == 1, f"{len(inner)} Punkte an der Kreuzung"
-    assert network.pid_of(roof, inner[0]) in set(other.pids.values()), "der eine Punkt ist die Kreuzung"
+    assert len(inner) == 1, f"{len(inner)} points at the crossing"
+    assert network.pid_of(roof, inner[0]) in set(other.pids.values()), "the one point is the crossing"
 
 
-def test_loft_v002_querschnitts_reihe_ohne_beule(h: H):
-    """loft_test_v002 des Artists (harter Querschnitt mit 53 Punkten, Längslinie darüber): die Querschnitts-Reihe liegt genau
-    auf dem Querschnitt – vorher beulte ein Gitterpunkt zwischen zwei Stützstellen 0,39 aus."""
+def test_loft_v002_cross_section_row_without_bulge(h: H):
+    """The artist's loft_test_v002 (hard cross section with 53 points, lengthwise line above it): the cross-section row lies exactly
+    on the cross section – before, a grid point between two support points bulged out by 0.39."""
     import os
     h.load(os.path.join(os.path.dirname(__file__), "scenes", "loft_v002.sketch.json"))
     sc = h.sc
@@ -481,14 +481,14 @@ def test_loft_v002_querschnitts_reihe_ohne_beule(h: H):
     g, b = s.grid(), s.base_grid()
     row = _net_row(s)
     dev = float(np.linalg.norm(g[row] - b[row], axis=1).max())
-    assert dev < 0.01, f"Querschnitts-Reihe weicht {dev:.3f} ab"
+    assert dev < 0.01, f"cross-section row deviates {dev:.3f}"
 
 
-def test_strich_ueber_harten_querschnitt(h: H):
-    """Strich mit der Maus über einen Loft mit hartem Querschnitt (Vorgehen des Artists): jeder Punkt des Strichs bekommt
-    seine eigene Lage auf der Fläche – auch auf der Außenseite der Falte, wo die senkrechte Projektion neben beide
-    angrenzenden Dreiecke fällt (vorher: nächster Gitterpunkt, mehrere Punkte auf derselben Stelle, Fläche verzerrt)."""
-    surf, lines = _make_loft(h, FELIX)
+def test_stroke_over_hard_cross_section(h: H):
+    """Stroke with the mouse over a loft with a hard cross section (the artist's procedure): every point of the stroke gets
+    its own position on the surface – also on the outer side of the fold, where the perpendicular projection falls beside both
+    adjacent triangles (before: nearest grid point, several points on the same spot, surface distorted)."""
+    surf, lines = _make_loft(h, FLAT_HIGH_FLAT)
     sc = h.sc
     mid = lines[1]
     h.frame(surf.grid().reshape(-1, 3))
@@ -506,20 +506,20 @@ def test_strich_ueber_harten_querschnitt(h: H):
     h.stroke_world(np.vstack([(col[0] + (col[0] - col[2]) * 0.6)[None], col, (col[-1] + (col[-1] - col[-3]) * 0.6)[None]]))
     sc.sync_lofts()
     new = [c for c in h.curves() if c.id not in before and not c.paint and c.id in surf.attached]
-    assert new, "Strich liegt auf der Fläche"
+    assert new, "stroke lies on the surface"
     size = _size(surf.grid())
     for c in new:
         uv = surf.attached[c.id]["uv"]
         dup = len(uv) - len(np.unique(np.round(uv, 6), axis=0))
-        assert dup == 0, f"{dup} Punkte teilen sich eine Stelle der Fläche"
+        assert dup == 0, f"{dup} points share one spot of the surface"
         dev = np.linalg.norm(loft.evaluate_grid(uv, surf.grid(), False) - c.points, axis=1).max() / size
-        assert dev < 0.002, f"Strich {dev:.2%} neben der Fläche"
+        assert dev < 0.002, f"stroke {dev:.2%} beside the surface"
 
 
-def test_loft_teilen_auf_kurvenflaeche(h: H):
-    """Alt+D bei einem offenen Loft (Kurvenfläche): ganze Fläche gewählt -> zwischen allen benachbarten Querschnitten je
-    eine neue Querlinie, genau auf der Fläche, als Netzlinie verbunden; die Form bleibt. Zwei benachbarte Querschnitte
-    gewählt -> nur zwischen ihnen."""
+def test_loft_divide_on_curve_surface(h: H):
+    """Alt+D on an open loft (curve surface): whole surface selected -> one new cross line between every pair of
+    neighbouring cross sections, exactly on the surface, connected as a net line; the shape stays. Two neighbouring cross
+    sections selected -> only between them."""
     from tests.harness import Qt
     surf, lines = _make_loft(h, UNEVEN)
     sc = h.sc
@@ -528,21 +528,21 @@ def test_loft_teilen_auf_kurvenflaeche(h: H):
     h.v.selection = [surf.id]
     h.v.edge_selection = []
     h.v.divide_loft()
-    assert len(surf.net["u"]) == 3, f"{len(surf.net['u'])} Querlinien statt 3"
+    assert len(surf.net["u"]) == 3, f"{len(surf.net['u'])} cross lines instead of 3"
     verts, tris = surf.fill_mesh()[:2]
     dev = float(_dist_to_mesh(before.reshape(-1, 3)[::7], verts, tris).max()) / _size(before)
-    assert dev < 0.005, f"Form ändert sich ({dev:.2%})"
+    assert dev < 0.005, f"shape changes ({dev:.2%})"
     h.edit_mode("edge")
     h.v.selection = []
     h.v.edge_selection = [("line", sc.owner_of(c).id, c.id) for c in (lines[1],)] + \
         [("line", sc.owner_of(sc.curve_by_id(i)).id, i) for i in sorted(sc.net_rows_lines(surf)[3])]
     h.v.divide_loft()
-    assert len(surf.net["u"]) == 4, f"{len(surf.net['u'])} Querlinien statt 4"
+    assert len(surf.net["u"]) == 4, f"{len(surf.net['u'])} cross lines instead of 4"
 
 
-def test_falte_bleibt_bei_feinerem_netz(h: H):
-    """Netzauflösung feiner/gröber (auch krumme Faktoren): die Falte an einem harten Querschnitt bleibt genau auf einer
-    Gitterreihe (vorher rundete das Neuabtasten sie ab, wenn keine neue Reihe auf ihr lag)."""
+def test_fold_stays_with_finer_net(h: H):
+    """Net resolution finer/coarser (also odd factors): the fold at a hard cross section stays exactly on one
+    grid row (before, resampling rounded it off when no new row lay on it)."""
     surf, lines = _make_loft(h, UNEVEN)
     sc = h.sc
     mid = lines[1]
@@ -561,15 +561,15 @@ def test_falte_bleibt_bei_feinerem_netz(h: H):
         col = m2 // 2
         found[factor] = max(components.kink_deg(g2[i::-1, col], g2[i:, col]) for i in range(2, len(g2) - 2))
         dist = _dist_to_mesh(mid.points[::3], *surf.fill_mesh()[:2]).max() / _size(verts)
-        assert dist < 0.003, f"Netz x{factor}: Fläche {dist:.2%} neben dem Querschnitt"
+        assert dist < 0.003, f"net x{factor}: surface {dist:.2%} beside the cross section"
     assert found[1.0] > 30, found
     for factor in (1.7, 0.7):
-        assert found[factor] > 0.8 * found[1.0], f"Netz x{factor}: Falte {found[factor]:.0f}° statt {found[1.0]:.0f}°"
+        assert found[factor] > 0.8 * found[1.0], f"net x{factor}: fold {found[factor]:.0f}° instead of {found[1.0]:.0f}°"
 
 
-def test_loft_laengslinien_an_knoten_ab_5_grad(h: H):
-    """Querschnitte mit einem Punkt in der Mitte: Knick 3° -> nur die Seitenkanten, eine Fläche; 10° -> auch dort eine
-    Längslinie, eine Fläche; 20° -> Längslinie und an ihr in zwei Kurvenflächen geteilt."""
+def test_loft_lengthwise_lines_at_knots_from_5_degrees(h: H):
+    """Cross sections with a point in the middle: kink 3° -> only the side edges, one surface; 10° -> a
+    lengthwise line there too, one surface; 20° -> lengthwise line and split along it into two curve surfaces."""
     for deg, rails, faces in ((3.0, 2, 1), (10.0, 3, 1), (20.0, 3, 2)):
         h.new_scene()
         t = np.radians(deg)
@@ -596,30 +596,30 @@ def test_loft_laengslinien_an_knoten_ab_5_grad(h: H):
         h.v.do_loft()
         del h.v._track_pick_order
         along = [c for c in sc.curves if abs((c.points[-1] - c.points[0])[2]) > 1.9]
-        assert len(along) == rails, f"{deg}°: {len(along)} Längslinien statt {rails}"
-        assert len(sc.surfaces) == faces, f"{deg}°: {len(sc.surfaces)} Flächen statt {faces}"
+        assert len(along) == rails, f"{deg}°: {len(along)} lengthwise lines instead of {rails}"
+        assert len(sc.surfaces) == faces, f"{deg}°: {len(sc.surfaces)} surfaces instead of {faces}"
         assert all(isinstance(f, PatchSurface) for f in sc.surfaces)
 
 
-def test_loft_quadrat_vier_flaechen_kreis_eine_roehre(h: H):
-    """Geschlossen: Quadrat-Querschnitte (Ecken 90°) -> vier Kurvenflächen; Kreise ohne harten Punkt -> eine Röhre."""
+def test_loft_square_four_surfaces_circle_one_tube(h: H):
+    """Closed: square cross sections (corners 90°) -> four curve surfaces; circles without a hard point -> one tube."""
     from tests.harness import circle
-    for shape, faces in (("quadrat", 4), ("kreis", 1)):
+    for shape, faces in (("square", 4), ("circle", 1)):
         h.new_scene()
         secs = []
         for y in (0.0, 2.0):
-            if shape == "quadrat":
+            if shape == "square":
                 q = [[0, y, 0], [1, y, 0], [1, y, 1], [0, y, 1], [0, y, 0]]
                 secs.append(np.vstack([np.linspace(a, b, 11)[:-1] for a, b in zip(q, q[1:])] + [np.array([q[0]], float)]))
             else:
                 secs.append(circle([0, y, 0], 1.0, 65))
         surf, _lines = _make_loft_any(h, secs)
-        assert len(h.sc.surfaces) == faces, f"{shape}: {len(h.sc.surfaces)} Flächen statt {faces}"
-        if shape == "quadrat":
+        assert len(h.sc.surfaces) == faces, f"{shape}: {len(h.sc.surfaces)} surfaces instead of {faces}"
+        if shape == "square":
             for f in h.sc.surfaces:
                 v = f.fill_mesh()[0]
                 p = v - v.mean(axis=0)
-                assert np.linalg.svd(p, full_matrices=False)[1][2] < 1e-4, f"Wand {f.name} nicht eben"
+                assert np.linalg.svd(p, full_matrices=False)[1][2] < 1e-4, f"wall {f.name} not flat"
 
 
 def _make_loft_any(h: H, sections):

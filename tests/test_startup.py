@@ -1,4 +1,4 @@
-"""Startanimation (startup): spielt einmal durch, ruft genau einmal das Hauptfenster auf, Klick überspringt, ohne Datei geht es trotzdem."""
+"""Start animation (startup): plays through once, calls the main window exactly once, a click skips it, without a file it still works."""
 import os
 import tempfile
 import time
@@ -18,7 +18,7 @@ def _wait(until, seconds):
         time.sleep(0.002)
 
 
-def test_datei_ist_lesbar_mit_durchsichtigem_rand(h: H):
+def test_file_is_readable_with_transparent_border(h: H):
     anim = startup.StartAnimation(lambda: None)
     assert anim.movie.isValid() and anim.movie.frameCount() > 200
     assert anim.movie.jumpToNextFrame()
@@ -27,32 +27,32 @@ def test_datei_ist_lesbar_mit_durchsichtigem_rand(h: H):
     assert image.pixelColor(image.width() // 2, image.height() // 2).alpha() == 255
 
 
-def test_spielt_durch_und_ruft_einmal_auf(h: H):
+def test_plays_through_and_calls_once(h: H):
     calls = []
     anim = startup.StartAnimation(lambda: calls.append(1))
-    anim.movie.setSpeed(1000)  # zehnfach: der Test soll nicht fünf Sekunden warten
+    anim.movie.setSpeed(1000)  # ten times: the test should not wait five seconds
     assert anim.play()
     _wait(lambda: calls, 3)
     assert calls == [1]
     _wait(lambda: not anim.isVisible(), 1)
-    assert not anim.isVisible(), "nach dem Ausblenden geschlossen"
+    assert not anim.isVisible(), "closed after fading out"
     anim.finish()
     assert calls == [1]
 
 
-def test_standbild_am_schluss_wird_abgewartet(h: H):
-    """Gleiche Bilder fasst die Datei zusammen: das letzte Bild steht rund eine Sekunde."""
+def test_final_still_frame_is_waited_for(h: H):
+    """The file merges identical frames: the last frame stays about one second."""
     calls = []
     anim = startup.StartAnimation(lambda: calls.append(time.monotonic()))
     anim.movie.setSpeed(400)
     t0 = time.monotonic()
     assert anim.play()
     _wait(lambda: calls, 3)
-    assert calls and calls[0] - t0 > 1.0, "viermal so schnell: 4,6 s werden gut 1,1 s"
+    assert calls and calls[0] - t0 > 1.0, "four times as fast: 4.6 s become a good 1.1 s"
     _wait(lambda: not anim.isVisible(), 1)
 
 
-def test_klick_ueberspringt(h: H):
+def test_click_skips(h: H):
     calls = []
     anim = startup.StartAnimation(lambda: calls.append(1))
     assert anim.play()
@@ -64,7 +64,7 @@ def test_klick_ueberspringt(h: H):
     _wait(lambda: not anim.isVisible(), 1)
 
 
-def test_ohne_datei_oder_abgeschaltet_startet_mule_trotzdem(h: H):
+def test_without_file_or_disabled_mule_starts_anyway(h: H):
     calls = []
     missing = startup.StartAnimation(lambda: calls.append(1), os.path.join(tempfile.mkdtemp(), "fehlt.webp"))
     assert not missing.play() and not missing.isVisible()

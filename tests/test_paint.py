@@ -1,4 +1,4 @@
-"""Malmodus: tote, flach liegende Striche – neuester oben, nicht wählbar oder editierbar, radierbar, haften."""
+"""Paint mode: dead, flat-lying strokes – newest on top, not selectable or editable, erasable, they stick."""
 import os
 
 import numpy as np
@@ -20,21 +20,21 @@ def _paint_cross(h: H):
     h.v.set_paint_color((0.85, 0.2, 0.1))
     h.stroke_world([[x, 0, 0.3 * np.sin(x)] for x in np.linspace(-3, 3, 30)])
     h.v.set_paint_color((0.15, 0.35, 0.85))
-    h.stroke_world([[1.0 + 0.2 * np.sin(z * 2), 0, z] for z in np.linspace(-2.5, 2.5, 30)])  # kreuzt bei x = 1
+    h.stroke_world([[1.0 + 0.2 * np.sin(z * 2), 0, z] for z in np.linspace(-2.5, 2.5, 30)])  # crosses at x = 1
     return [c for c in h.curves() if c.paint]
 
 
-def test_malstriche_flach_und_neuester_oben(h: H):
+def test_paint_strokes_flat_and_newest_on_top(h: H):
     paint = _paint_cross(h)
     assert len(paint) == 2 and [c.seq for c in paint] == [1, 2]
     assert all(c.plane_id == h.sc.planes[0].id for c in paint)
     assert all(c.normals is not None and len(c.normals) == len(c.points) for c in paint)
     img = h.save_image("paint_kreuz.png")
-    r, g, b = h.pixel(img, h.scr([1.0, 0.0, 0.3 * np.sin(1.0)]))  # weg vom Ursprung (dort liegen die Welt-Achsen)
-    assert b > r + 40, f"an der Kreuzung liegt der neuere blaue Strich oben ({r}, {g}, {b})"
+    r, g, b = h.pixel(img, h.scr([1.0, 0.0, 0.3 * np.sin(1.0)]))  # away from the origin (the world axes lie there)
+    assert b > r + 40, f"at the crossing the newer blue stroke is on top ({r}, {g}, {b})"
 
 
-def test_malstriche_nicht_waehlbar_und_ohne_punkte(h: H):
+def test_paint_strokes_not_selectable_and_without_points(h: H):
     paint = _paint_cross(h)
     h.key(Qt.Key_S)
     h.edit_mode("edge")
@@ -45,7 +45,7 @@ def test_malstriche_nicht_waehlbar_und_ohne_punkte(h: H):
     assert not any(c.paint for _, c, _ in components.KnotIndex(h.sc).entries)
 
 
-def test_doppelklick_auf_ebene_waehlt_malerei(h: H):
+def test_double_click_on_plane_selects_paint(h: H):
     paint = _paint_cross(h)
     h.edit_mode("edge")
     h.v.set_planes_visible(True)
@@ -54,7 +54,7 @@ def test_doppelklick_auf_ebene_waehlt_malerei(h: H):
     assert sum(1 for c in sel if c is not None and c.paint) == len(paint)
 
 
-def test_radieren_und_speichern(h: H):
+def test_erasing_and_saving(h: H):
     paint = _paint_cross(h)
     n0 = sum(len(c.points) for c in paint)
     h.v.set_draw_tool("eraser")
@@ -65,11 +65,11 @@ def test_radieren_und_speichern(h: H):
     h.sc.save(path)
     s2, _ = Scene.load(path)
     loaded = [c for c in s2.curves if c.paint]
-    assert len(loaded) == len(paint), f"{len(loaded)} Malstriche geladen, {len(paint)} gespeichert"
+    assert len(loaded) == len(paint), f"{len(loaded)} paint strokes loaded, {len(paint)} saved"
     assert {c.seq for c in loaded} == {1, 2} and all(c.plane_id is not None for c in loaded)
 
 
-def test_malerei_folgt_dem_loft(h: H):
+def test_paint_follows_the_loft(h: H):
     sc = h.sc
     sc.new_stroke()
     t = np.linspace(0, 1, 12)
@@ -96,12 +96,12 @@ def test_malerei_folgt_dem_loft(h: H):
     secs[1].translate(np.array([0.0, 0.6, 0.0]))
     h.v._changed()
     pc = sc.curve_by_id(pc.id)
-    assert float(np.abs(pc.points - before).max()) > 1e-3, "Malstrich verformt sich mit dem Loft"
+    assert float(np.abs(pc.points - before).max()) > 1e-3, "paint stroke deforms with the loft"
     assert isinstance(lo, LoftSurface)
 
 
 def _patch_zum_malen(h: H):
-    """Kurvenfläche aus vier Randlinien als aktive Zeichenfläche, Malmodus an, Kamera davor."""
+    """Curve surface from four border lines as the active drawing surface, paint mode on, camera in front."""
     sc = h.new_scene()
     sc.new_stroke()
     t = np.linspace(0, 1, 12)
@@ -123,30 +123,30 @@ def _male(h: H, y):
     return [c for c in h.curves() if c.paint][-1]
 
 
-def test_malstrich_haftet_und_verformt_sich_mit(h: H):
-    """Ein Malstrich wird beim Absetzen sofort an seine Fläche gebunden, auch ohne vollen Abgleich, und folgt ihr."""
+def test_paint_stroke_sticks_and_deforms_along(h: H):
+    """A paint stroke is bound to its surface immediately when put down, even without a full reconciliation, and follows it."""
     surf = _patch_zum_malen(h)
     c = _male(h, 1.5)
-    assert c.plane_id == surf.id and c.id in surf.attached, "gleich nach dem Absetzen gebunden"
+    assert c.plane_id == surf.id and c.id in surf.attached, "bound right after putting down"
     before = c.points.copy()
     rand = [x for x in h.curves() if not x.paint][2]
     h.sc.checkpoint()
     rand.points = rand.points + np.array([0.0, 0.0, 1.0])
     h.v._changed()
-    assert float(np.abs(h.sc.curve_by_id(c.id).points - before).max()) > 1e-3, "folgt der verformten Fläche"
+    assert float(np.abs(h.sc.curve_by_id(c.id).points - before).max()) > 1e-3, "follows the deformed surface"
 
 
-def test_malstrich_undo_redo_ohne_szenenkopie(h: H):
+def test_paint_stroke_undo_redo_without_scene_copy(h: H):
     from sketch_machine.scene import _PaintStep
     surf = _patch_zum_malen(h)
     a, b = _male(h, 1.0), _male(h, 2.0)
-    assert [type(e) for e in h.sc._undo[-2:]] == [_PaintStep, _PaintStep], "keine Kopie der Szene je Malstrich"
+    assert [type(e) for e in h.sc._undo[-2:]] == [_PaintStep, _PaintStep], "no copy of the scene per paint stroke"
     pa, pb = a.points.copy(), b.points.copy()
     h.v.undo()
     assert h.sc.curve_by_id(b.id) is None and b.id not in surf.attached and h.sc.curve_by_id(a.id) is not None
     h.v.redo()
     assert np.array_equal(h.sc.curve_by_id(b.id).points, pb) and b.id in surf.attached
-    assert h.sc.curve_by_id(b.id).seq == 2, "bleibt der neueste Strich"
+    assert h.sc.curve_by_id(b.id).seq == 2, "stays the newest stroke"
     h.v.undo()
     h.v.undo()
     assert not [c for c in h.curves() if c.paint] and not surf.attached
@@ -155,19 +155,19 @@ def test_malstrich_undo_redo_ohne_szenenkopie(h: H):
     assert h.sc.curve_by_id(b.id) is None
 
 
-def test_malstrich_undo_im_wechsel_mit_anderen_aenderungen(h: H):
-    """Leichte Schritte und volle Szenenkopien in einem Verlauf: die Kopie stellt Objekte neu her, der Malstrich wird
-    trotzdem wiedergefunden."""
+def test_paint_stroke_undo_alternating_with_other_changes(h: H):
+    """Light steps and full scene copies in one history: the copy recreates objects, the paint stroke is
+    still found."""
     surf = _patch_zum_malen(h)
     a = _male(h, 1.0)
     pts = a.points.copy()
-    h.sc.checkpoint()  # volle Kopie, danach eine Änderung an der Fläche
+    h.sc.checkpoint()  # full copy, then a change to the surface
     surf.name = "Blatt"
     b = _male(h, 2.0)
-    h.v.undo()  # b weg
-    h.v.undo()  # Kopie: alle Objekte neu
+    h.v.undo()  # b gone
+    h.v.undo()  # copy: all objects new
     assert h.sc.curve_by_id(a.id) is not None and h.sc.curve_by_id(b.id) is None
-    h.v.undo()  # a weg, obwohl das Objekt inzwischen ein anderes ist
+    h.v.undo()  # a gone, although the object is a different one by now
     assert not [c for c in h.curves() if c.paint]
     for _ in range(3):
         h.v.redo()
@@ -176,8 +176,8 @@ def test_malstrich_undo_im_wechsel_mit_anderen_aenderungen(h: H):
     assert a.id in surf.attached and b.id in surf.attached
 
 
-def test_malstrich_mit_neuem_stroke_objekt_ist_voller_schritt(h: H):
-    """Entsteht fürs Malen erst ein Stroke-Objekt, muss Undo auch das zurücknehmen."""
+def test_paint_stroke_with_new_stroke_object_is_full_step(h: H):
+    """If painting first creates a stroke object, undo must take that back too."""
     from sketch_machine.scene import _PaintStep
     h.new_scene()
     h.v._activate(h.sc.planes[0])
@@ -191,8 +191,8 @@ def test_malstrich_mit_neuem_stroke_objekt_ist_voller_schritt(h: H):
     assert not h.sc.strokes
 
 
-def test_malstrich_baut_listen_und_outliner_nicht_unnoetig(h: H):
-    """Ansetzen und Bewegen bauen die Zeichenlisten nicht neu, der Outliner bleibt stehen, seine Linienzahl stimmt."""
+def test_paint_stroke_does_not_rebuild_lists_and_outliner_needlessly(h: H):
+    """Starting and moving do not rebuild the draw lists, the outliner stays put, its line count is right."""
     from PySide6.QtCore import QPoint, QPointF
     from PySide6.QtTest import QTest
     from PySide6.QtWidgets import QTreeWidgetItemIterator
@@ -219,32 +219,32 @@ def test_malstrich_baut_listen_und_outliner_nicht_unnoetig(h: H):
         for p in pts[1:]:
             h.move(QPointF(p), Qt.LeftButton)
             frame()
-        assert not calls, f"Listen beim Zeichnen neu gebaut: {calls}"
+        assert not calls, f"lists rebuilt while drawing: {calls}"
         QTest.mouseRelease(h.v, Qt.LeftButton, Qt.NoModifier, pts[-1].toPoint())
         h.pump(0.05)
-        assert not rebuilt, "Outliner neu aufgebaut"
+        assert not rebuilt, "outliner rebuilt"
         frame()
-        assert calls, "nach dem Absetzen zeigen die Listen den neuen Strich"
+        assert calls, "after putting down, the lists show the new stroke"
     finally:
         type(h.v)._scene_stroke_list, Outliner.rebuild = list_fn, rebuild_fn
     stroke = h.sc.active_stroke
     it = QTreeWidgetItemIterator(tree)
     while it.value() and it.value().data(0, ID_ROLE) != stroke.id:
         it += 1
-    assert it.value().text(INFO).startswith(str(len(stroke.curves))), "Linienzahl aktuell"
+    assert it.value().text(INFO).startswith(str(len(stroke.curves))), "line count up to date"
 
 
-def test_malerei_auf_mesh_liegt_flach_und_leicht_abgehoben(h: H):
-    """Auf einem importierten Mesh: Malerei flach auf seiner Oberfläche (Normale des Meshes, zur Seite, von der gemalt
-    wurde – auch bei verkehrt gewundenen Dreiecken) und ein wenig abgehoben; ältere Szenen werden beim Laden einmal
-    angepasst."""
+def test_paint_on_mesh_lies_flat_and_slightly_lifted(h: H):
+    """On an imported mesh: paint lies flat on its surface (normal of the mesh, towards the side it was painted
+    from – also with wrongly wound triangles) and slightly lifted; older scenes are adjusted once
+    on loading."""
     import json
     import tempfile
     from sketch_machine.geometry import Geometry
     from sketch_machine.scene import MeshObject, PAINT_LIFT
     h.new_scene()
     v = np.array([[-3, 0.5, -3], [3, 0.5, -3], [3, 0.5, 3], [-3, 0.5, 3]], float)
-    mesh = MeshObject("Platte", "", Geometry(v, np.array([[0, 1, 2], [0, 2, 3]])))  # Normale nach unten gewunden
+    mesh = MeshObject("Platte", "", Geometry(v, np.array([[0, 1, 2], [0, 2, 3]])))  # normal wound downwards
     h.sc.meshes.append(mesh)
     h.v._changed()
     h.camera([0, 0.5, 0], 9, [0.1, 0.9, 0.4])
@@ -258,9 +258,9 @@ def test_malerei_auf_mesh_liegt_flach_und_leicht_abgehoben(h: H):
     assert c.plane_id == mesh.id
     lift = PAINT_LIFT * float(np.mean(c.widths))
     assert c.lift > 0 and abs(c.lift - lift) < 1e-9
-    assert np.allclose(c.normals, [0, 1, 0], atol=1e-6), "Normale des Meshes, zur Kamera hin"
-    assert np.allclose(c.points[:, 1], 0.5 + lift, atol=1e-4), "knapp über der Oberfläche"
-    # ältere Szene: Malerei ohne Abheben, Normale zur damaligen Kamera
+    assert np.allclose(c.normals, [0, 1, 0], atol=1e-6), "normal of the mesh, towards the camera"
+    assert np.allclose(c.points[:, 1], 0.5 + lift, atol=1e-4), "just above the surface"
+    # older scene: paint without lift, normal towards the camera of that time
     path = os.path.join(tempfile.mkdtemp(), "malerei_mesh.sketch.json")
     h.sc.save(path)
     with open(path, encoding="utf-8") as f:
@@ -276,13 +276,13 @@ def test_malerei_auf_mesh_liegt_flach_und_leicht_abgehoben(h: H):
     from sketch_machine.geometry import Geometry as G
     import sketch_machine.geometry as geo_mod
     real = geo_mod.load
-    geo_mod.load = lambda p, prim=None: G(v, np.array([[0, 1, 2], [0, 2, 3]]))  # Mesh ohne Datei
+    geo_mod.load = lambda p, prim=None: G(v, np.array([[0, 1, 2], [0, 2, 3]]))  # mesh without file
     try:
         loaded = Scene.load(path)[0]
         again = [c for c in loaded.curves if c.paint][0]
         assert np.allclose(again.points[:, 1], 0.5 + lift, atol=1e-4) and np.allclose(again.normals, [0, 1, 0], atol=1e-6)
         loaded.save(path)
         twice = [c for c in Scene.load(path)[0].curves if c.paint][0]
-        assert np.allclose(twice.points[:, 1], 0.5 + lift, atol=1e-4), "nur einmal abgehoben"
+        assert np.allclose(twice.points[:, 1], 0.5 + lift, atol=1e-4), "lifted only once"
     finally:
         geo_mod.load = real

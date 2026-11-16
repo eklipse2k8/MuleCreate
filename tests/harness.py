@@ -1,19 +1,19 @@
-"""Test-Harness: startet Sketch Machine wie ein Nutzer (echtes Fenster, echte Maus- und Tastenereignisse).
+"""Test harness: starts Sketch Machine like a user (real window, real mouse and key events).
 
-Einstellungen: QSettings wird VOR dem Import der App auf eine Wegwerf-Datei umgelenkt – Tests schreiben nie in die
-echten Einstellungen (Fensterlayout, Farben, Druck …), auch nicht beim Schließen des Fensters.
+Settings: QSettings is redirected to a throwaway file BEFORE the app is imported – tests never write to the real
+settings (window layout, colors, pressure …), not even when the window is closed.
 
-Gebrauch in einer Testdatei:
+Usage in a test file:
 
     from tests.harness import H, expected_failure
 
-    def test_etwas(h: H):
+    def test_something(h: H):
         h.new_scene()
         ...
-        assert bedingung, "Meldung"
+        assert condition, "message"
 
-    @expected_failure("Loft hält Geister-Querschnitte (F5)")
-    def test_bekanntes_problem(h: H):
+    @expected_failure("Loft keeps ghost cross-sections (F5)")
+    def test_known_problem(h: H):
         ...
 """
 import math
@@ -24,7 +24,7 @@ import time
 import numpy as np
 from PySide6 import QtCore
 
-# --- Einstellungen umlenken (vor jedem Import der App) ---
+# --- Redirect settings (before any import of the app) ---
 _SETTINGS_DIR = tempfile.mkdtemp(prefix="sketch_tests_")
 _SETTINGS_FILE = os.path.join(_SETTINGS_DIR, "settings.ini")
 _OrigSettings = QtCore.QSettings
@@ -41,29 +41,29 @@ from PySide6.QtCore import QEvent, QPoint, QPointF, Qt  # noqa: E402
 
 from sketch_machine import renderer as _renderer  # noqa: E402
 
-# Teil-Upload der Striche in jedem Test gegen die volle Aufbereitung prüfen (Messskripte: SM_FAST=1 schaltet es ab)
+# Check the partial stroke upload in every test against the full preparation (measuring scripts: SM_FAST=1 turns it off)
 _renderer.Renderer.VERIFY_STROKES = not os.environ.get("SM_FAST")
 from sketch_machine.vp import display_lists as _display_lists  # noqa: E402
 
-# … und die je Linienobjekt gemerkten Strich-Einträge gegen frisch zusammengestellte
+# ... and the stroke entries remembered per line object against freshly assembled ones
 _display_lists.DisplayListMixin.VERIFY_LISTS = not os.environ.get("SM_FAST")
 from sketch_machine import scene_surfaces as _scene_surfaces  # noqa: E402
 
-# … und jede beim Abgleich übersprungene Fläche: trotzdem abgleichen, es darf sich nichts ändern
+# ... and every surface skipped during the sync: sync it anyway, nothing may change
 _scene_surfaces.SurfaceSyncMixin.VERIFY_SYNC = not os.environ.get("SM_FAST")
-# Undo-Kopie teilt Unverändertes mit dem vorigen Schritt: jede Kopie zusätzlich voll anlegen und vergleichen
+# An undo copy shares unchanged data with the previous step: also build every copy in full and compare
 from sketch_machine import scene as _scene_mod  # noqa: E402
 
 _scene_mod.Scene.VERIFY_UNDO = not os.environ.get("SM_FAST")
-# Verzeichnisse (Objekt/Linie zu einer id) in jedem Test gegen die Suche über alle Listen prüfen
+# Check the directories (object/line for an id) in every test against a search over all lists
 _scene_mod.Scene.VERIFY_INDEX = not os.environ.get("SM_FAST")
-_scene_mod.SurfaceObject.VERIFY_KEY = not os.environ.get("SM_FAST")  # gemerkte Flächen-Schlüssel nachrechnen
+_scene_mod.SurfaceObject.VERIFY_KEY = not os.environ.get("SM_FAST")  # recompute remembered surface keys
 from PySide6.QtGui import QColor, QMouseEvent, QWheelEvent  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-# Fehler in Qt-Rückrufen (paintGL, Ereignisse) landen sonst nur auf der Konsole – im Viewport sieht man dann bunte
-# Kästchen. Sie werden hier gesammelt, und der Test, in dem sie auftreten, gilt als FEHLER (run.py).
+# Errors in Qt callbacks (paintGL, events) otherwise only end up on the console – the viewport then shows colored
+# boxes. They are collected here, and the test in which they occur counts as an ERROR (run.py).
 QT_ERRORS = []
 
 
@@ -77,11 +77,11 @@ sys.excepthook = _qt_hook
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCENES = os.path.join(ROOT, "tests", "scenes")
-OUT = os.path.join(ROOT, "tests", "_out")  # Bilder und Zwischenstände der Läufe (nicht im Repo)
+OUT = os.path.join(ROOT, "tests", "_out")  # images and intermediate results of the runs (not in the repo)
 
 
 def expected_failure(reason):
-    """Bekanntes Problem: der Test beschreibt das gewünschte Verhalten und darf (noch) scheitern."""
+    """Known problem: the test describes the desired behavior and may (still) fail."""
     def mark(fn):
         fn.expected_failure = reason
         return fn
@@ -89,16 +89,16 @@ def expected_failure(reason):
 
 
 class H:
-    """Ein App-Fenster für alle Tests einer Datei, mit Helfern für echte Eingaben."""
+    """One app window for all tests of a file, with helpers for real input."""
 
     def __init__(self, size=(1200, 800)):
         from sketch_machine.app import MainWindow
         QApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
         self.app = QApplication.instance() or QApplication([])
         self.w = MainWindow()
-        self.w.viewport.set_display_resolution(1.0)  # Viewport-Qualität aus der App-Einstellung: in Tests immer 1
+        self.w.viewport.set_display_resolution(1.0)  # viewport quality from the app setting: always 1 in tests
         from sketch_machine.workspace import CLEANUP_DIST_DEFAULT
-        self.w.ws.cleanup_dist = CLEANUP_DIST_DEFAULT  # Cleanup-Fangweite aus der App-Einstellung: in Tests der Standard
+        self.w.ws.cleanup_dist = CLEANUP_DIST_DEFAULT  # cleanup snap distance from the app setting: the default in tests
         self.w.resize(*size)
         self.w.move(-4000, 40)
         self.w.show()
@@ -106,7 +106,7 @@ class H:
         self.w._set_dark(False, persist=False)
         os.makedirs(OUT, exist_ok=True)
 
-    # --- Grundlagen ---
+    # --- Basics ---
     @property
     def v(self):
         return self.w.viewport
@@ -134,7 +134,7 @@ class H:
         return self.sc
 
     def load(self, path):
-        """Szene laden (Pfad relativ zum Repo); liefert die gespeicherten Daten (z. B. Kamera)."""
+        """Load a scene (path relative to the repo); returns the saved data (e.g. camera)."""
         from sketch_machine.scene import Scene
         scene, data = Scene.load(os.path.join(ROOT, path) if not os.path.isabs(path) else path)
         self.v.set_scene(scene)
@@ -153,7 +153,7 @@ class H:
         self.grab()
 
     def frame(self, points, back=(0.4, 0.6, 0.7), margin=1.6):
-        """Kamera so, dass die Punkte im Bild sind."""
+        """Camera such that the points are in the picture."""
         pts = np.asarray(points, float).reshape(-1, 3)
         size = float(np.linalg.norm(np.ptp(pts, axis=0))) or 1.0
         self.camera(pts.mean(axis=0), size * margin, back)
@@ -162,8 +162,8 @@ class H:
         return self.v.grabFramebuffer()
 
     def stroke_frames(self, screen_points, step_px=4):
-        """Wie stroke, aber mit einem gezeichneten Bild nach jeder Mausbewegung (Fehler beim Zeichnen des laufenden
-        Strichs zeigen sich nur so)."""
+        """Like stroke, but with a drawn frame after every mouse move (errors while drawing the running
+        stroke only show up this way)."""
         pts = [np.array([p.x(), p.y()], float) for p in screen_points]
         dense = [pts[0]]
         for a, b in zip(pts[:-1], pts[1:]):
@@ -194,9 +194,9 @@ class H:
         if self.v.select_mode:
             self.key(Qt.Key_Tab)
 
-    # --- Bildschirm ---
+    # --- Screen ---
     def scr(self, point):
-        """Weltpunkt -> QPoint auf dem Bildschirm."""
+        """World point -> QPoint on the screen."""
         q = self.v.project(np.asarray(point, float).reshape(1, 3))[0][0]
         return QPoint(int(round(q[0])), int(round(q[1])))
 
@@ -204,7 +204,7 @@ class H:
         q = self.v.project(np.asarray(point, float).reshape(1, 3))[0][0]
         return QPointF(float(q[0]), float(q[1]))
 
-    # --- Eingaben ---
+    # --- Input ---
     def move(self, pos, buttons=Qt.NoButton, mods=Qt.NoModifier):
         pos = QPointF(pos)
         self.app.sendEvent(self.v, QMouseEvent(QEvent.MouseMove, pos, self.v.mapToGlobal(pos), Qt.NoButton, buttons, mods))
@@ -219,7 +219,7 @@ class H:
         pos = pos if isinstance(pos, QPoint) else pos.toPoint()
         self.click(pos, mods)
         QTest.mouseDClick(self.v, Qt.LeftButton, mods, pos)
-        QTest.mouseRelease(self.v, Qt.LeftButton, mods, pos)  # wie eine echte Maus: nach dem Doppelklick loslassen
+        QTest.mouseRelease(self.v, Qt.LeftButton, mods, pos)  # like a real mouse: release after the double click
         self.pump(0.02)
 
     def key(self, k, mods=Qt.NoModifier):
@@ -234,7 +234,7 @@ class H:
         self.pump(0.02)
 
     def stroke(self, screen_points, hold=False, mods=Qt.NoModifier, step_px=4):
-        """Strich entlang von Bildschirmpunkten (QPoint/QPointF); hold = am Ende stillhalten (Gerade/Form)."""
+        """Stroke along screen points (QPoint/QPointF); hold = keep still at the end (line/shape)."""
         pts = [np.array([p.x(), p.y()], float) for p in screen_points]
         dense = [pts[0]]
         for a, b in zip(pts[:-1], pts[1:]):
@@ -252,38 +252,38 @@ class H:
         self.pump(0.02)
 
     def stroke_world(self, points, hold=False, mods=Qt.NoModifier):
-        """Strich durch Weltpunkte (auf die aktive Zeichenfläche projiziert, wie ein Nutzer zeichnen würde)."""
+        """Stroke through world points (projected onto the active drawing plane, as a user would draw)."""
         self.stroke([self.scrf(p) for p in points], hold=hold, mods=mods)
 
-    # --- Abfragen ---
+    # --- Queries ---
     def curves(self):
         return [c for st in self.sc.strokes for c in st.curves]
 
-    # --- Zugang zur Szene für Tests (Umbau-Plan, Etappe 2) ---
-    # Tests sollen die Szene über diese Fragen lesen statt über ihre inneren Felder: Mit den Objekt-Inseln und der Lage
-    # je Objekt ändert sich, wo Punkte stehen (lokal statt Welt) und wie Verbindungen gespeichert sind. Dann wird hier
-    # EINE Stelle angepasst statt hunderter Tests. Neue Tests benutzen sie; alte werden umgestellt, wenn sie brechen.
-    def welt(self, curve):
-        """Punkte einer Linie in Weltkoordinaten, (N, 3)."""
+    # --- Access to the scene for tests (rebuild plan, stage 2) ---
+    # Tests should read the scene through these queries instead of its inner fields: with object islands and a pose
+    # per object, where points live (local instead of world) and how connections are stored changes. Then ONE place
+    # is adjusted here instead of hundreds of tests. New tests use them; old ones are converted when they break.
+    def world(self, curve):
+        """Points of a line in world coordinates, (N, 3)."""
         return np.asarray(curve.points, float)
 
-    def objekt_von(self, curve):
-        """Linienobjekt, zu dem die Linie gehört (None: zu keinem)."""
+    def object_of(self, curve):
+        """Line object the line belongs to (None: none)."""
         return self.sc.owner_of(curve)
 
-    def verbunden(self, a, ka, b, kb):
-        """Hängen Knoten ka der Linie a und Knoten kb der Linie b am selben Punkt?"""
+    def connected(self, a, ka, b, kb):
+        """Are node ka of line a and node kb of line b attached to the same point?"""
         from sketch_machine import network
         network.sync(self.sc)
         pa, pb = network.pid_of(a, ka), network.pid_of(b, kb)
         return pa is not None and pa == pb
 
-    def flaechen_von(self, stroke):
-        """Flächen, die dem Linienobjekt gehören."""
+    def surfaces_of(self, stroke):
+        """Surfaces owned by the line object."""
         return [f for f in self.sc.surfaces if f.owner == stroke.id]
 
-    def form(self, surface):
-        """Angezeigtes Netz einer Fläche in Weltkoordinaten: (Punkte (N, 3), Dreiecke (M, 3))."""
+    def shape(self, surface):
+        """Displayed mesh of a surface in world coordinates: (points (N, 3), triangles (M, 3))."""
         mesh = surface.fill_mesh()
         return np.asarray(mesh[0], float), np.asarray(mesh[1])
 
@@ -292,7 +292,7 @@ class H:
 
     @staticmethod
     def diff(a, b, step=2, threshold=2):
-        """Anzahl abweichender Pixel (Stichprobe, Toleranz in Farbstufen) zwischen zwei Bildern."""
+        """Number of differing pixels (sampled, tolerance in color steps) between two images."""
         if a.size() != b.size():
             return -1
         n = 0
@@ -306,7 +306,7 @@ class H:
         return n
 
     def close(self):
-        """Fenster schließen – schreibt nur in die Wegwerf-Einstellungen."""
+        """Close the window – only writes to the throwaway settings."""
         self.sc.dirty = False
         self.w.close()
 
@@ -316,7 +316,7 @@ def line(a, b, n=12):
 
 
 def arc(center, radius, a0, a1, n=24, axis="y"):
-    """Kreisbogen um center in der Ebene senkrecht zu axis (Winkel in Grad)."""
+    """Circular arc around center in the plane perpendicular to axis (angles in degrees)."""
     t = np.radians(np.linspace(a0, a1, n))
     c = np.asarray(center, float)
     if axis == "y":

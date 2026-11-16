@@ -66,4 +66,3 @@ Defaults come from the first round (key `visibility`, see `conductor.md`).
 - Piece names follow primitive connectivity; they stay stable only while the topology stays the same (checked; otherwise part level).
 - Thin parts near the threshold react to the resolution; the variants table shows how stable the tiers are.
 
-`PILOT_README_de.md` is the artist's German note on the pilot (glider, unit U45) with the reasons behind the defaults.

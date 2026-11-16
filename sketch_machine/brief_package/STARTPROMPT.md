@@ -1,7 +1,7 @@
-(Die Sitzung im Brief-Ordner starten und den Vertrauensdialog bestätigen, sonst laufen die Hooks nicht.)
+(Start the session in the brief folder and confirm the trust dialog, otherwise the hooks do not run.)
 
-Beginne deine erste Nachricht mit dem Block „GATE STATUS“ aus dem Start-Hook, wörtlich zitiert. Fehlt er, mach nichts weiter und sag es mir.
+Begin your first message with the "GATE STATUS" block from the start hook, quoted verbatim. If it is missing, do nothing else and tell me.
 
-Prüfe und besprich den Sketch Brief „<Projekt>“ (<Pfad>). Lies `conductor.md`, `project.md` und `brief.md` und mach die erste Runde, wie sie in `conductor.md` steht: zuerst die echten Fragen mit markierten Bildern, dann eine Tabelle mit allem Zweifelsfreien, dann die Einheiten mit Abhängigkeiten und Spuren. Ich darf per Ausnahme antworten. Nach meinen Antworten kommt dein kurzer Zielvorschlag; gebaut wird erst nach meiner Bestätigung.
+Check and discuss the Sketch Brief "<project>" (<path>). Read `conductor.md`, `project.md` and `brief.md` and do the first round as `conductor.md` describes it: first the real questions with marked pictures, then a table with everything that is beyond doubt, then the units with dependencies and tracks. I may answer by exception. After my answers comes your short goal proposal; nothing is built until I confirm.
 
-Stufe dieses Laufs: <scout | study | final>.
+Level of this run: <scout | study | final>.

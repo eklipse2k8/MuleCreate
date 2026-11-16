@@ -25,7 +25,11 @@ import tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 # Tracked, but not public: measurement scripts point to private scenes, the studio guide is internal
-EXCLUDE = ("bench", "packaging/LIESMICH_Studio.txt", "bible/konzept_timing.md")
+# Developer-only files and German documents: the public repository is English only (the German UI stays – it is a
+# language of the program, not a document)
+EXCLUDE = ("bench", "packaging/LIESMICH_Studio.txt", "bible/konzept_timing.md", "ANLEITUNG.md", "LIESMICH.md",
+           "sketch_machine/brief_package/LIESMICH.md", "sketch_machine/brief_package/_claude/AENDERUNGEN_HOOKS.md",
+           "sketch_machine/brief_package/tools/vis_map/PILOT_README_de.md")
 BIBLE = os.path.join("bible", "sketch_machine_bible.md")
 # Workflow bible in the public repo: technique and tool entries only. Entries about the build process (agents, reviewers,
 # gates, the artist's intent) are superseded by the brief package (rules, roles, hooks) and stay in the private bible.
@@ -117,26 +121,26 @@ def head_version():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("target", help="neuer, leerer Ordner (außerhalb dieses Repos)")
-    ap.add_argument("--name", required=True, help="Autorname für den ersten Commit")
-    ap.add_argument("--email", required=True, help="Autor-Adresse für den ersten Commit (die neue, öffentliche)")
-    ap.add_argument("--message", default="Mule Create – first public version", help="Text des ersten Commits")
+    ap.add_argument("target", help="new, empty folder (outside this repo)")
+    ap.add_argument("--name", required=True, help="author name for the first commit")
+    ap.add_argument("--email", required=True, help="author address for the first commit (the new, public one)")
+    ap.add_argument("--message", default="Mule Create – first public version", help="text of the first commit")
     a = ap.parse_args()
 
     target = os.path.abspath(a.target)
     if os.path.commonpath([target, ROOT]) == ROOT:
-        sys.exit("Der Zielordner darf nicht im Mule-Repo liegen.")
+        sys.exit("The target folder must not be inside the Mule repo.")
     if os.path.exists(target) and os.listdir(target):
-        sys.exit(f"{target} ist nicht leer.")
+        sys.exit(f"{target} is not empty.")
     if re.search("|".join(PRIVATE), a.email, re.IGNORECASE):
-        sys.exit("Das ist die alte Adresse – für das öffentliche Repo eine neue angeben.")
+        sys.exit("That is the old address – give a new one for the public repo.")
     head, tag = head_version()
     tags = [tag] if tag else []
 
     os.makedirs(target, exist_ok=True)
     hits = clean_copy(target)
     if hits:
-        print("Private Spuren gefunden – nichts committet, bitte zuerst im Mule-Repo beheben:")
+        print("Private traces found – nothing committed, please fix them in the Mule repo first:")
         print("\n".join(hits[:50]))
         sys.exit(1)
 
@@ -147,8 +151,8 @@ def main():
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     git("commit", "-q", "-m", a.message, cwd=target, env=env)
     files = len(git("ls-files", cwd=target).splitlines())
-    print(f"Fertig: {target}\n  {files} Dateien aus {head} {' '.join(tags)}, ein Commit von {a.name} <{a.email}>, "
-          f"kein Remote.\n  Weiter von Hand: git remote add origin <URL> && git push -u origin main")
+    print(f"Done: {target}\n  {files} files from {head} {' '.join(tags)}, one commit by {a.name} <{a.email}>, "
+          f"no remote.\n  Continue by hand: git remote add origin <URL> && git push -u origin main")
 
 
 if __name__ == "__main__":

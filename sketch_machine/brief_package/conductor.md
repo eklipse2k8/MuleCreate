@@ -14,7 +14,7 @@ Every agent is fresh. Start it with its agent type (`.claude/agents/<role>.md`) 
 | stand-in | questions of taste during the run (rule 6) | answer in `review/standin_answers.md` |
 | viewer | show something to the artist in a live session: open a scene, set a camera or state; never saves | one line; no referee needed |
 
-**Targets and judging are split:** one fresh QC writes the picture targets of a unit (from notes, readings, references and current pictures; for taste it asks the stand-in), another fresh QC judges against them. You only copy the targets into tasks and the work list. A target names an area of tier A, a camera and what must read there by function, never „like the generated image“.
+**Targets and judging are split:** one fresh QC writes the picture targets of a unit (from notes, readings, references and current pictures; for taste it asks the stand-in), another fresh QC judges against them. You only copy the targets into tasks and the work list. A target names an area of tier A, a camera and what must read there by function, never "like the generated image".
 
 ## The loop for one unit
 1. **Plan:** units and lanes are in `review/units.md` with dependencies and interfaces. Before the first detail stage: components, runs and areas of the unit in `review/components.md` with one picture per proposed view, confirmed by the artist by exception; the visibility map with the component views (rule 7, one config per component, `component` key) comes from the builder run that changed the geometry, at its end – only when none is due, a helper runs it (a map run gets no referee and no QC); at study and final, a QC writes the picture targets, also per component view.
@@ -76,20 +76,20 @@ Open the hero pictures and the whole-board pictures, and the section pictures of
 2. One table of everything beyond doubt: point · reading · source.
 3. The units with dependencies and lanes, on one colour-coded overview picture.
 
-End this message with one line in the artist's language, e.g. „Current level: study – change it any time with a line `SET: level=scout|study|final`“, giving the level from gate.conf (the GATE STATUS shows it).
+End this message with one line in the artist's language, e.g. "Current level: study – change it any time with a line `SET: level=scout|study|final`", giving the level from gate.conf (the GATE STATUS shows it).
 
-The artist may answer by exception („all fine except 3 and 7“); that confirms the rest. Marks of later units are clarified when their unit starts, as short questions with pictures, while other work goes on.
+The artist may answer by exception ("all fine except 3 and 7"); that confirms the rest. Marks of later units are clarified when their unit starts, as short questions with pictures, while other work goes on.
 
-**Mandatory keys** – asked unless the brief settles them beyond doubt; each answer is one line in `readings.md`: `<key>: <answer> — backing: artist „<words>“ | brief <section, quoted>`. The hooks refuse the first builder until the keys of the level exist (`levels.md`).
+**Mandatory keys** – asked unless the brief settles them beyond doubt; each answer is one line in `readings.md`: `<key>: <answer> — backing: artist "<words>" | brief <section, quoted>`. The hooks refuse the first builder until the keys of the level exist (`levels.md`).
 
 | Key | Question |
 |---|---|
 | `goal` | the goal of this round in one sentence, what belongs to it and what not; contradictions between notes, task and answers |
 | `level` | scout, study or final |
 | `units` | the cut into units, with reasons and dependencies |
-| `approach` | blockout and part-spec pass over everything first (unit `U0`), or straight into the first unit? A general „go“ does not answer this. If the project document names no tools of the artist, also ask which software is at hand and what it is used for (rule 12). |
+| `approach` | blockout and part-spec pass over everything first (unit `U0`), or straight into the first unit? A general "go" does not answer this. If the project document names no tools of the artist, also ask which software is at hand and what it is used for (rule 12). |
 | `blockout` | how existing geometry may be used (template, start geometry, partly final), and which parts are only placeholders (`basis`) |
-| `tolerance` | how closely the build follows the drawing (rule 10) – propose the defaults and ask only for changes: precise lines and modelled surfaces within 3 % of each line's own length, direction 10°, curves stay curves; gestures 10 %; route lines by their ends and order. Ask what may move („up to 3 % of the line“) and what may never change (directions, curves, proportions), never as a share of area. Also: whether outlines like a footprint or a silhouette are hard limits or a starting area, and **where the artist hands design over** (the task or a note asks for design – free and bold there, within what is drawn) and where design that is not drawn stays quiet and comes to the artist as variants. The kind of every mark is part of its reading (`readings.md`). |
+| `tolerance` | how closely the build follows the drawing (rule 10) – propose the defaults and ask only for changes: precise lines and modelled surfaces within 3 % of each line's own length, direction 10°, curves stay curves; gestures 10 %; route lines by their ends and order. Ask what may move ("up to 3 % of the line") and what may never change (directions, curves, proportions), never as a share of area. Also: whether outlines like a footprint or a silhouette are hard limits or a starting area, and **where the artist hands design over** (the task or a note asks for design – free and bold there, within what is drawn) and where design that is not drawn stays quiet and comes to the artist as variants. The kind of every mark is part of its reading (`readings.md`). |
 | `collision` | what counts as a collision: size, which cameras, which states |
 | `visibility` | settings of the visibility map – propose the defaults and ask only for changes: 960 px picture width; threshold 20 px per piece; cloud of 16 cameras per hero camera, ±15° and ±20 % distance, fixed seed; states rest, middle, end and one extreme. Also: areas the artist wants as tier A; whether see-through surfaces (membranes, glass) hide what is behind them. The map runs where the review scene lives: a `.blend` with `tools/vis_map/vis_blender.py` alone, a Houdini scene with `vis_export.py` + `vis_map.py` (`tools/vis_map/README.md`) |
 | `sheet` | what each sheet shows and when the artist wants to see it |
@@ -102,4 +102,4 @@ The artist may answer by exception („all fine except 3 and 7“); that confirm
 - Present what QC passed, with the review scene (viewer) and a few sheet pictures.
 - Before every sheet or showing, check the work list against `review/gate/artist.log`: every instruction and approval of the artist has its line, verbatim, with a status (rule 5). Visible faults put off under rule 15 go to the top of the artist list.
 - In four groups (rule 16). List every `DEPART:` first, with its overlay picture – only the artist approves a departure (rule 4). Then every `BREAK:`, open QC point, stand-in decision, open `ASSUMED` entry, adopted or dropped proposal (`adopted.md`) and open question, each with a picture where the part is marked and named, so the artist can overrule in one go.
-- Feedback with several points goes into the work list first, one line each (rule 5): part · view · kind (design or fault) · the artist's words · goal · what stays fixed – by default the form of the sketch within key `tolerance`. Words like „tighter“, „closer“, „sits together“ ask for fit within that tolerance, never for a changed form (rule 4).
+- Feedback with several points goes into the work list first, one line each (rule 5): part · view · kind (design or fault) · the artist's words · goal · what stays fixed – by default the form of the sketch within key `tolerance`. Words like "tighter", "closer", "sits together" ask for fit within that tolerance, never for a changed form (rule 4).

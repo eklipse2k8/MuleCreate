@@ -378,7 +378,7 @@ class ComponentEditMixin:
             if self.VERIFY_LISTS:
                 slow = self._net_marks_now()[0]
                 assert all(len(a) == len(b) and (not len(a) or np.allclose(np.array(a), np.array(b)))
-                           for a, b in zip(fast[:2], slow[:2])), "gemerkte Punkt-Marken weichen im Zug von den frischen ab"
+                           for a, b in zip(fast[:2], slow[:2])), "remembered point marks differ from fresh ones during the drag"
             return fast
         marks, kinds = self._net_marks_now()
         self._marks_memo = (self.scene, self.scene.revision, kinds)

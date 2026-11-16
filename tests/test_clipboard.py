@@ -1,4 +1,4 @@
-"""Kopieren und Einfügen: Eingefügte Flächen folgen ihren eingefügten Linien, das Original bleibt unberührt."""
+"""Copy and paste: pasted surfaces follow their pasted lines, the original stays untouched."""
 import numpy as np
 
 from tests.harness import H, Qt, line
@@ -6,7 +6,7 @@ from sketch_machine import edges
 from sketch_machine.clipboard import Clipboard, paste
 
 
-def _bend(c, h):  # Mitte anheben, Enden bleiben (Umriss bleibt geschlossen)
+def _bend(c, h):  # raise the middle, ends stay (outline stays closed)
     c.points = c.points + np.outer(np.sin(np.linspace(0, np.pi, len(c.points))), [0.0, h, 0.0])
 
 
@@ -20,10 +20,10 @@ def _check(sc, surf, lines, move_index):
     orig, new = surf.fill_mesh()[0].copy(), new_surf.fill_mesh()[0].copy()
     _bend(new_lines[move_index], 0.7)
     sc.sync_lofts()
-    # (das angezeigte Netz richtet sich nach der Krümmung: verbogen hat es auch eine andere Punktzahl)
+    # (the displayed net depends on the curvature: bent, it also has a different point count)
     same = lambda a, b: a.shape == b.shape and np.allclose(a, b)
-    assert not same(new_surf.fill_mesh()[0], new), "eingefügte Fläche folgt ihrer eingefügten Linie"
-    assert same(surf.fill_mesh()[0], orig), "Original bleibt unberührt"
+    assert not same(new_surf.fill_mesh()[0], new), "pasted surface follows its pasted line"
+    assert same(surf.fill_mesh()[0], orig), "original stays untouched"
 
 
 def _square(sc):
@@ -36,7 +36,7 @@ def _square(sc):
     return out
 
 
-def test_fuellflaeche(h: H):
+def test_fill_surface(h: H):
     sc = h.sc
     lines = _square(sc)
     f = sc.create_fill([(c, False) for c in lines])
@@ -44,7 +44,7 @@ def test_fuellflaeche(h: H):
     _check(sc, f, lines, 1)
 
 
-def test_loft_mit_seitenlinien(h: H):
+def test_loft_with_rails(h: H):
     sc = h.sc
     sc.new_stroke()
     t = np.linspace(0, 1, 12)
@@ -59,7 +59,7 @@ def test_loft_mit_seitenlinien(h: H):
     _check(sc, lo, secs + rails, 2)
 
 
-def test_kurvenflaeche(h: H):
+def test_curve_patch(h: H):
     sc = h.sc
     sc.new_stroke()
     t = np.linspace(0, 1, 12)
@@ -74,7 +74,7 @@ def test_kurvenflaeche(h: H):
     _check(sc, ps, lines, 1)
 
 
-def test_kopieren_einfuegen_im_programm(h: H):
+def test_copy_paste_in_the_program(h: H):
     sc = h.sc
     lines = _square(sc)
     for c in lines:
@@ -94,9 +94,9 @@ def test_kopieren_einfuegen_im_programm(h: H):
     assert all(cid not in originals and h.sc.curve_by_id(cid) is not None for cid in linked)
 
 
-def test_duplizieren_linien_mit_flaechen_eigenes_objekt(h: H):
-    """Strg+D mit Linien und Flächen (z. B. ein ganzer Flügel): die kopierten Linien kommen in ein neues Stroke-Objekt
-    neben dem Original (gleiche Gruppe), nicht ins Original-Objekt; Kopie verschoben -> Original bleibt."""
+def test_duplicate_lines_with_surfaces_own_object(h: H):
+    """Ctrl+D with lines and surfaces (e.g. a whole wing): the copied lines go into a new stroke object
+    next to the original (same group), not into the original object; copy moved -> original stays."""
     sc = h.sc
     lines = _square(sc)
     st = sc.owner_of(lines[0])
@@ -110,8 +110,8 @@ def test_duplizieren_linien_mit_flaechen_eigenes_objekt(h: H):
     before = {c.id: c.points.copy() for c in lines}
     h.v.duplicate("elements")
     new_st = {r[1] for r in h.v.edge_selection}
-    assert len(new_st) == 1 and st.id not in new_st, "kopierte Linien in einem neuen Objekt"
-    assert len(st.curves) == 4, "Original-Objekt behält nur seine Linien"
+    assert len(new_st) == 1 and st.id not in new_st, "copied lines in a new object"
+    assert len(st.curves) == 4, "original object keeps only its lines"
     h.v.transform_target.translate(np.array([0.0, 1.0, 0.0]))
     h.v._changed()
-    assert all(np.allclose(c.points, before[c.id]) for c in lines), "Original-Linien bleiben"
+    assert all(np.allclose(c.points, before[c.id]) for c in lines), "original lines stay"

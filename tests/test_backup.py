@@ -1,4 +1,4 @@
-"""Automatisches Backup (Ordner „backups“ neben der Szene, nur bei Änderungen, Einstellungen) und „Zuletzt geöffnet“."""
+"""Automatic backup (folder "backups" next to the scene, only on changes, settings) and "Recently opened"."""
 import os
 import tempfile
 
@@ -10,7 +10,7 @@ from sketch_machine.scene import Scene
 
 
 def _scene_file(h: H):
-    """Gespeicherte Szene mit einem Strich in einem frischen Ordner -> Pfad."""
+    """Saved scene with one stroke in a fresh folder -> path."""
     h.new_scene()
     h.stroke_world(np.array([[-1.0, 0, 0], [1.0, 0.5, 0]]))
     path = os.path.join(tempfile.mkdtemp(), "probe.sketch.json")
@@ -19,21 +19,21 @@ def _scene_file(h: H):
     return path
 
 
-def test_backup_nur_bei_aenderung_im_ordner_neben_der_szene(h: H):
+def test_backup_only_on_change_in_the_folder_next_to_the_scene(h: H):
     path = _scene_file(h)
-    assert h.w.auto_backup() is None, "gespeichert und unverändert: kein Backup"
+    assert h.w.auto_backup() is None, "saved and unchanged: no backup"
     h.stroke_world(np.array([[-1.0, 1, 0], [1.0, 1.5, 0]]))
     target = h.w.auto_backup()
     assert target and os.path.dirname(target) == os.path.join(os.path.dirname(path), "backups")
     assert os.path.basename(target).startswith("probe_") and target.endswith(".mule")
-    assert h.sc.dirty, "das Backup speichert die Szene nicht (sie bleibt ungespeichert)"
-    assert h.w.auto_backup() is None, "nichts geändert seit dem letzten Backup: kein zweites"
+    assert h.sc.dirty, "the backup does not save the scene (it stays unsaved)"
+    assert h.w.auto_backup() is None, "nothing changed since the last backup: no second one"
     sc, _ = Scene.load(target)
-    assert len(sc.curves) == 2, "das Backup lässt sich öffnen und hat den neuen Strich"
+    assert len(sc.curves) == 2, "the backup can be opened and has the new stroke"
     assert backup.backups(path) == [target]
 
 
-def test_alte_backups_werden_ausgeduennt(h: H):
+def test_old_backups_are_thinned_out(h: H):
     path = _scene_file(h)
     for k in range(5):
         h.stroke_world(np.array([[-1.0, k, 0], [1.0, k + 0.5, 0]]))
@@ -43,8 +43,8 @@ def test_alte_backups_werden_ausgeduennt(h: H):
     assert len(left) == 3 and left == sorted(left, reverse=True)
 
 
-def test_einstellungen_und_timer(h: H):
-    assert backup.enabled() and backup.minutes() == 10, "Standard: an, alle 10 Minuten"
+def test_settings_and_timer(h: H):
+    assert backup.enabled() and backup.minutes() == 10, "default: on, every 10 minutes"
     backup.set_options(True, 3)
     h.w._restart_backup_timer()
     assert h.w._backup_timer.isActive() and h.w._backup_timer.interval() == 3 * 60 * 1000
@@ -55,16 +55,16 @@ def test_einstellungen_und_timer(h: H):
     h.w._restart_backup_timer()
 
 
-def test_zuletzt_geoeffnet(h: H):
+def test_recently_opened(h: H):
     backup.clear_recent()
     a = _scene_file(h)
     b = _scene_file(h)
-    assert backup.recent()[:2] == [b, a], "zuletzt gespeichert zuerst"
+    assert backup.recent()[:2] == [b, a], "most recently saved first"
     h.w.load_path(a)
-    assert backup.recent()[0] == a, "Öffnen schiebt nach vorn, ohne Doppelte"
+    assert backup.recent()[0] == a, "opening moves it to the front, without duplicates"
     assert len(backup.recent()) == 2
     os.remove(b)
-    assert backup.recent() == [a], "nicht mehr vorhandene Dateien fallen weg"
+    assert backup.recent() == [a], "files that no longer exist drop out"
     h.w._fill_recent_menu()
     texts = [act.text() for act in h.w.recent_menu.actions()]
     assert any(os.path.basename(a) in t for t in texts)

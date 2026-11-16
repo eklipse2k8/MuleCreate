@@ -1,16 +1,16 @@
 ---
-name: Bug report / Fehler melden
-about: Something does not work as expected / Etwas funktioniert nicht wie erwartet
+name: Bug report
+about: Something does not work as expected
 labels: bug
 ---
 
-**What did you do? / Was hast du gemacht?**
+**What did you do?**
 
 
-**What did you expect, and what happened? / Was hast du erwartet, was ist passiert?**
+**What did you expect, and what happened?**
 
 
-**Mule version and system / Mule-Version und System** (e.g. Alpha 0.1, Windows 11)
+**Mule version and system** (e.g. Alpha 0.1, Windows 11)
 
 
-**Scene file or screenshot / Szene oder Screenshot** (optional, drag it in here)
+**Scene file or screenshot** (optional, drag it in here)

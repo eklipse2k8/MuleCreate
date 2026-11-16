@@ -1,4 +1,4 @@
-"""Handling: Doppelklick springt zum Objekt, Einrasten auf Flächen wie im Frei-Modus, eingefrorene Hilfsfläche."""
+"""Handling: double-click jumps to the object, snapping on surfaces as in free mode, frozen helper surface."""
 import os
 import tempfile
 
@@ -30,7 +30,7 @@ def _mesh(s):
 
 
 def _lift(h: H, curve, k, delta):
-    """Punkt k der Linie ziehen wie im Punktmodus (mit allen Linien, die ihn teilen)."""
+    """Drag point k of the line as in point mode (with all lines that share it)."""
     network.sync(h.sc)
     h.sc.checkpoint()
     components.ComponentGroup(h.sc, [(curve, k)], []).translate(np.asarray(delta, float))
@@ -38,36 +38,36 @@ def _lift(h: H, curve, k, delta):
     h.sc.sync_lofts()
 
 
-def test_hilfsflaeche_folgt_keiner_linie(h: H):
+def test_helper_surface_follows_no_line(h: H):
     s, lines = _square(h)
     before = _mesh(s)
     h.v.set_surface_aid(s.id, True)
-    assert s.frozen is not None, "Hilfsfläche eingefroren"
+    assert s.frozen is not None, "helper surface frozen"
     _lift(h, lines[2], 0, [0, 0.7, 0])
-    assert np.allclose(_mesh(s), before), "weggezogene Randlinie verformt die Hilfsfläche nicht"
+    assert np.allclose(_mesh(s), before), "a boundary line pulled away does not deform the helper surface"
     h.camera([1, 0, 1], 5, [0.05, 1, 0.1])
     h.draw_mode()
     h.v._activate(s)
     h.stroke_world([np.array([0.3, 0, 0.5]), np.array([1.0, 0, 1.4]), np.array([1.7, 0, 0.6])])
     h.sc.sync_lofts()
-    assert np.allclose(_mesh(s), before), "darauf gezeichnete Linie verformt die Hilfsfläche nicht"
+    assert np.allclose(_mesh(s), before), "a line drawn on it does not deform the helper surface"
     h.v.set_surface_aid(s.id, False)
-    assert not s.aid and s.frozen is not None, "Linie liegt nicht mehr an ihr: Fläche bleibt fest"
+    assert not s.aid and s.frozen is not None, "line no longer lies on it: surface stays fixed"
     _lift(h, lines[0], 0, [0, -0.5, 0])
-    assert np.allclose(_mesh(s), before), "feste Fläche springt nicht zu ihren alten Linien"
+    assert np.allclose(_mesh(s), before), "fixed surface does not jump back to its old lines"
 
 
-def test_hilfsflaeche_zurueck_haengt_wieder_an_ihren_linien(h: H):
+def test_helper_surface_back_hangs_on_its_lines_again(h: H):
     s, lines = _square(h)
     h.v.set_surface_aid(s.id, True)
     h.v.set_surface_aid(s.id, False)
-    assert s.frozen is None, "Linien an Ort und Stelle: wieder verbunden"
+    assert s.frozen is None, "lines in place: connected again"
     before = _mesh(s)
     _lift(h, lines[2], 0, [0, 0.5, 0])
-    assert _mesh(s)[:, 1].max() > before[:, 1].max() + 0.3, "Fläche folgt ihrer Ecke wieder"
+    assert _mesh(s)[:, 1].max() > before[:, 1].max() + 0.3, "surface follows its corner again"
 
 
-def test_hilfsflaeche_gizmo_bewegt_nur_sie(h: H):
+def test_helper_surface_gizmo_moves_only_it(h: H):
     s, lines = _square(h)
     h.v.set_surface_aid(s.id, True)
     before, line_before = _mesh(s), lines[0].points.copy()
@@ -78,34 +78,34 @@ def test_hilfsflaeche_gizmo_bewegt_nur_sie(h: H):
     target.translate(np.array([0, 0.5, 0]))
     h.v._changed()
     h.sc.sync_lofts()
-    assert np.allclose(_mesh(s), before + [0, 0.5, 0]), "Hilfsfläche verschoben"
-    assert np.allclose(lines[0].points, line_before), "ihre Linien bleiben stehen"
+    assert np.allclose(_mesh(s), before + [0, 0.5, 0]), "helper surface moved"
+    assert np.allclose(lines[0].points, line_before), "its lines stay put"
     path = os.path.join(tempfile.mkdtemp(), "aid.sketch.json")
     h.sc.save(path)
     loaded = Scene.load(path)[0].surfaces[0]
-    assert loaded.aid and loaded.frozen is not None, "eingefroren gespeichert"
-    assert np.allclose(np.asarray(loaded.fill_mesh()[0]), before + [0, 0.5, 0], atol=1e-4), "Form kommt mit"
+    assert loaded.aid and loaded.frozen is not None, "saved frozen"
+    assert np.allclose(np.asarray(loaded.fill_mesh()[0]), before + [0, 0.5, 0], atol=1e-4), "shape comes along"
     h.v.set_surface_aid(s.id, False)
-    assert s.frozen is not None, "bewegt: bleibt beim Ausschalten fest (springt nicht zurück)"
+    assert s.frozen is not None, "moved: stays fixed when switched off (does not jump back)"
 
 
-def test_einrasten_auf_flaeche_an_ecke_einer_linie(h: H):
-    """Zeichnen auf einer Fläche: Ecken mitten in Linien sind Fangpunkte (wie im Frei-Modus); Punkte, die nicht an der
-    Fläche hängen, nicht."""
+def test_snapping_on_surface_to_corner_of_a_line(h: H):
+    """Drawing on a surface: corners in the middle of lines are snap points (as in free mode); points that are not
+    attached to the surface are not."""
     s, lines = _square(h)
     h.sc.add_curve(np.vstack([np.linspace([0.5, 0, 0.5], [1.0, 0, 1.0], 8),
                               np.linspace([1.0, 0, 1.0], [1.5, 0, 0.5], 8)[1:]]), s.id)
     bent = h.sc.curves[-1]
     corner = bent.points[7].copy()
-    assert 7 in components.knots(bent), "Knick ist ein Punkt"
-    h.sc.add_curve(np.linspace([0.2, 1.5, 0.2], [0.6, 1.5, 0.6], 6), None)  # in der Luft über der Fläche
+    assert 7 in components.knots(bent), "kink is a point"
+    h.sc.add_curve(np.linspace([0.2, 1.5, 0.2], [0.6, 1.5, 0.6], 6), None)  # in the air above the surface
     h.camera([1, 0, 1], 5, [0.05, 1, 0.1])
     h.draw_mode()
     h.v._activate(s)
     h.v._changed()
     pts = h.v._surface_snap_points()
-    assert any(np.allclose(p, corner) for p in pts), "Ecke an der Fläche ist Fangpunkt"
-    assert not any(abs(p[1] - 1.5) < 1e-6 for p in pts), "Punkte über der Fläche nicht"
+    assert any(np.allclose(p, corner) for p in pts), "corner on the surface is a snap point"
+    assert not any(abs(p[1] - 1.5) < 1e-6 for p in pts), "points above the surface are not"
     start = h.scrf(corner)
     start.setX(start.x() + 5)
     end = h.scrf(np.array([1.0, 0, 0.2]))
@@ -115,13 +115,13 @@ def test_einrasten_auf_flaeche_an_ecke_einer_linie(h: H):
     new = h.curves()[-1]
     first = new.points[0] if np.linalg.norm(new.points[0] - corner) < np.linalg.norm(new.points[-1] - corner) \
         else new.points[-1]
-    assert np.allclose(first, corner, atol=1e-6), f"beginnt genau an der Ecke: {first} statt {corner}"
+    assert np.allclose(first, corner, atol=1e-6), f"starts exactly at the corner: {first} instead of {corner}"
     network.sync(h.sc)
     k = 0 if np.allclose(new.points[0], corner) else len(new.points) - 1
-    assert network.pid_of(new, k) == network.pid_of(bent, 7), "derselbe Punkt (verbunden, kein zweiter)"
+    assert network.pid_of(new, k) == network.pid_of(bent, 7), "the same point (connected, no second one)"
 
 
-def test_einrasten_am_strichende_auf_flaeche(h: H):
+def test_snapping_at_stroke_end_on_surface(h: H):
     s, lines = _square(h)
     h.sc.add_curve(np.vstack([np.linspace([0.5, 0, 0.5], [1.0, 0, 1.0], 8),
                               np.linspace([1.0, 0, 1.0], [1.5, 0, 0.5], 8)[1:]]), s.id)
@@ -135,12 +135,12 @@ def test_einrasten_am_strichende_auf_flaeche(h: H):
     end.setY(end.y() + 6)
     h.stroke([h.scrf(np.array([1.0, 0, 1.8])), end])
     new = h.curves()[-1]
-    assert np.allclose(new.points[-1], corner, atol=1e-6), "Ende genau auf der Ecke"
+    assert np.allclose(new.points[-1], corner, atol=1e-6), "end exactly on the corner"
     network.sync(h.sc)
-    assert network.pid_of(new, len(new.points) - 1) == network.pid_of(bent, 7), "verbunden"
+    assert network.pid_of(new, len(new.points) - 1) == network.pid_of(bent, 7), "connected"
 
 
-def test_doppelklick_springt_zum_anderen_objekt(h: H):
+def test_double_click_jumps_to_the_other_object(h: H):
     sc = h.sc
     a = sc.new_stroke()
     sc.add_curve(np.linspace([0, 0, 0], [2, 0, 0], 12), None)
@@ -152,12 +152,12 @@ def test_doppelklick_springt_zum_anderen_objekt(h: H):
     h.edit_mode("point")
     assert h.v._active_strokes() == frozenset({a.id})
     h.dclick(h.scr(line_b.points[5]))
-    assert sc.active_stroke is b, "Doppelklick: das andere Objekt wird bearbeitet"
-    assert b.id in h.v.selection, "auch im Outliner gewählt"
-    assert b.id in h.v._active_strokes(), "seine Punkte erscheinen"
+    assert sc.active_stroke is b, "double-click: the other object is edited"
+    assert b.id in h.v.selection, "also selected in the outliner"
+    assert b.id in h.v._active_strokes(), "its points appear"
 
 
-# --- Verschweißen gewählter Punkte (Cleanup: Aufräumen / Verschweißen) ---
+# --- Welding selected points (cleanup: tidy up / weld) ---
 def _weld_lines(h: H, *specs):
     out = []
     for pts in specs:
@@ -183,9 +183,9 @@ def _points_near(h: H, center, r=0.05):
     return {network.pid_of(c, k) for c, k in knots}, knots
 
 
-def test_verschweissen_verbundene_punkte_und_ende(h: H):
-    """Zwei schon verbundene Punkte (je zwei Linien) und ein loses Ende nah beieinander: ein Punkt, alle Linien daran
-    (vorher wanderte je Punkt nur eine Linie – drei getrennte Punkte)."""
+def test_welding_connected_points_and_end(h: H):
+    """Two already connected points (two lines each) and a loose end close together: one point, all lines on it
+    (formerly only one line moved per point - three separate points)."""
     a, b = _weld_lines(h, np.linspace([0, 0, 0], [-1, 0, 0], 8), np.linspace([0, 0, 0], [0, -1, 0], 8))
     network.join(h.sc, a, 0, b, 0)
     c, d = _weld_lines(h, np.linspace([0.012, 0, 0], [1, 0, 0.2], 8), np.linspace([0.012, 0, 0], [0, 1, 0.3], 8))
@@ -193,23 +193,23 @@ def test_verschweissen_verbundene_punkte_und_ende(h: H):
     e, = _weld_lines(h, np.linspace([0.006, 0.01, 0], [0.5, 1, 1], 8))
     _weld_selected(h, [(a, 0), (c, 0), (e, 0)])
     pids, knots = _points_near(h, np.array([0.006, 0, 0]))
-    assert len(pids) == 1 and len(knots) == 5, f"{len(pids)} Punkte, {len(knots)} Linien daran"
-    assert all(np.allclose(cc.points[k], knots[0][0].points[knots[0][1]]) for cc, k in knots), "alle an einer Stelle"
+    assert len(pids) == 1 and len(knots) == 5, f"{len(pids)} points, {len(knots)} lines on them"
+    assert all(np.allclose(cc.points[k], knots[0][0].points[knots[0][1]]) for cc, k in knots), "all in one place"
 
 
-def test_verschweissen_ecken_mitten_in_linien(h: H):
+def test_welding_corners_in_the_middle_of_lines(h: H):
     corner = lambda x: np.vstack([np.linspace([x - 1, -1, 0], [x, 0, 0], 8), np.linspace([x, 0, 0], [x - 1, 1, 0], 8)[1:]])
     a, b = _weld_lines(h, corner(0.0), corner(0.008))
     end, = _weld_lines(h, np.linspace([0.004, -0.008, 0.004], [0.3, -1, 0], 6))
     _weld_selected(h, [(a, 7), (b, 7), (end, 0)])
     pids, knots = _points_near(h, np.array([0.004, 0, 0]))
-    assert len(pids) == 1 and len(knots) == 3, f"{len(pids)} Punkte, {len(knots)} Linien daran"
+    assert len(pids) == 1 and len(knots) == 3, f"{len(pids)} points, {len(knots)} lines on them"
 
 
-def test_verschweissen_laesst_ungewaehlte_enden_in_ruhe(h: H):
+def test_welding_leaves_unselected_ends_alone(h: H):
     a, b, c = _weld_lines(h, np.linspace([-1, 0, 0], [0, 0, 0], 8), np.linspace([0.008, 0, 0], [1, 0, 0.3], 8),
                           np.linspace([1.005, 0, 0.3], [2, 0, 0], 8))
     _weld_selected(h, [(a, -1), (b, 0)])
-    assert network.pid_of(a, 7) == network.pid_of(b, 0), "gewählte Enden verbunden"
-    assert network.pid_of(b, 7) != network.pid_of(c, 0), "anderes Ende von b (nicht gewählt) bleibt lose"
+    assert network.pid_of(a, 7) == network.pid_of(b, 0), "selected ends connected"
+    assert network.pid_of(b, 7) != network.pid_of(c, 0), "other end of b (not selected) stays loose"
     assert np.allclose(c.points[0], [1.005, 0, 0.3])

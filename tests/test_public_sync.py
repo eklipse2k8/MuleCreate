@@ -1,12 +1,12 @@
-"""Update des öffentlichen Repos (packaging/public_sync.py) an Wegwerf-Repos: gleicher Stand ändert nichts, ein
-abweichender Stand wird ein neuer Commit mit Tag, ignorierte Dateien bleiben, ein unsauberer Checkout wird abgelehnt.
-Nichts wird gepusht."""
+"""Update of the public repo (packaging/public_sync.py) on throwaway repos: an identical state changes nothing, a
+differing state becomes a new commit with a tag, ignored files stay, a dirty checkout is rejected.
+Nothing is pushed."""
 import os
 import subprocess
 import sys
 import tempfile
 
-STUFE = "kern"
+LEVEL = "core"
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(ROOT, "packaging"))
@@ -22,7 +22,7 @@ def _public(tmp):
     """Like the first public_export.py: clean copy, one commit, no remote."""
     pub = os.path.join(tmp, "pub")
     os.makedirs(pub)
-    assert not pe.clean_copy(pub), "keine privaten Spuren im Stand"
+    assert not pe.clean_copy(pub), "no private traces in the state"
     _git(pub, "init", "-q", "-b", "main")
     _git(pub, "config", "user.name", "Test")
     _git(pub, "config", "user.email", "test@example.invalid")
@@ -32,7 +32,7 @@ def _public(tmp):
     return pub
 
 
-def test_gleicher_stand_aendert_nichts(h=None):
+def test_identical_state_changes_nothing(h=None):
     with tempfile.TemporaryDirectory() as tmp:
         pub = _public(tmp)
         assert ps.check_checkout(pub, fetch=False) == []
@@ -41,7 +41,7 @@ def test_gleicher_stand_aendert_nichts(h=None):
         assert _git(pub, "rev-list", "--count", "HEAD") == "1" and not _git(pub, "tag")
 
 
-def test_abweichender_stand_wird_neuer_commit_mit_tag(h=None):
+def test_differing_state_becomes_new_commit_with_tag(h=None):
     with tempfile.TemporaryDirectory() as tmp:
         pub = _public(tmp)
         os.remove(os.path.join(pub, "README.md"))  # gone in public, must come back
@@ -55,13 +55,13 @@ def test_abweichender_stand_wird_neuer_commit_mit_tag(h=None):
         status, text = ps.sync(pub, fetch=False, tag="v0.0.0-test")
         assert status == "committed", text
         assert os.path.isfile(os.path.join(pub, "README.md")) and not os.path.exists(os.path.join(pub, "stray.txt"))
-        assert os.path.isfile(os.path.join(pub, "dist", "_release", "keep.txt")), "ignorierte Dateien bleiben"
+        assert os.path.isfile(os.path.join(pub, "dist", "_release", "keep.txt")), "ignored files stay"
         assert _git(pub, "tag") == "v0.0.0-test" and _git(pub, "rev-list", "--count", "HEAD") == "3"
-        assert not _git(pub, "status", "--porcelain"), "danach sauber"
-        assert ps.sync(pub, fetch=False, tag="v0.0.1-test")[0] == "unchanged", "zweimal hintereinander: nichts Neues"
+        assert not _git(pub, "status", "--porcelain"), "clean afterwards"
+        assert ps.sync(pub, fetch=False, tag="v0.0.1-test")[0] == "unchanged", "twice in a row: nothing new"
 
 
-def test_unsauberer_checkout_wird_abgelehnt(h=None):
+def test_dirty_checkout_is_rejected(h=None):
     with tempfile.TemporaryDirectory() as tmp:
         pub = _public(tmp)
         with open(os.path.join(pub, "README.md"), "a") as fh:
@@ -69,18 +69,18 @@ def test_unsauberer_checkout_wird_abgelehnt(h=None):
         assert any("uncommitted" in p for p in ps.check_checkout(pub, fetch=False))
         try:
             ps.sync(pub, fetch=False, tag="v0.0.0-test")
-            raise AssertionError("muss abbrechen")
+            raise AssertionError("must abort")
         except SystemExit as exc:
             assert "not ready" in str(exc)
-        assert "local edit" in open(os.path.join(pub, "README.md")).read(), "nichts angefasst"
+        assert "local edit" in open(os.path.join(pub, "README.md")).read(), "nothing touched"
 
 
-def test_vorhandener_tag_wird_abgelehnt(h=None):
+def test_existing_tag_is_rejected(h=None):
     with tempfile.TemporaryDirectory() as tmp:
         pub = _public(tmp)
         _git(pub, "tag", "v0.0.0-test")
         try:
             ps.sync(pub, fetch=False, tag="v0.0.0-test")
-            raise AssertionError("muss abbrechen")
+            raise AssertionError("must abort")
         except SystemExit as exc:
             assert "already has the tag" in str(exc)

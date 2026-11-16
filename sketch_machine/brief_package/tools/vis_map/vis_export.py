@@ -1,4 +1,4 @@
-# vis_export.py – Sichtkarte, step 1 (hython, READ-ONLY): scene geometry per motion state + camera set.
+# vis_export.py – visibility map, step 1 (hython, READ-ONLY): scene geometry per motion state + camera set.
 # Generic: works on any Houdini scene (hip) or on plain geometry files. Never saves the hip.
 #   hython vis_export.py -- <config.json>
 # Config keys used here (see README.md):

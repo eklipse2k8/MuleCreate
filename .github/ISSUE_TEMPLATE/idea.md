@@ -1,13 +1,13 @@
 ---
-name: Idea or workflow / Idee oder Arbeitsweise
-about: A wish, or how working with Mule and an AI went / Ein Wunsch oder wie die Arbeit mit Mule und einer KI lief
+name: Idea or workflow
+about: A wish, or how working with Mule and an AI went
 labels: idea
 ---
 
-**What are you trying to do? / Was willst du machen?**
+**What are you trying to do?**
 
 
-**Where does Mule get in your way? / Wo steht dir Mule im Weg?**
+**Where does Mule get in your way?**
 
 
-**Which AI and tools, if any? / Welche KI und Werkzeuge, falls genutzt?**
+**Which AI and tools, if any?**

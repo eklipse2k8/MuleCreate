@@ -1,4 +1,4 @@
-"""English manual: same structure as manual.py (line for line, test_sprache compares the lines per tab)."""
+"""English manual: same structure as manual.py (line for line, test_language compares the lines per tab)."""
 from .manual import _section
 
 START = "<h1>Mule Create</h1>" + """<p class="lead">Sketch in space as if on paper. The drawing is the lines; planes are

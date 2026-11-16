@@ -1,7 +1,7 @@
 """Writes the generated appendix "UI glossary German → English" into AI_HANDBOOK.md (between the two markers).
 
 The program starts in German, so users quote German UI names; the handbook uses the English ones. The glossary is
-taken from sketch_machine/i18n_en.py, so it never falls behind. tests/test_handbuch.py checks that it is current.
+taken from sketch_machine/i18n_en.py, so it never falls behind. tests/test_handbook.py checks that it is current.
 
 Call in the repo root:  .venv/Scripts/python.exe packaging/handbook_glossary.py
 """

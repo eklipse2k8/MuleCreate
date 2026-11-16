@@ -1,5 +1,5 @@
-"""Topologie: was das Kurvennetz (F3–F5) lösen soll. Bekannte Probleme sind als erwartete Fehler markiert –
-sobald einer davon BEHOBEN meldet, die Markierung entfernen."""
+"""Topology: what the curve net (F3-F5) is meant to solve. Known problems are marked as expected failures -
+as soon as one of them reports BEHOBEN, remove the marker."""
 import numpy as np
 
 from tests.harness import H, Qt, expected_failure, line
@@ -31,44 +31,44 @@ def _delete_lines(h: H, curves):
     h.sc.sync_lofts()
 
 
-def test_loft_verliert_geloeschtes_profil(h: H):
+def test_loft_loses_deleted_profile(h: H):
     lo, secs = _loft3(h)
     _delete_lines(h, [secs[1]])
-    assert len(lo.curves) == 2, f"Loft hat noch {len(lo.curves)} Querschnitte"
+    assert len(lo.curves) == 2, f"loft still has {len(lo.curves)} cross-sections"
 
 
-def test_seitenlinien_bleiben_nach_profil_loeschen(h: H):
-    """Topologie-Konzept: Seitenlinien sind echte Linien – löscht man einen Querschnitt, bleiben sie, wie sie sind, und
-    der Loft geht weiter durch sie hindurch (er formt sich aus Querschnitten und Seitenlinien)."""
+def test_rails_stay_after_deleting_a_profile(h: H):
+    """Topology concept: rails are real lines - if a cross-section is deleted, they stay as they are, and
+    the loft keeps passing through them (it is formed from cross-sections and rails)."""
     lo, secs = _loft3(h)
     rail = h.sc.curve_by_id(lo.rails[0][0])
     before = rail.points.copy()
     _delete_lines(h, [secs[1]])
     h.v._changed()
-    assert np.array_equal(h.sc.curve_by_id(rail.id).points, before), "Seitenlinie bleibt stehen"
+    assert np.array_equal(h.sc.curve_by_id(rail.id).points, before), "rail stays put"
     verts = lo.fill_mesh()[0]
     mid = before[np.argmin(np.abs(before[:, 2] - 1.0))]
-    assert np.linalg.norm(verts - mid, axis=1).min() < 0.05, "Loft geht durch die Seitenlinie"
+    assert np.linalg.norm(verts - mid, axis=1).min() < 0.05, "loft passes through the rail"
 
 
-def test_seitenlinien_folgen_dem_profil_am_gemeinsamen_punkt(h: H):
-    """Seitenlinien hängen an den Querschnitten an gemeinsamen Punkten: zieht man den Endpunkt eines Querschnitts, geht
-    die Seitenlinie dort mit (der Loft bewegt sie nicht – das Netz tut es)."""
+def test_rails_follow_the_profile_at_the_shared_point(h: H):
+    """Rails attach to the cross-sections at shared points: if the end point of a cross-section is dragged,
+    the rail goes along there (the loft does not move it - the net does)."""
     from sketch_machine import network
     lo, secs = _loft3(h)
     rail = h.sc.curve_by_id(lo.rails[0][0])
     end = rail.points[-1].copy()
     refs = network.refs_by_pid(h.sc)
     pid = network.pid_of(rail, len(rail.points) - 1)
-    assert any(c is secs[2] for c, _ in refs[pid]), "Seitenlinie ist mit dem Querschnitt verbunden"
+    assert any(c is secs[2] for c, _ in refs[pid]), "rail is connected to the cross-section"
     group = components.ComponentGroup(h.sc, [refs[pid][0]], [])
     group.translate(np.array([0.0, 0.5, 0.0]))
     h.v._changed()
     rail = h.sc.curve_by_id(rail.id)
-    assert np.linalg.norm(rail.points[-1] - (end + [0, 0.5, 0])) < 1e-6, "Seitenlinie folgt am gemeinsamen Punkt"
+    assert np.linalg.norm(rail.points[-1] - (end + [0, 0.5, 0])) < 1e-6, "rail follows at the shared point"
 
 
-def test_aufgeloeste_ecke_bleibt_aufgeloest(h: H):
+def test_dissolved_corner_stays_dissolved(h: H):
     sc = h.sc
     sc.new_stroke()
     sc.add_curve(np.vstack([line([0, 0, 0], [1, 0, 0], 20), line([1, 0, 0], [1, 0, 1], 20)[1:]]), None)
@@ -77,10 +77,10 @@ def test_aufgeloeste_ecke_bleibt_aufgeloest(h: H):
     assert components.dissolve(c, corner)
     assert components.knots(c) == [0, len(c.points) - 1]
     arc = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(c.points, axis=0), axis=1))])
-    t = np.linspace(0, arc[-1], 60)  # Punktzahl ändert sich (z. B. Glätten, Neuabtasten)
+    t = np.linspace(0, arc[-1], 60)  # point count changes (e.g. smoothing, resampling)
     c.points = np.stack([np.interp(t, arc, c.points[:, i]) for i in range(3)], axis=1)
     c.widths = np.full(60, c.widths.mean())
-    assert components.knots(c) == [0, 59], f"Knoten {components.knots(c)}"
+    assert components.knots(c) == [0, 59], f"knots {components.knots(c)}"
 
 
 def _corner_lines(h: H):
@@ -93,18 +93,18 @@ def _corner_lines(h: H):
     return sc.curves[-2:]
 
 
-def test_punkt_aufloesen_verbindet_zwei_linien(h: H):
+def test_dissolving_a_point_joins_two_lines(h: H):
     a, b = _corner_lines(h)
     h.edit_mode("point")
     h.click(h.scr([1, 0, 0]))
-    assert h.v.point_selection, "Eckpunkt gewählt"
-    h.key(Qt.Key_Delete)  # Entf: auflösen (Strg+Entf löscht den Punkt)
-    assert len(h.curves()) == 1, f"{len(h.curves())} Linien – erwartet eine durchgehende"
+    assert h.v.point_selection, "corner point selected"
+    h.key(Qt.Key_Delete)  # Del: dissolve (Ctrl+Del deletes the point)
+    assert len(h.curves()) == 1, f"{len(h.curves())} lines - expected one continuous line"
     pts = h.curves()[0].points
-    assert np.linalg.norm(pts - [1, 0, 0], axis=1).min() < 1e-6, "Form bleibt (Ecke liegt noch drauf)"
+    assert np.linalg.norm(pts - [1, 0, 0], axis=1).min() < 1e-6, "shape stays (corner still lies on it)"
 
 
-def test_punkt_entfernen_interpoliert_neu(h: H):
+def test_removing_a_point_reinterpolates(h: H):
     sc = h.sc
     sc.new_stroke()
     sc.add_curve(np.vstack([line([0, 0, 0], [1, 0, 1], 20), line([1, 0, 1], [2, 0, 0], 20)[1:]]), sc.planes[0].id)
@@ -113,22 +113,22 @@ def test_punkt_entfernen_interpoliert_neu(h: H):
     h.camera([1, 0, 0.5], 4, [0, 1, 0.01])
     h.edit_mode("point")
     h.click(h.scr([1, 0, 1]))
-    assert hasattr(h.v, "remove_points"), "Befehl Punkt entfernen fehlt"
+    assert hasattr(h.v, "remove_points"), "command Remove Point is missing"
     h.v.remove_points()
     c = h.curves()[0]
-    assert np.linalg.norm(c.points - [1, 0, 1], axis=1).min() > 0.2, "Spitze ist weg, die Linie läuft neu durch"
+    assert np.linalg.norm(c.points - [1, 0, 1], axis=1).min() > 0.2, "the peak is gone, the line runs anew"
 
 
-def test_gemeinsamer_punkt_zieht_beide_linien(h: H):
+def test_shared_point_drags_both_lines(h: H):
     a, b = _corner_lines(h)
     h.edit_mode("point")
     h.click(h.scr([1, 0, 0]))
     group = components.ComponentGroup(h.sc, [(c, r[3]) for r, c in h.v._valid_points()], [])
     group.translate(np.array([0.0, 0.0, -0.3]))
-    assert np.allclose(a.points[-1], b.points[0]), "beide Linienenden bleiben zusammen"
+    assert np.allclose(a.points[-1], b.points[0]), "both line ends stay together"
 
 
-def test_doppelklick_kurvenflaeche_findet_randlinien(h: H):
+def test_double_click_curve_surface_finds_boundary_lines(h: H):
     sc = h.sc
     sc.new_stroke()
     t = np.linspace(0, 1, 12)
@@ -145,28 +145,28 @@ def test_doppelklick_kurvenflaeche_findet_randlinien(h: H):
     h.edit_mode("face")
     h.v.select_loop(h.scrf(ps.fill_mesh()[0].mean(axis=0)), "replace")
     found = {r[2] for r in h.v.edge_selection}
-    assert h.v.selection == [ps.id] and found == {c.id for c in lines}, f"{len(found)} von 4 Randlinien"
+    assert h.v.selection == [ps.id] and found == {c.id for c in lines}, f"{len(found)} of 4 boundary lines"
 
 
-def test_keine_doppelten_seitenlinien(h: H):
+def test_no_duplicate_rails(h: H):
     lo, secs = _loft3(h)
     h.sc.add_loft_rails(lo, np.array([0, 0, 1.0]))
     h.sc.sync_lofts()
     pts = [c.points for c in h.curves()]
     dup = sum(1 for i in range(len(pts)) for j in range(i) if pts[i].shape == pts[j].shape and np.allclose(pts[i], pts[j]))
-    assert dup == 0, f"{dup} doppelte Linien"
+    assert dup == 0, f"{dup} duplicate lines"
 
 
-def test_kanten_einer_linie_an_ecken(h: H):
+def test_edges_of_a_line_at_corners(h: H):
     sc = h.sc
     sc.new_stroke()
     sc.add_curve(np.vstack([line([0, 0, 0], [1, 0, 0], 20), line([1, 0, 0], [1, 0, 1], 20)[1:]]), None)
     assert len(components.segments(sc.curves[-1])) == 2
-    assert len(edges.all_edges(sc)) == 1, "eine Linie, zwei Kanten"
+    assert len(edges.all_edges(sc)) == 1, "one line, two edges"
 
 
 def _bow(h: H):
-    """Gerade Linie mit eingefügtem (weichem) Punkt in der Mitte."""
+    """Straight line with an inserted (soft) point in the middle."""
     sc = h.sc
     sc.new_stroke()
     sc.add_curve(line([0, 0, 0], [4, 0, 0], 41), sc.planes[0].id)
@@ -183,32 +183,32 @@ def _rot_y(deg):
     return np.array([[np.cos(a), 0, np.sin(a)], [0, 1, 0], [-np.sin(a), 0, np.cos(a)]])
 
 
-def test_punkt_drehen_dreht_die_linie_dort(h: H):
-    """F4 orient: einen Punkt drehen – er bleibt, die Nachbarpunkte bleiben, die Linie läuft bei ihm in der neuen
-    Richtung durch; der Punkt merkt sich die Drehung (Quaternion), auch über Speichern/Laden."""
+def test_rotating_a_point_rotates_the_line_there(h: H):
+    """F4 orient: rotate a point - it stays, the neighbouring points stay, the line runs through it in the new
+    direction; the point remembers the rotation (quaternion), also across save/load."""
     import os, tempfile
     from sketch_machine.scene import Scene
     c, k = _bow(h)
     p, ends = c.points[k].copy(), c.points[[0, -1]].copy()
     group = components.ComponentGroup(h.sc, [(c, k)], [])
-    for _ in range(6):  # wie der Gizmo: in kleinen Schritten
+    for _ in range(6):  # like the gizmo: in small steps
         group.rotate(_rot_y(5), p)
-    assert np.allclose(c.points[k], p) and np.allclose(c.points[[0, -1]], ends), "Punkt und Nachbarn bleiben"
+    assert np.allclose(c.points[k], p) and np.allclose(c.points[[0, -1]], ends), "point and neighbours stay"
     d = c.points[k + 2] - c.points[k - 2]
     angle = np.degrees(np.arctan2(-d[2], d[0]))
-    assert abs(angle - 30) < 3, f"Richtung am Punkt {angle:.1f}° statt 30°"
+    assert abs(angle - 30) < 3, f"direction at the point {angle:.1f}° instead of 30°"
     q = network.get_attr(h.sc, network.pid_of(c, k))
     assert np.allclose(q[:4], network.quat_of(_rot_y(30)), atol=1e-6), q
     path = os.path.join(tempfile.mkdtemp(), "orient.sketch.json")
     h.sc.save(path)
     new = Scene.load(path)[0]
     c2 = next(x for st in new.strokes for x in st.curves)
-    assert np.allclose(network.get_attr(new, network.pid_of(c2, k))[:4], q[:4]), "orient bleibt beim Laden"
+    assert np.allclose(network.get_attr(new, network.pid_of(c2, k))[:4], q[:4]), "orient stays on loading"
 
 
-def test_punkt_skalieren_streckt_die_linie_dort(h: H):
-    """F4 pscale: einen Punkt einer Rundung größer skalieren – die Linie wird um ihn herum weiter (die Rundung
-    bauchiger), Punkt und Nachbarn bleiben; pscale merkt sich den Faktor."""
+def test_scaling_a_point_stretches_the_line_there(h: H):
+    """F4 pscale: scale up a point of a curve - the line gets wider around it (the curve
+    bulgier), point and neighbours stay; pscale remembers the factor."""
     sc = h.sc
     sc.new_stroke()
     t = np.linspace(0, 1, 41)
@@ -223,22 +223,22 @@ def test_punkt_skalieren_streckt_die_linie_dort(h: H):
     group = components.ComponentGroup(sc, [(c, k)], [])
     group.scale(np.full(3, 1.5), np.eye(3), p)
     assert np.allclose(c.points[k], p) and np.allclose(c.points[[0, -1]], ends)
-    assert np.linalg.norm(c.points[k - 8] - p) > 1.15 * np.linalg.norm(before - p), "Umgebung gestreckt"
+    assert np.linalg.norm(c.points[k - 8] - p) > 1.15 * np.linalg.norm(before - p), "surroundings stretched"
     assert abs(network.get_attr(sc, network.pid_of(c, k))[4] - 1.5) < 1e-6
 
 
-def test_punkt_entfernen_mit_shift_entf_weich(h: H):
-    """Shift+Entf entfernt einen Punkt einer geschwungenen Linie: an weichen Nachbarn läuft die neue Linie ohne Knick
-    weiter, die Nachbarn bleiben."""
+def test_removing_a_point_with_shift_del_soft(h: H):
+    """Shift+Del removes a point of a curved line: at soft neighbours the new line continues without a kink,
+    the neighbours stay."""
     sc = h.sc
     sc.new_stroke()
     t = np.linspace(0, 1, 61)
     pts = np.stack([t * 6, np.zeros_like(t), np.sin(t * 2 * np.pi)], 1)
-    pts[:, 2] += 0.8 * np.exp(-((np.arange(61) - 30) / 5.0) ** 2)  # weiche Beule in der Mitte
+    pts[:, 2] += 0.8 * np.exp(-((np.arange(61) - 30) / 5.0) ** 2)  # soft bump in the middle
     sc.add_curve(pts, sc.planes[0].id)
     c = sc.curves[-1]
     where = [pts[j].copy() for j in (15, 30, 45)]
-    c.knots = (len(pts), (15, 30, 45))  # drei eingefügte (weiche) Punkte
+    c.knots = (len(pts), (15, 30, 45))  # three inserted (soft) points
     h.v._changed()
     network.sync(sc)
     a, k, b = 15, 30, 45
@@ -249,17 +249,17 @@ def test_punkt_entfernen_mit_shift_entf_weich(h: H):
     h.click(h.scr(c.points[k]))
     h.key(Qt.Key_Delete, Qt.ShiftModifier)
     c = h.curves()[0]
-    assert np.allclose(c.points[a], pa) and np.allclose(c.points[b], pb), "Nachbarn bleiben"
-    assert not any(np.linalg.norm(c.points[j] - where[1]) < 1e-6 for j in components.knots(c)), "Punkt ist weg"
-    assert np.linalg.norm(c.points - where[1], axis=1).min() > 0.3, "Beule ist weg, die Linie läuft neu"
-    for j in (a, b):  # kein Knick am Nachbarn
+    assert np.allclose(c.points[a], pa) and np.allclose(c.points[b], pb), "neighbours stay"
+    assert not any(np.linalg.norm(c.points[j] - where[1]) < 1e-6 for j in components.knots(c)), "point is gone"
+    assert np.linalg.norm(c.points - where[1], axis=1).min() > 0.3, "bump is gone, the line runs anew"
+    for j in (a, b):  # no kink at the neighbour
         u, v = c.points[j] - c.points[j - 2], c.points[j + 2] - c.points[j]
         cos = u @ v / np.linalg.norm(u) / np.linalg.norm(v)
-        assert cos > np.cos(np.radians(12)), f"Knick am Nachbarn {np.degrees(np.arccos(cos)):.1f}°"
+        assert cos > np.cos(np.radians(12)), f"kink at the neighbour {np.degrees(np.arccos(cos)):.1f}°"
 
 
-def test_export_mit_orient_und_pscale(h: H):
-    """Sketch Brief: Linien mit Punkt-Attributen bekommen primvars:orient (quatf) und primvars:pscale je Punkt."""
+def test_export_with_orient_and_pscale(h: H):
+    """Sketch Brief: lines with point attributes get primvars:orient (quatf) and primvars:pscale per point."""
     import os, tempfile
     from sketch_machine import brief
     c, k = _bow(h)
@@ -270,4 +270,4 @@ def test_export_mit_orient_und_pscale(h: H):
     brief.write_usd(h.sc, brief.analyse(h.sc), path)
     text = open(path, encoding="utf-8").read()
     assert "quatf[] primvars:orient" in text and "float[] primvars:pscale" in text
-    assert " 2," in text.split("float[] primvars:pscale")[1].split("\n")[0], "pscale 2 am Punkt"
+    assert " 2," in text.split("float[] primvars:pscale")[1].split("\n")[0], "pscale 2 at the point"

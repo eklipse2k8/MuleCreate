@@ -223,9 +223,9 @@ class DisplayListMixin:
             if isinstance(a, (tuple, list)) and isinstance(b, (tuple, list)):
                 return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b))
             return a == b
-        assert len(fast) == len(full), f"Strichliste nach Hover: {len(fast)} statt {len(full)} Einträge"
+        assert len(fast) == len(full), f"stroke list after hover: {len(fast)} instead of {len(full)} entries"
         for k, (a, b) in enumerate(zip(fast, full)):
-            assert same(a, b), f"Strichliste nach Hover weicht bei Eintrag {k} vom vollen Neubau ab"
+            assert same(a, b), f"stroke list after hover differs from the full rebuild at entry {k}"
 
     def _verify_owner(self, owner, memo, *args):
         mine, mine_paint = [], []
@@ -237,7 +237,7 @@ class DisplayListMixin:
             if isinstance(a, (tuple, list)) and isinstance(b, (tuple, list)):
                 return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b))
             return a == b
-        assert same(mine, memo[1]) and same(mine_paint, memo[2]), f"gemerkte Strich-Einträge von „{owner.name}“ veraltet"
+        assert same(mine, memo[1]) and same(mine_paint, memo[2]), f"remembered stroke entries of \"{owner.name}\" are stale"
 
     def _live_draw_list(self):
         """What changes with every mouse movement: strokes currently being created (also in another viewport),

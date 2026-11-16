@@ -6,6 +6,9 @@
 - Known limits now say that the local MCP server has no password (it only listens on this computer).
 - Contributing: questions and ideas welcome in GitHub Discussions.
 - This changelog is now in English.
+- The public repository is English only: German guides stay private, tests, developer tools, the brief package and
+  remaining program texts outside the German UI are English (the German UI itself stays as a language option).
+- Tests: English file names, `LEVEL = "core"` and `tests/run.py --core`, results `FAIL` / `EXPECTED` / `FIXED`.
 
 ## Mule Create Alpha 1.2 – v0.99.255 (2026-11-16)
 
@@ -29,7 +32,7 @@ Open source under GPL-3.0. New since the internal test version v0.99.229:
 - **`AI_HANDBOOK.md`:** the complete reference for AI assistants – every function, shortcut and workflow, the brief
   and all MCP tools, with a German → English UI glossary. Give it to your own AI and ask. A test keeps it in step with
   the program.
-- **English README;** the detailed German feature list is now `LIESMICH.md`. Code comments are in English.
+- **English README** and English code comments.
 - **Review:** the **Mark** tool next to the Review button replaces F8/F9; a click on a picture on a board remembers
   that reference picture for the part's note; **Send Review** puts a sentence for the chat on the clipboard (in
   English when Mule runs in English); "Claude is working …" ends when Claude is done; Claude's arrows on the board

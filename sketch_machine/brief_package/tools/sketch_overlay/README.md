@@ -19,7 +19,7 @@ Then three numbers, all scale-free:
 - **direction** – how much the build's run differs from the line's, in degrees (75th percentile);
 - **curves** – a drawn bow must stay a bow in the same direction (not flattened below 40 %, not flipped), a straight must stay straight.
 
-**A finding counts when an orthographic view or two views agree** (distance also when one view sees most of the line beyond twice the tolerance): a single perspective view can mislead – a line grazing a silhouette, a view nearly along the line. Hidden stretches (something else in front) are not judged in that view; a line seen in no view is listed as „not seen“. Offsets below `min_px` (3 px) do not count – below the readable size nothing is judged (rule 7).
+**A finding counts when an orthographic view or two views agree** (distance also when one view sees most of the line beyond twice the tolerance): a single perspective view can mislead – a line grazing a silhouette, a view nearly along the line. Hidden stretches (something else in front) are not judged in that view; a line seen in no view is listed as "not seen". Offsets below `min_px` (3 px) do not count – below the readable size nothing is judged (rule 7).
 
 ## Output (in `out_dir`, normally `review/overlay/`)
 - `<name>_overlay.md` – FAIL lines first: kind, what fails, worst distance, direction, curve, where (view and pixel);
@@ -56,5 +56,5 @@ Numbers sort, pictures judge (rule 11): open the picture of every FAIL line befo
 - A tube's centre line far beside its tube is measured to the tube's middle only when the tube is narrow (under 20 % of the line's length); otherwise to its near edge.
 - Mirrored and arrayed copies are separate lines (`…__copyN`); judge one side if both are built by mirroring.
 - Short marks (a few cm) are below `min_line_px` in views of the whole object: limit `lines` to the unit – the orthographic views then frame those lines closely.
-- Lines the artist replaced by later marks, departures the artist approved, and parts the artist approved **as built** („great“, „keep“): mark them `ignore` with the decision as the reason – the overlay never pulls an approved part back to the sketch.
+- Lines the artist replaced by later marks, departures the artist approved, and parts the artist approved **as built** ("great", "keep"): mark them `ignore` with the decision as the reason – the overlay never pulls an approved part back to the sketch.
 - Lines the artist drew for construction or reference (a scale figure, a ground line, size helpers) are not built – mark them `ignore` in `kinds` or leave them out with `lines`.

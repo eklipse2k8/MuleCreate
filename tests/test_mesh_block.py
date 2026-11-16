@@ -1,6 +1,6 @@
-"""Mesh-Block: ab BLOCK_MIN importierten Meshes zeichnet der Renderer sie in einem Durchgang (Lage eingerechnet, je
-Punkt die Nummer seines Teils). Das Bild, die Hervorhebung, Ausblenden, Verschieben und Picking müssen genau wie je
-Mesh bleiben – Notizen und Malerei hängen weiter am einzelnen Teil."""
+"""Mesh block: from BLOCK_MIN imported meshes on, the renderer draws them in one pass (placement included, per
+point the number of its part). The image, highlighting, hiding, moving and picking must stay exactly as per
+mesh – notes and paint stay attached to the individual part."""
 import numpy as np
 
 from tests.harness import H
@@ -18,7 +18,7 @@ def _box(size=0.4):
 
 
 def _grid_scene(h: H, n=10):
-    """n×n Kisten auf dem Boden (mehr als BLOCK_MIN), jede ein eigenes Mesh mit eigener Lage."""
+    """n×n crates on the ground (more than BLOCK_MIN), each its own mesh with its own placement."""
     h.new_scene()
     geo = _box()
     for i in range(n):
@@ -38,9 +38,9 @@ def _arr(img):
 
 
 def _both(h: H):
-    """(Bild mit Block, Bild je Mesh)."""
+    """(image with block, image per mesh)."""
     with_block = _arr(h.grab())
-    assert h.v.renderer._block is not None, "ab BLOCK_MIN Meshes gibt es einen Block"
+    assert h.v.renderer._block is not None, "from BLOCK_MIN meshes on there is a block"
     old = rmod.BLOCK_MIN
     rmod.BLOCK_MIN = 10 ** 9
     try:
@@ -55,51 +55,51 @@ def _both(h: H):
 
 def _same(a, b, label):
     d = np.abs(a - b).reshape(a.shape[0], -1, 4)[..., :3].max(axis=2)
-    n = int((d > 2).sum())  # einzelne Kantenpixel dürfen abweichen (Lage im Block schon in Weltkoordinaten gerundet)
-    assert n <= d.size * 2e-4, f"{label}: Block weicht vom Zeichnen je Mesh ab ({n} Pixel)"
+    n = int((d > 2).sum())  # single edge pixels may differ (placement in the block already rounded in world coordinates)
+    assert n <= d.size * 2e-4, f"{label}: block differs from drawing per mesh ({n} pixels)"
 
 
-def test_block_bild_wie_je_mesh_auch_ausgeblendet_verschoben_gewaehlt(h: H):
+def test_block_image_as_per_mesh_also_hidden_moved_selected(h: H):
     meshes = _grid_scene(h)
-    _same(*_both(h), "Grundbild")
-    meshes[3].hidden = True  # ausgeblendet: nur die Tabelle, kein Neubau
+    _same(*_both(h), "base image")
+    meshes[3].hidden = True  # hidden: only the table, no rebuild
     h.v._changed()
-    _same(*_both(h), "ausgeblendet")
+    _same(*_both(h), "hidden")
     h.grab()
     block = h.v.renderer._block
     xf = meshes[17].xform.copy()
     xf[:3, 3] += [0.0, 0.8, 0.0]
-    meshes[17].xform = xf  # verschoben: dieses Teil einzeln, bis sich ein Neubau lohnt
+    meshes[17].xform = xf  # moved: this part individually until a rebuild pays off
     h.v._changed()
     with_block = _arr(h.grab())
-    assert h.v.renderer._block is block, "ein verschobenes Teil baut den Block nicht neu"
+    assert h.v.renderer._block is block, "a moved part does not rebuild the block"
     assert block.current(meshes[17]) is None
-    h.v.selection = [meshes[40].id]  # gewählt: andere Tönung aus der Tabelle
+    h.v.selection = [meshes[40].id]  # selected: different tint from the table
     h.v.ws.select_mode = True
     h.v._changed()
-    _same(*_both(h), "verschoben und gewählt")
-    assert not np.array_equal(with_block, _arr(h.grab())), "Auswahl ist zu sehen"
+    _same(*_both(h), "moved and selected")
+    assert not np.array_equal(with_block, _arr(h.grab())), "selection is visible"
 
 
-def test_block_picking_trifft_das_einzelne_teil(h: H):
+def test_block_picking_hits_the_individual_part(h: H):
     meshes = _grid_scene(h)
     h.grab()
     assert h.v.renderer._block is not None
     for m in (meshes[0], meshes[55], meshes[99]):
-        top = m.xform[:3, 3] + [0.0, 0.4, 0.0]  # Mitte des Deckels
+        top = m.xform[:3, 3] + [0.0, 0.4, 0.0]  # middle of the lid
         hit, point, _ = h.v._mesh_under(h.scrf(top))
         assert hit is m, (m.name, getattr(hit, "name", None))
         assert np.allclose(point, top, atol=0.03), point
 
 
-def test_block_mit_licht_und_color_id(h: H):
-    """Licht-Modus (Schattenkarte aus dem Block) wie je Mesh; die Color-ID des Briefs nennt je Pixel das einzelne
-    Mesh, auch wenn es im Block gezeichnet wird."""
+def test_block_with_light_and_color_id(h: H):
+    """Light mode (shadow map from the block) as per mesh; the brief's color ID names the individual mesh per pixel,
+    even if it is drawn in the block."""
     meshes = _grid_scene(h)
     h.v.ws.light_on = True
     try:
         h.v._changed()
-        _same(*_both(h), "Licht")
+        _same(*_both(h), "light")
     finally:
         h.v.ws.light_on = False
     h.grab()
@@ -108,5 +108,5 @@ def test_block_mit_licht_und_color_id(h: H):
     m = meshes[55]
     top = h.scrf(m.xform[:3, 3] + [0.0, 0.4, 0.0])
     hh, ww = ids.shape
-    x, y = int(top.x() * ww / h.v.width()), int(top.y() * hh / h.v.height())  # Zeile 0 oben
+    x, y = int(top.x() * ww / h.v.width()), int(top.y() * hh / h.v.height())  # row 0 on top
     assert int(round(float(ids[y, x]))) == m.id, (ids[y, x], m.id)

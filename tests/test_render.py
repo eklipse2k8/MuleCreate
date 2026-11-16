@@ -1,6 +1,6 @@
-"""Pixelvergleich: die Testszenen (tests/scenes) in mehreren Darstellungen gegen Referenzbilder (tests/_baseline).
+"""Pixel comparison: the test scenes (tests/scenes) in several display modes against reference images (tests/_baseline).
 
-Fehlt eine Referenz, wird sie angelegt. Nach gewollten Änderungen an der Darstellung:
+A missing reference is created. After intended changes to the display:
     python tests/run.py render --update-baseline
 """
 import os
@@ -11,7 +11,7 @@ from tests.harness import H, OUT, ROOT, SCENES
 
 BASELINE = os.path.join(ROOT, "tests", "_baseline")
 UPDATE = os.environ.get("SKETCH_UPDATE_BASELINE") == "1"
-TOLERANCE = 40  # abweichende Stichproben-Pixel, die noch als gleich gelten (Kantenglättung)
+TOLERANCE = 40  # differing sampled pixels still counted as equal (anti-aliasing)
 
 MODES = {
     "normal": lambda v: None,
@@ -36,14 +36,14 @@ def _compare(h: H, scene):
         ref_path = os.path.join(BASELINE, f"{scene}_{mode}.png")
         if UPDATE or not os.path.exists(ref_path):
             img.save(ref_path)
-            notes.append(f"{mode}: Referenz angelegt")
+            notes.append(f"{mode}: reference created")
             continue
         n = h.diff(QImage(ref_path), img)
         notes.append(f"{mode}: {n}")
         if n < 0 or n > TOLERANCE:
-            bad.append(f"{mode} ({n} Pixel anders)")
+            bad.append(f"{mode} ({n} pixels differ)")
     _reset(h.v)
-    assert not bad, "Bild weicht ab: " + ", ".join(bad) + " – Bilder in tests/_out"
+    assert not bad, "Image differs: " + ", ".join(bad) + " – images in tests/_out"
     return ", ".join(notes)
 
 

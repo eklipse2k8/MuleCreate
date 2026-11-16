@@ -61,7 +61,7 @@ STROKE_BIAS = 3e-5  # depth lead of the strokes (they lie visibly on surfaces)
 BLEND_OVER = (moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA, moderngl.ONE, moderngl.ONE)
 
 NOISE = """
-// Rauschen für Papier- und Bleistiftstruktur (Hash ohne Textur, stabil auf allen Treibern)
+// Noise for paper and pencil structure (hash without a texture, stable on all drivers)
 float hash12(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
     p3 += dot(p3, p3.yzx + 33.33);
@@ -76,7 +76,7 @@ float vnoise(vec2 p) {
 """
 
 PAPER_LIB = """
-// 3D-Rauschen (für die Blickkugel des Hintergrunds)
+// 3D noise (for the view sphere of the background)
 float hash13(vec3 p3) {
     p3 = fract(p3 * 0.1031);
     p3 += dot(p3, p3.zyx + 31.32);
@@ -89,17 +89,17 @@ float vnoise3(vec3 p) {
     float b = mix(mix(hash13(i + vec3(0, 0, 1)), hash13(i + vec3(1, 0, 1)), f.x), mix(hash13(i + vec3(0, 1, 1)), hash13(i + vec3(1, 1, 1)), f.x), f.y);
     return mix(a, b, f.z);
 }
-// Papier auf einer Fläche, p in Welteinheiten. fw = Weltgröße eines Pixels: Details, die kleiner
-// als ein Pixel würden, werden ausgeblendet (sonst flimmert es beim Herauszoomen)
+// Paper on a surface, p in world units. fw = world size of one pixel: details that would be smaller
+// than a pixel are faded out (otherwise it flickers when zooming out)
 float paper2(vec2 p, float fw) {
     float blotch = vnoise(p * 0.7) - 0.5;
     float fibers = (vnoise(p * vec2(26.0, 5.0)) + vnoise(p * vec2(5.0, 26.0) + 41.0)) * 0.5 - 0.5;
     float tooth = vnoise(p * 70.0) - 0.5;
     fibers *= 1.0 - smoothstep(0.02, 0.08, fw);
     tooth *= 1.0 - smoothstep(0.008, 0.03, fw);
-    return blotch * 0.04 + fibers * 0.6 + tooth * 0.7;  // Flecken nur noch unterbewusst
+    return blotch * 0.04 + fibers * 0.6 + tooth * 0.7;  // Blotches only subliminal now
 }
-// triplanar: aus drei Richtungen projiziert, nach der Flächennormale gemischt
+// triplanar: projected from three directions, blended by the surface normal
 float paper_triplanar(vec3 p, vec3 n, float fw) {
     vec3 w = pow(abs(n), vec3(4.0));
     w /= max(w.x + w.y + w.z, 1e-6);
@@ -108,7 +108,7 @@ float paper_triplanar(vec3 p, vec3 n, float fw) {
 """
 
 SHADOW_LIB = """
-uniform float bands;  // Licht-Stufen: 0 = fließend, sonst so viele Helligkeitsstufen (Cel-Shading)
+uniform float bands;  // light steps: 0 = continuous, otherwise this many brightness steps (cel shading)
 float band(float x) {
     if (bands < 1.5) return x;
     return floor(clamp(x, 0.0, 1.0) * (bands - 1.0) + 0.5) / (bands - 1.0);
@@ -117,9 +117,9 @@ uniform float shadow_on;
 uniform mat4 shadow_vp;
 uniform sampler2D shadow_map;
 uniform float shadow_bias;
-uniform float shadow_lift;  // Weltabstand zur Sonne hin, um den Linien geprüft werden
+uniform float shadow_lift;  // world distance towards the sun by which lines are checked
 float in_shadow(vec3 world) {
-    // Schattenkarte der Sonne: liegt zwischen diesem Punkt und der Sonne etwas? (3x3 gemittelt: weiche Kanten)
+    // Sun shadow map: is something between this point and the sun? (3x3 averaged: soft edges)
     if (shadow_on < 0.5) return 0.0;
     vec4 sp = shadow_vp * vec4(world, 1.0);
     vec3 q = sp.xyz / sp.w * 0.5 + 0.5;
@@ -131,9 +131,9 @@ float in_shadow(vec3 world) {
             hit += q.z - shadow_bias > texture(shadow_map, q.xy + vec2(i, j) * texel).r ? 1.0 : 0.0;
     return hit / 9.0;
 }
-uniform float dome;  // Anteil des Himmelslichts (Domelight): Formen bleiben auch im Schatten lesbar
+uniform float dome;  // share of the sky light (dome light): shapes stay readable in shadow too
 vec3 sun_and_sky(vec3 n, float sun_part, vec3 sky) {
-    // sun_part: Sonnenlicht samt Schatten; dazu Licht vom ganzen Himmel – oben voll, nach unten weniger, leicht blau
+    // sun_part: sunlight including shadow; plus light from the whole sky - full at the top, less towards the bottom, slightly blue
     float up = band(0.5 + 0.5 * n.y);
     return mix(vec3(sun_part), up * mix(vec3(1.0), sky, 0.5), dome);
 }
@@ -159,7 +159,7 @@ MESH_FS = """
 uniform vec3 eye;
 uniform vec4 tint;
 uniform float alpha;
-uniform float lift;  // Schatten-Prüfpunkt so weit von der Fläche weg (Welteinheiten)
+uniform float lift;  // shadow test point this far away from the surface (world units)
 uniform float light_on;
 uniform vec3 sun_dir;
 uniform vec3 sun_col;
@@ -171,13 +171,13 @@ in vec3 v_color;
 out vec4 f_color;
 """ + SHADOW_LIB + """
 void main() {
-    // Flächennormale aus Bildschirm-Ableitungen: keine Normalen nötig, flach schattiert
+    // Surface normal from screen derivatives: no normals needed, flat shaded
     vec3 n = normalize(cross(dFdx(v_world), dFdy(v_world)));
     vec3 l = normalize(eye - v_world);
-    if (dot(n, l) < 0.0) n = -n;  // die Seite, die man sieht
+    if (dot(n, l) < 0.0) n = -n;  // the side that is seen
     vec3 c;
     if (light_on > 0.5) {
-        // Licht-Modus: Sonne, abgewandte Seite und Schatten wie bei den Flächen
+        // Light mode: sun, far side and shadow as with the surfaces
         float nl = dot(n, sun_dir);
         float k = band(smoothstep(-0.25, 0.9, nl));
         float sh = band(in_shadow(v_world + (nl >= 0.0 ? n : -n) * lift + sun_dir * lift));
@@ -185,7 +185,7 @@ void main() {
         c = v_color * sun_and_sky(n, lit, sky_col) * mix(sky_col, sun_col, k * (1.0 - sh));
     } else {
         float d = band(dot(n, l));
-        c = v_color * (0.72 + 0.28 * d);  // importierte Meshes: mittelgrau, flach schattiert (Bleistift bleibt lesbar)
+        c = v_color * (0.72 + 0.28 * d);  // imported meshes: mid grey, flat shaded (pencil stays readable)
     }
     f_color = vec4(mix(c, tint.rgb, tint.a), alpha);
 }
@@ -194,7 +194,7 @@ void main() {
 WIRE_VS = """
 #version 330
 uniform mat4 mvp;
-uniform float bias;  // Anteil der Tiefe: Kanten liegen knapp vor ihrer Fläche
+uniform float bias;  // share of the depth: edges lie slightly in front of their surface
 in vec3 in_pos;
 void main() {
     gl_Position = mvp * vec4(in_pos, 1.0);
@@ -204,7 +204,7 @@ void main() {
 
 WIRE_FS = """
 #version 330
-uniform vec4 color;  // Drahtgitter der Meshes: Kantenfarbe mit Deckkraft des Reglers
+uniform vec4 color;  // wireframe of the meshes: edge colour with the opacity of the slider
 out vec4 f_color;
 void main() {
     f_color = color;
@@ -218,18 +218,18 @@ uniform float ortho;
 """
 
 OCCL_LIB = """
-uniform sampler2D occl_map;  // je Pixel: Abstand der vordersten deckenden Schicht, |cos| Blick/Normale, Radius, Flächen-id
+uniform sampler2D occl_map;  // per pixel: distance of the front-most covering layer, |cos| view/normal, radius, surface id
 uniform float occl_on;
-uniform float xray_behind;   // Verdecktes: 0 = unsichtbar, X-Ray: sanft (Deckkraft)
-uniform vec3 occl_tol;       // Spielraum in Radien: eigene Fläche, unbekannt, fremde Fläche
-uniform sampler2D occl_acc;  // Deckkraft der vordersten Schicht je Pixel (als -log(1 - a) aufsummiert)
-uniform float occl_min;      // ab dieser Deckkraft deckt sie (0: Deckkraft nicht prüfen)
+uniform float xray_behind;   // hidden: 0 = invisible, X-Ray: soft (opacity)
+uniform vec3 occl_tol;       // tolerance in radii: own surface, unknown, other surface
+uniform sampler2D occl_acc;  // opacity of the front-most layer per pixel (summed up as -log(1 - a))
+uniform float occl_min;      // from this opacity on it covers (0: do not check opacity)
 bool occl_dense_at(ivec2 q) {
     return occl_min <= 0.0 || 1.0 - exp(-texelFetch(occl_acc, q, 0).r) >= occl_min;
 }
 bool occl_dense() { return occl_dense_at(ivec2(gl_FragCoord.xy)); }
-// vorderste deckende Schicht im 3x3-Umfeld (am Umriss einer Fläche liegt die Pixelmitte oft knapp daneben – ohne
-// Umfeld schiene Verdecktes dort als Punkte durch); liefert die Karte dort und schreibt ihre Lage nach q
+// front-most covering layer in the 3x3 neighbourhood (at the outline of a surface the pixel centre often lies just beside it - without
+// the neighbourhood hidden things would show through there as dots); returns the map there and writes its position to q
 vec4 occl_front(out ivec2 q) {
     ivec2 c = ivec2(gl_FragCoord.xy);
     ivec2 size = textureSize(occl_map, 0);
@@ -247,13 +247,13 @@ vec4 occl_front(out ivec2 q) {
     return best;
 }
 float view_dist(vec3 p) { return ortho > 0.5 ? dot(eye - p, view_back) : length(p - eye); }
-// 1.0: vorne bzw. auf der vordersten Fläche; sonst xray_behind. owners: Flächen-ids, zu denen p gehört (-1 = keine),
-// other: Spielraum gegenüber fremden Flächen (Radien)
+// 1.0: in front or on the front-most surface; otherwise xray_behind. owners: surface ids p belongs to (-1 = none),
+// other: tolerance towards other surfaces (radii)
 float cover_t(vec3 p, vec4 owners, float other) {
     if (occl_on < 0.5) return 1.0;
     ivec2 q;
     vec4 m = occl_front(q);
-    if (m.b <= 0.0 || !occl_dense_at(q)) return 1.0;  // hier deckt nichts (bzw. nur dünn)
+    if (m.b <= 0.0 || !occl_dense_at(q)) return 1.0;  // nothing covers here (or only thinly)
     float d = view_dist(p);
     float diff = d - m.r;
     float eps = 2e-5 * abs(d);
@@ -261,15 +261,15 @@ float cover_t(vec3 p, vec4 owners, float other) {
     bool own = m.a >= 0.0 && any(equal(owners, vec4(m.a)));
     bool known = m.a >= 0.0 && max(max(owners.x, owners.y), max(owners.z, owners.w)) >= 0.0;
     float tol = own ? occl_tol.x : (known ? other : occl_tol.y);
-    // senkrecht zur Fläche messen (Blickwinkel egal), entlang des Blicks höchstens wenige Radien
+    // measure perpendicular to the surface (view angle does not matter), along the view at most a few radii
     if (diff * m.g <= tol * m.b + eps && diff <= (own ? 4.0 : 2.0) * m.b) return 1.0;
-    // dahinter: so weit, wie die vorderste Schicht durchlässt (deckende Fläche: nichts; X-Ray: sanft)
+    // behind: as far as the front-most layer lets through (covering surface: nothing; X-Ray: soft)
     return max(xray_behind, exp(-texelFetch(occl_acc, q, 0).r));
 }
 float cover(vec3 p, vec4 owners) { return cover_t(p, owners, occl_tol.z); }
-// Deckkraft-Durchgang: gehört p zur vordersten Schicht genau an seinem Pixel? Nicht im 3x3-Umfeld wie cover() – an
-// jeder Tiefenkante (ein näheres Teil im Nachbarpixel) fiele die hintere Seite sonst heraus, hätte dort keine Deckkraft,
-// und was dahinter liegt, schiene als Sprenkel durch (dichte Meshes: überall Kanten)
+// Opacity pass: does p belong to the front-most layer exactly at its pixel? Not in the 3x3 neighbourhood like cover() - at
+// every depth edge (a nearer part in the neighbouring pixel) the rear side would otherwise drop out, have no opacity there,
+// and what lies behind would show through as speckles (dense meshes: edges everywhere)
 bool front_here(vec3 p, vec4 owners) {
     if (occl_on < 0.5) return true;
     vec4 m = texelFetch(occl_map, ivec2(gl_FragCoord.xy), 0);
@@ -283,8 +283,8 @@ bool front_here(vec3 p, vec4 owners) {
     float tol = own ? occl_tol.x : (known ? occl_tol.z : occl_tol.y);
     return diff * m.g <= tol * m.b + eps && diff <= (own ? 4.0 : 2.0) * m.b;
 }
-// Flächen untereinander: sichtbar, wenn sie an irgendeinem Pixel des 3x3-Umfelds vorne ist – am Umriss einer davor
-// liegenden Fläche entscheidet dann der Tiefentest je Sample (Kantenglättung), statt dass dort Papier durchscheint
+// Surfaces among each other: visible if it is in front at any pixel of the 3x3 neighbourhood - at the outline of a surface in front
+// of it the depth test per sample decides (anti-aliasing) instead of paper showing through there
 float cover_at(vec3 p, vec4 owners, ivec2 q) {
     vec4 m = texelFetch(occl_map, q, 0);
     if (m.b <= 0.0 || !occl_dense_at(q)) return 1.0;
@@ -308,10 +308,10 @@ float cover_edge(vec3 p, vec4 owners) {
             v = max(v, cover_at(p, owners, clamp(c + ivec2(i, j), ivec2(0), size - 1)));
     return v;
 }
-// Zeichenhilfen: liegt p auf oder hinter der vordersten Fläche? Dann wird sie vor der Fläche
-// gezeichnet und von ihr zugedeckt (weich an Rändern, unsichtbar im Inneren)
-uniform float aid_pass;  // 0: Durchgang unter den Flächen, 1: darüber (davor bzw. ohne Fläche, Lasur der aktiven Ebene)
-// Deckkraft der vordersten Schicht hier (0 = keine Fläche): inaktive Zeichenhilfen davor blenden so weit aus
+// Drawing aids: does p lie on or behind the front-most surface? Then it is drawn in front of the surface
+// and covered by it (soft at the edges, invisible inside)
+uniform float aid_pass;  // 0: pass under the surfaces, 1: above them (in front of or without a surface, glaze of the active plane)
+// Opacity of the front-most layer here (0 = no surface): inactive drawing aids in front fade out by that much
 float front_opacity() {
     if (occl_on < 0.5) return 0.0;
     if (texelFetch(occl_map, ivec2(gl_FragCoord.xy), 0).b <= 0.0) return 0.0;
@@ -354,12 +354,12 @@ void main() {
 PICK_GATHER_VS = """
 #version 330
 uniform float count;
-in vec2 in_xy;          // Pixel im Positionspuffer
+in vec2 in_xy;          // pixel in the position buffer
 flat out ivec2 v_xy;
 void main() {
     v_xy = ivec2(in_xy);
     gl_PointSize = 1.0;
-    gl_Position = vec4((float(gl_VertexID) + 0.5) / count * 2.0 - 1.0, 0.0, 0.0, 1.0);  // Pixel k der Zeile
+    gl_Position = vec4((float(gl_VertexID) + 0.5) / count * 2.0 - 1.0, 0.0, 0.0, 1.0);  // pixel k of the row
 }
 """
 
@@ -395,7 +395,7 @@ void main() {
     v_xy = ivec2(floor((ndc * 0.5 + 0.5) * size));
     v_p = in_pos;
     gl_PointSize = 1.0;
-    gl_Position = vec4((float(gl_VertexID) + 0.5) / count * 2.0 - 1.0, 0.0, 0.0, 1.0);  // Pixel k der Zeile
+    gl_Position = vec4((float(gl_VertexID) + 0.5) / count * 2.0 - 1.0, 0.0, 0.0, 1.0);  // pixel k of the row
 }
 """
 
@@ -422,7 +422,7 @@ PICK_FS = """
 uniform float mesh_index;
 in vec3 v_world;
 layout(location = 0) out vec4 f_out;
-layout(location = 1) out float f_prim;  // Nummer des getroffenen Dreiecks (genauer Schnitt nur mit diesem)
+layout(location = 1) out float f_prim;  // number of the triangle hit (exact intersection only with this one)
 void main() {
     f_out = vec4(v_world, mesh_index);
     f_prim = float(gl_PrimitiveID);
@@ -456,7 +456,7 @@ void main() {
 FLAT_VS = """
 #version 330
 uniform mat4 vp;
-uniform float bias;  // > 0: minimal nach hinten (Tiefen-Durchgang der Ebenen)
+uniform float bias;  // > 0: minimally backwards (depth pass of the planes)
 in vec3 in_pos;
 out vec3 v_world;
 void main() {
@@ -469,23 +469,23 @@ void main() {
 FLAT_FS = """
 #version 330
 uniform vec4 color;
-uniform float grain;  // Transparentpapier: Papierstruktur in der Füllung (fest auf der Ebene)
+uniform float grain;  // tracing paper: paper structure in the fill (fixed on the plane)
 uniform vec3 eye;
 uniform vec3 view_back;
 uniform float ortho;
-uniform float milk;   // unter flachem Blick milchiger (wie echtes Pauspapier)
-uniform vec4 owner;   // Ebene/Zeichenfläche (für die Deckungskarte)
-uniform float under;  // auf einer Fläche: diese Deckkraft (Lasur der Ebene, 0 = weg), < 0 = unverändert
-uniform float soft;   // 1: unbeteiligte Ebene (weder Zeichenebene noch gewählt) – auch VOR einer Fläche nur die Lasur
+uniform float milk;   // milkier under a flat view (like real tracing paper)
+uniform vec4 owner;   // plane/drawing surface (for the coverage map)
+uniform float under;  // on a surface: this opacity (glaze of the plane, 0 = gone), < 0 = unchanged
+uniform float soft;   // 1: uninvolved plane (neither drawing plane nor selected) - also IN FRONT of a surface only the glaze
 in vec3 v_world;
 out vec4 f_color;
 """ + NOISE + PAPER_LIB + OCCL_LIB + """
 void main() {
-    // Ableitungen vor jedem discard (danach sind sie in den Nachbarpixeln undefiniert: schwarze Pixel am Flächenrand)
+    // Derivatives before every discard (afterwards they are undefined in the neighbouring pixels: black pixels at the surface edge)
     vec3 cr = cross(dFdx(v_world), dFdy(v_world));
     vec3 n = length(cr) > 1e-20 ? normalize(cr) : vec3(0.0, 1.0, 0.0);
     float fw_w = length(fwidth(v_world));
-    float vis = cover(v_world, owner);  // Zeichenhilfen hinter einer Fläche: weg (X-Ray: sanft)
+    float vis = cover(v_world, owner);  // drawing aids behind a surface: gone (X-Ray: soft)
     if (vis <= 0.0) discard;
     float tex = 0.0;
     float a = color.a;
@@ -496,14 +496,14 @@ void main() {
     }
     bool low = on_layer(v_world);
     if (aid_pass < 0.5) {
-        if (!low) discard;  // unter den Flächen: nur was auf/hinter ihnen liegt
+        if (!low) discard;  // under the surfaces: only what lies on/behind them
     } else if (low) {
-        if (under <= 0.0) discard;  // über einer Fläche nur die Lasur der Ebene
+        if (under <= 0.0) discard;  // above a surface only the glaze of the plane
         a = under;
     } else if (under <= 0.0) {
-        a *= 1.0 - front_opacity();  // ohne Lasur vor einer Fläche: verdeckt sie nicht
+        a *= 1.0 - front_opacity();  // without glaze in front of a surface: does not cover it
     } else if (soft > 0.5) {
-        a = mix(a, under, front_opacity());  // unbeteiligt vor einer Fläche: nur die Lasur, vor dem Papier voll
+        a = mix(a, under, front_opacity());  // uninvolved in front of a surface: only the glaze, in front of the paper full
     }
     if (a <= 0.0) discard;
     f_color = vec4(color.rgb * (1.0 + grain * 0.06 * tex), a * vis);
@@ -515,19 +515,19 @@ INFINITE_FS = """
 uniform vec3 origin;
 uniform vec3 axis_u;
 uniform vec3 axis_v;
-uniform vec2 half_size;   // Kern (das sichtbare Rechteck): dort zeichnet die normale Ebene
-uniform float has_core;   // 0: Grundraster ohne Kern (überall)
-uniform vec2 tile_size;   // Kachelgröße
-uniform vec2 tile_offset; // Kachelgrenzen: Ränder des Kerns (Ebene) bzw. durch den Ursprung (Grundraster)
+uniform vec2 half_size;   // core (the visible rectangle): the normal plane draws there
+uniform float has_core;   // 0: base grid without core (everywhere)
+uniform vec2 tile_size;   // tile size
+uniform vec2 tile_offset; // tile borders: edges of the core (plane) or through the origin (base grid)
 uniform vec2 grid_step;
-uniform vec4 fill;        // Milch: Farbe + Deckkraft
+uniform vec4 fill;        // milk: colour + opacity
 uniform vec3 line;
 uniform float grid_alpha;
-uniform float tile_alpha; // Kacheln in der Größe der Ebene (Rechteck wiederholt sich)
+uniform float tile_alpha; // tiles in the size of the plane (rectangle repeats)
 uniform vec3 eye;
 uniform vec3 view_back;
 uniform float ortho;
-uniform float reach;      // ausblenden bis zu dieser Entfernung
+uniform float reach;      // fade out up to this distance
 uniform vec4 owner;
 in vec3 v_world;
 out vec4 f_color;
@@ -536,12 +536,12 @@ void main() {
     vec3 d = v_world - origin;
     float s = dot(d, axis_u), t = dot(d, axis_v);
     vec2 g = vec2(s, t) / grid_step;
-    vec2 fw = max(fwidth(g), vec2(1e-6));  // Ableitungen vor jedem discard
+    vec2 fw = max(fwidth(g), vec2(1e-6));  // derivatives before every discard
     vec2 k = (vec2(s, t) + tile_offset) / tile_size;
     vec2 kw = max(fwidth(k), vec2(1e-6));
     float vis = cover(v_world, owner);
     if (vis <= 0.0 || on_layer(v_world) != (aid_pass < 0.5)) discard;
-    vis *= 1.0 - front_opacity();  // vor einer Fläche: verdeckt sie nicht
+    vis *= 1.0 - front_opacity();  // in front of a surface: does not cover it
     if (has_core > 0.5 && abs(s) < half_size.x && abs(t) < half_size.y) discard;
     vec2 f = abs(fract(g - 0.5) - 0.5) / fw;
     float lines = (1.0 - min(min(f.x, f.y), 1.0)) * (1.0 - smoothstep(0.12, 0.45, max(fw.x, fw.y)));
@@ -561,7 +561,7 @@ void main() {
 PAPER_VS = """
 #version 330
 void main() {
-    vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);  // ein Dreieck über den ganzen Bildschirm
+    vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);  // one triangle over the whole screen
     gl_Position = vec4(p * 2.0 - 1.0, 0.999, 1.0);
 }
 """
@@ -573,19 +573,19 @@ uniform vec2 size;
 uniform float stain;
 uniform float grain;
 uniform float vignette;
-uniform vec3 cam_right;   // Kamera-Basis: das Papier liegt auf einer Kugel um die Kamera
+uniform vec3 cam_right;   // camera basis: the paper lies on a sphere around the camera
 uniform vec3 cam_up;
 uniform vec3 cam_back;
-uniform float view_tan;   // tan(halber Öffnungswinkel), auch orthografisch (dreht dann nur mit)
+uniform float view_tan;   // tan(half the opening angle), also orthographic (then it only turns along)
 out vec4 f_color;
 """ + NOISE + PAPER_LIB + """
 void main() {
     vec2 ndc = gl_FragCoord.xy / size * 2.0 - 1.0;
     vec3 dir = normalize(-cam_back + ndc.x * view_tan * (size.x / size.y) * cam_right + ndc.y * view_tan * cam_up);
-    // Struktur auf der Blickkugel: 3D-Rauschen auf der Richtung, ohne Nähte und Pole
-    float blotch = vnoise3(dir * 3.0) * 0.6 + vnoise3(dir * 7.0 + 5.0) * 0.4 - 0.5;   // große, weiche Flecken
+    // Structure on the view sphere: 3D noise on the direction, without seams and poles
+    float blotch = vnoise3(dir * 3.0) * 0.6 + vnoise3(dir * 7.0 + 5.0) * 0.4 - 0.5;   // large, soft blotches
     float fibers = (vnoise3(dir * vec3(380.0, 70.0, 380.0)) + vnoise3(dir * vec3(70.0, 380.0, 70.0) + 9.0)) * 0.5 - 0.5;
-    float tooth = vnoise3(dir * 1300.0) - 0.5;                                        // Körnung
+    float tooth = vnoise3(dir * 1300.0) - 0.5;                                        // grain
     vec2 uv = gl_FragCoord.xy / size - 0.5;
     float shade = 1.0 + stain * 2.0 * blotch + grain * (0.9 * tooth + 0.6 * fibers);
     shade *= 1.0 - vignette * dot(uv, uv) * 1.6;
@@ -596,43 +596,43 @@ void main() {
 RIBBON_VS = """
 #version 330
 uniform mat4 vp;
-uniform vec2 half_vp;   // halbe Framebuffer-Größe in Pixeln
-uniform float focal;    // 1 / tan(fov/2), orthografisch 1 / halbe Bildhöhe (w ist dann 1)
-uniform float min_px;   // Mindestbreite, damit ferne Striche nicht verschwinden
-uniform float bias;     // leicht zur Kamera ziehen, damit Striche auf Flächen nicht flackern
+uniform vec2 half_vp;   // half framebuffer size in pixels
+uniform float focal;    // 1 / tan(fov/2), orthographic 1 / half image height (w is then 1)
+uniform float min_px;   // minimum width so that distant strokes do not vanish
+uniform float bias;     // pull slightly towards the camera so that strokes on surfaces do not flicker
 in vec3 in_pos;
 in vec3 in_prev;
 in vec3 in_next;
 in float in_width;
 in float in_side;
-in float in_arc;   // Bogenlänge in Strichbreiten (Textur klebt am Strich)
+in float in_arc;   // arc length in stroke widths (texture sticks to the stroke)
 in vec4 in_color;
-uniform vec3 eye;        // Licht-Modus: Blickrichtung je Punkt (perspektivisch) …
-uniform vec3 view_back;  // … bzw. orthografisch
+uniform vec3 eye;        // light mode: view direction per point (perspective) ...
+uniform vec3 view_back;  // ... or orthographic
 uniform float ortho;
-uniform vec3 sun_dir;    // Richtung zur Sonne
+uniform vec3 sun_dir;    // direction to the sun
 out vec4 v_color;
 out float v_w;
 out float v_side;
 out float v_arc;
 out float v_px;
 out float v_brush;
-out float v_light;       // > 0: Seite +1 zeigt zur Sonne, < 0: Seite -1; Betrag: wie deutlich
+out float v_light;       // > 0: side +1 faces the sun, < 0: side -1; magnitude: how clearly
 out vec3 v_wpos;
-out vec3 v_tan;           // Strichrichtung im Raum (Röhre für die Verdeckung, 0: Malstrich)
-out float v_rad;          // halbe Strichbreite in Welteinheiten (0: flach)
-in vec4 in_owner;         // Zeichenflächen, zu denen der Strich gehört (-1 = keine)
+out vec3 v_tan;           // stroke direction in space (tube for the occlusion, 0: paint stroke)
+out float v_rad;          // half stroke width in world units (0: flat)
+in vec4 in_owner;         // drawing surfaces the stroke belongs to (-1 = none)
 flat out vec4 v_owner;
-in vec3 in_normal;        // Malstrich: Flächennormale (sonst 0)
-in float in_layer;        // Malstrich: Reihenfolge 0..1 (neuer = höher = oben)
+in vec3 in_normal;        // paint stroke: surface normal (otherwise 0)
+in float in_layer;        // paint stroke: order 0..1 (newer = higher = on top)
 void main() {
     v_wpos = in_pos;
     v_owner = in_owner;
-    float brush = step(1.5, abs(in_side));  // Pinsel: Seite ±2
+    float brush = step(1.5, abs(in_side));  // brush: side +-2
     if (length(in_normal) > 0.5) {
-        // Malstrich: flach in der Fläche (Breite quer zum Strich in der Flächenebene), wird unter flachem Blick
-        // schmaler wie Farbe auf Papier; Tiefe = Malreihenfolge (der neueste liegt oben, Verdecken regelt die
-        // Deckungskarte)
+        // Paint stroke: flat in the surface (width across the stroke in the surface plane), becomes narrower under a flat view
+        // like paint on paper; depth = paint order (the newest is on top, hiding is handled by the
+        // coverage map)
         float fside = in_side / (1.0 + brush);
         vec3 T = in_next - in_prev;
         T = length(T) > 1e-9 ? normalize(T) : vec3(1.0, 0.0, 0.0);
@@ -647,7 +647,7 @@ void main() {
         v_arc = in_arc;
         v_px = max(in_width * focal * half_vp.y / wf, min_px);
         v_brush = brush;
-        v_light = 0.0;  // keine aufgemalte Lichtkante (liegt auf der Fläche); Schatten gilt
+        v_light = 0.0;  // no painted light edge (lies on the surface); shadow applies
         v_tan = vec3(0.0);
         v_rad = 0.0;
         return;
@@ -661,7 +661,7 @@ void main() {
     vec2 d = b.xy / max(b.w, 1e-5) * half_vp - a.xy / max(a.w, 1e-5) * half_vp;
     if (length(d) < 1e-6) d = vec2(1.0, 0.0);
     vec2 n = normalize(vec2(-d.y, d.x));
-    // Weltbreite -> Pixel (Perspektive macht ferne Striche dünner), mit Mindestbreite
+    // World width -> pixels (perspective makes distant strokes thinner), with minimum width
     float px = max(in_width * focal * half_vp.y / w, min_px);
     vec2 s = sc + n * px * 0.5 * side;
     gl_Position = vec4(s / half_vp * w, c.z - bias * w, w);
@@ -671,7 +671,7 @@ void main() {
     v_arc = in_arc;
     v_px = px;
     v_brush = brush;
-    // Querrichtung des Strichs im Raum (senkrecht zu Strich und Blick), Vorzeichen wie die Bildschirmseite
+    // Cross direction of the stroke in space (perpendicular to stroke and view), sign like the screen side
     vec3 T = in_next - in_prev;
     T = length(T) > 1e-9 ? normalize(T) : vec3(1.0, 0.0, 0.0);
     v_tan = T;
@@ -694,7 +694,7 @@ OCCL_ACC_MESH_FS = """
 #version 330
 """ + OCCL_VIEW + OCCL_LIB + """
 uniform vec4 owner;
-uniform float acc_value;  // -log(1 - Deckkraft): Meshes voll (20), Flächen nach ihrem Regler
+uniform float acc_value;  // -log(1 - opacity): meshes full (20), surfaces according to their slider
 in vec3 v_world;
 out float f_acc;
 void main() {
@@ -708,15 +708,15 @@ OCCL_MESH_FS = """
 """ + OCCL_VIEW + """
 uniform float radius;
 uniform float mesh_id;
-const float OCCL_MIN_PX = 3.0;  // Spielraum mindestens so viele Pixel
+const float OCCL_MIN_PX = 3.0;  // tolerance at least this many pixels
 in vec3 v_world;
 out vec4 f_cover;
 void main() {
     vec3 n = normalize(cross(dFdx(v_world), dFdy(v_world)));
     vec3 view = ortho > 0.5 ? view_back : normalize(eye - v_world);
     float d = ortho > 0.5 ? dot(eye - v_world, view_back) : length(v_world - eye);
-    // Spielraum mindestens ein paar Pixel (in Welteinheiten hier): sonst verdeckt sich eine kleine oder ferne Fläche
-    // im 3x3-Umfeld selbst und verschwindet beim Herauszoomen
+    // Tolerance at least a few pixels (in world units here): otherwise a small or distant surface covers itself
+    // in the 3x3 neighbourhood and vanishes when zooming out
     float px = length(fwidth(v_world));
     f_cover = vec4(d, abs(dot(n, view)), max(radius, OCCL_MIN_PX * px), mesh_id);
 }
@@ -741,7 +741,7 @@ vec4 tab(int s, int j) { int k = s * 3 + j; return texelFetch(block_tab, ivec2(k
 BLOCK_VS = """
 #version 330
 uniform mat4 mvp;
-uniform int vis_col;  // 1: gezeichnet (Bild, Deckung, Schatten) · 2: in diesem Picking
+uniform int vis_col;  // 1: drawn (image, coverage, shadow) - 2: in this picking
 in vec3 in_pos;
 in vec3 in_color;
 in float in_slot;
@@ -754,7 +754,7 @@ void main() {
     v_world = in_pos;
     v_color = in_color;
     bool shown = vis_col == 2 ? tab(v_slot, 2).x > 0.5 : tab(v_slot, 1).y > 0.5;
-    gl_Position = shown ? mvp * vec4(in_pos, 1.0) : vec4(2.0, 2.0, 2.0, 1.0);  // ausgeblendet: außerhalb, verworfen
+    gl_Position = shown ? mvp * vec4(in_pos, 1.0) : vec4(2.0, 2.0, 2.0, 1.0);  // hidden: outside, discarded
 }
 """
 BLOCK_MESH_FS = MESH_FS.replace("uniform vec4 tint;\n", BLOCK_TAB + "flat in int v_slot;\n") \
@@ -762,7 +762,7 @@ BLOCK_MESH_FS = MESH_FS.replace("uniform vec4 tint;\n", BLOCK_TAB + "flat in int
 BLOCK_PICK_FS = PICK_FS.replace("uniform float mesh_index;\n", BLOCK_TAB + "flat in int v_slot;\n") \
     .replace("    f_out = vec4(v_world, mesh_index);\n    f_prim = float(gl_PrimitiveID);\n",
              "    vec4 t = tab(v_slot, 2);\n    f_out = vec4(v_world, t.x);\n"
-             "    f_prim = float(gl_PrimitiveID - (int(t.y) * 65536 + int(t.z)));  // Dreieck im eigenen Mesh\n")
+             "    f_prim = float(gl_PrimitiveID - (int(t.y) * 65536 + int(t.z)));  // triangle in the own mesh\n")
 BLOCK_OCCL_FS = OCCL_MESH_FS.replace("uniform float mesh_id;\n", BLOCK_TAB + "flat in int v_slot;\n") \
     .replace("void main() {\n", "void main() {\n    float mesh_id = tab(v_slot, 1).x;\n", 1)
 BLOCK_OCCL_ACC_FS = OCCL_ACC_MESH_FS.replace("uniform vec4 owner;\n", BLOCK_TAB + "flat in int v_slot;\n") \
@@ -775,7 +775,7 @@ BLOCK_REBUILD = 64  # this many meshes outside the block (new, moved) -> rebuild
 RIBBON_FS = """
 #version 330
 uniform float grain;
-uniform float fade;  // < 1: verdeckte Striche (hinter ausgeblendeten Zeichenflächen) abgeschwächt
+uniform float fade;  // < 1: hidden strokes (behind hidden drawing surfaces) weakened
 in vec4 v_color;
 in float v_w;
 in float v_side;
@@ -794,16 +794,16 @@ uniform float shadow_dark;
 flat in vec4 v_owner;
 out vec4 f_color;
 """ + NOISE + SHADOW_LIB + OCCL_VIEW + OCCL_LIB + """
-// Hilfsebenen tönen, was hinter ihnen liegt: Ebenen verdecken nichts und werden vor den Strichen gezeichnet – ohne das
-// schienen Striche und Malerei dahinter ungetönt durch (Hafentest 09.11.). Je Ebene: liegt sie zwischen Auge und p
-// (innerhalb ihres Rechtecks), wird die Farbe mit ihrer Füllfarbe gemischt (Deckkraft wie die Ebene selbst).
+// Helper planes tint what lies behind them: planes cover nothing and are drawn before the strokes - without this
+// strokes and painting behind them would show through untinted (harbour test 09.11.). Per plane: does it lie between eye and p
+// (inside its rectangle), the colour is mixed with its fill colour (opacity like the plane itself).
 uniform int plane_n;
 uniform vec3 plane_o[16];
-uniform vec3 plane_u[16];  // halbe Kante in u (Welt)
-uniform vec3 plane_v[16];  // halbe Kante in v (Welt)
-uniform vec4 plane_c[16];  // Füllfarbe + Deckkraft
-uniform float plane_k[16];  // Lasur der Ebene auf einer Fläche, 0: keine
-uniform float plane_s[16];  // 1: unbeteiligte Ebene – auch vor einer Fläche nur die Lasur
+uniform vec3 plane_u[16];  // half edge in u (world)
+uniform vec3 plane_v[16];  // half edge in v (world)
+uniform vec4 plane_c[16];  // fill colour + opacity
+uniform float plane_k[16];  // glaze of the plane on a surface, 0: none
+uniform float plane_s[16];  // 1: uninvolved plane - also in front of a surface only the glaze
 vec3 plane_glaze(vec3 p, vec3 rgb) {
     vec3 e = ortho > 0.5 ? p + view_back * 1.0e6 : eye;
     vec3 d = p - e;
@@ -811,36 +811,36 @@ vec3 plane_glaze(vec3 p, vec3 rgb) {
         vec3 nrm = cross(plane_u[i], plane_v[i]);
         float den = dot(nrm, d);
         if (abs(den) < 1e-12) continue;
-        vec3 q;       // wo der Sehstrahl die Ebene trifft
-        bool behind;  // die Ebene liegt hier hinter dem Punkt
+        vec3 q;       // where the view ray hits the plane
+        bool behind;  // the plane lies behind the point here
         if (ortho > 0.5) {
-            // Auge im Unendlichen: Abstand entlang der Blickrichtung in Welteinheiten. (Über das ferne Ersatz-Auge
-            // gerechnet galt jede Ebene näher als 100 Einheiten vor dem Strich als „nicht davor“ – in orthografischen
-            // Ansichten tönten Ebenen die Striche dahinter praktisch nie.)
+            // Eye at infinity: distance along the view direction in world units. (Computed via the distant substitute eye
+            // every plane nearer than 100 units in front of the stroke counted as "not in front" - in orthographic
+            // views planes practically never tinted the strokes behind them.)
             float s = dot(nrm, plane_o[i] - p) / dot(nrm, view_back);
             q = p + view_back * s;
             behind = s <= 1e-3;
         } else {
             float t = dot(nrm, plane_o[i] - e) / den;
-            if (t <= 0.0) continue;  // Ebene liegt hinter dem Auge
+            if (t <= 0.0) continue;  // plane lies behind the eye
             q = e + d * t;
             behind = t >= 1.0 - 1e-4;
         }
-        // … dann zählt sie nur, wo sie trotzdem über die Fläche gezeichnet ist: Taucht eine Ebene in eine Fläche ein,
-        // lasiert sie die Fläche noch ein Stück weit (Spielraum der Deckungskarte). Malerei und Striche auf dieser
-        // Fläche liegen dort VOR der Ebene und blieben ungetönt – sie fraßen sich als Flecken in den Rand der Ebene
-        // (Artist 12.11.).
-        // (gefragt wie die Ebene selbst: als fremde Zeichenhilfe mit einer id, die keine Fläche trägt – mit „keine id“
-        // gälte der weite Spielraum für Unbekanntes, und Malerei würde auch über einer tief vergrabenen Ebene getönt)
+        // ... then it only counts where it is nevertheless drawn over the surface: if a plane dips into a surface,
+        // it still glazes the surface a bit (tolerance of the coverage map). Painting and strokes on this
+        // surface lie IN FRONT of the plane there and would stay untinted - they ate into the edge of the plane as blotches
+        // (artist 12.11.).
+        // (asked like the plane itself: as a foreign drawing aid with an id that no surface carries - with "no id"
+        // the wide tolerance for unknown things would apply, and painting would be tinted even above a deeply buried plane)
         if (behind && (plane_k[i] <= 0.0 || !on_layer(q) || cover(q, vec4(1.0e9, -1.0, -1.0, -1.0)) < 0.5)) continue;
         vec3 x = q - plane_o[i];
         float a = dot(x, plane_u[i]) / max(dot(plane_u[i], plane_u[i]), 1e-12);
         float b = dot(x, plane_v[i]) / max(dot(plane_v[i], plane_v[i]), 1e-12);
         if (abs(a) <= 1.0 && abs(b) <= 1.0) {
-            // so deckend wie die Ebene an dieser Stelle selbst gezeichnet ist (FLAT_FS): liegt sie hier auf einer
-            // Fläche, nur ihre Lasur; davor voll – außer sie lasiert nicht (weder Zeichenebene noch gewählt), dann
-            // weicht sie der Fläche. Sonst wäre Malerei hinter der Ebene anders getönt als die Fläche, auf der sie
-            // liegt (fleckiger, „ausgefressener“ Rand), und eine unbeteiligte Ebene färbte nur die Striche um.
+            // as opaque as the plane is itself drawn at this spot (FLAT_FS): if it lies on a
+            // surface, only its glaze; in front fully - unless it does not glaze (neither drawing plane nor selected), then
+            // it yields to the surface. Otherwise painting behind the plane would be tinted differently from the surface it
+            // lies on (blotchy, "eaten" edge), and an uninvolved plane would tint only the strokes around.
             float alpha = plane_c[i].a;
             if (behind || on_layer(q)) alpha = plane_k[i];
             else if (plane_k[i] <= 0.0) alpha *= 1.0 - front_opacity();
@@ -851,22 +851,22 @@ vec3 plane_glaze(vec3 p, vec3 rgb) {
     return rgb;
 }
 
-uniform float edge_gain;  // Lichtkante: Linienfarbe um so viel heller (in Sonnenfarbe getönt)
+uniform float edge_gain;  // light edge: line colour brighter by this much (tinted in sun colour)
 vec3 light_edge(vec3 rgb) {
-    // Licht-Modus: aufgemalte Lichtkante – ein schmaler, leicht gebrochener heller Saum an der Seite zur Sonne;
-    // der Strich selbst bleibt flach wie gezeichnet
+    // Light mode: painted light edge - a narrow, slightly broken bright rim on the side facing the sun;
+    // the stroke itself stays flat as drawn
     if (light_on < 0.5) return rgb;
-    float sh = band(in_shadow(v_wpos + sun_dir * shadow_lift));  // ein Stück zur Sonne: Linien auf Flächen nicht selbst verschattet
-    if (sh > 0.5) return rgb * (1.0 - shadow_dark * sh) * mix(vec3(1.0), sky_col, sh);  // im Schatten: keine Kante
+    float sh = band(in_shadow(v_wpos + sun_dir * shadow_lift));  // a bit towards the sun: lines on surfaces are not shadowed by themselves
+    if (sh > 0.5) return rgb * (1.0 - shadow_dark * sh) * mix(vec3(1.0), sky_col, sh);  // in shadow: no edge
     float strength = smoothstep(0.12, 0.45, abs(v_light));
     float toward = v_side * sign(v_light);
     float thr = 0.3 + 0.18 * (hash12(floor(vec2(v_arc * 2.5, 9.0))) - 0.5);
     return toward > thr ? min(rgb * (1.0 + edge_gain * strength * sun_col), vec3(1.0)) : rgb;
 }
 void main() {
-    if (v_w <= 0.0) discard;  // hinter der Kamera
-    // Verdeckung an der Oberfläche einer gedachten Röhre statt an der Mittellinie: ein dicker Strich durch eine Fläche
-    // wird rund (als Ellipse) geschnitten, nicht an einer geraden Kante quer übers Band (Hafentest 09.11.)
+    if (v_w <= 0.0) discard;  // behind the camera
+    // Occlusion at the surface of an imagined tube instead of at the centre line: a thick stroke through a surface
+    // is cut round (as an ellipse), not at a straight edge across the band (harbour test 09.11.)
     vec3 p = v_wpos;
     if (v_rad > 0.0 && length(v_tan) > 0.5) {
         vec3 V = ortho > 0.5 ? view_back : normalize(eye - v_wpos);
@@ -878,36 +878,36 @@ void main() {
             p = v_wpos + v_rad * (sqrt(max(1.0 - s * s, 0.0)) * np + s * cross(v_tan, np));
         }
     }
-    float vis = cover(p, v_owner);  // hinter Flächen/Meshes: weg (X-Ray: sanft)
+    float vis = cover(p, v_owner);  // behind surfaces/meshes: gone (X-Ray: soft)
     if (vis <= 0.0) discard;
     float k = vis >= 1.0 ? fade : vis * fade;
     if (v_brush > 0.5) {
-        // Ölpinsel: Borsten-Streifen entlang des Strichs, ausfransende Ränder, Farbe mal satt, mal trockener
+        // Oil brush: bristle stripes along the stroke, fraying edges, colour sometimes rich, sometimes drier
         float across = v_side * 0.5 + 0.5;
-        float bristle = vnoise(vec2(across * 7.0, v_arc * 0.06));          // Borsten-Rillen entlang des Strichs
-        float fine = hash12(floor(vec2(across * 26.0, v_arc * 0.5)));       // einzelne Borsten
+        float bristle = vnoise(vec2(across * 7.0, v_arc * 0.06));          // bristle grooves along the stroke
+        float fine = hash12(floor(vec2(across * 26.0, v_arc * 0.5)));       // single bristles
         float fray = smoothstep(0.45, 1.0, abs(v_side) + 0.45 * (vnoise(vec2(v_arc * 0.9, 5.0)) - 0.5));
-        float dry = smoothstep(0.45, 0.85, vnoise(vec2(v_arc * 0.16, across * 2.5 + 11.0)));  // trockener Pinsel
+        float dry = smoothstep(0.45, 0.85, vnoise(vec2(v_arc * 0.16, across * 2.5 + 11.0)));  // dry brush
         float gaps = fray * 0.9 + dry * 0.55 * fine;
-        gaps *= smoothstep(1.2, 3.5, v_px);  // sehr dünne Striche nicht zerlöchern
+        gaps *= smoothstep(1.2, 3.5, v_px);  // do not perforate very thin strokes
         if (gaps > 0.4 + 0.3 * fine) discard;
-        float ridge = 0.72 + 0.45 * bristle + 0.12 * (fine - 0.5);       // Farbe in den Rillen dunkler, auf den Graten heller
+        float ridge = 0.72 + 0.45 * bristle + 0.12 * (fine - 0.5);       // colour darker in the grooves, lighter on the ridges
         vec3 oil = clamp(v_color.rgb * ridge + 0.06 * (bristle - 0.5), 0.0, 1.0);
-        // Deckkraft > 1 = Farbe der Oberfläche (Auswahl, Hover): immer in voller Leuchtkraft – weder Licht und
-        // Schatten noch die Tönung einer Hilfsebene davor dürfen sie verdunkeln (sonst ist Gewähltes nicht zu erkennen)
+        // Opacity > 1 = colour of the surface (selection, hover): always at full brightness - neither light and
+        // shadow nor the tint of a helper plane in front may darken it (otherwise the selected is not recognisable)
         f_color = vec4(v_color.a > 1.5 ? oil : plane_glaze(v_wpos, light_edge(oil)), min(v_color.a, 1.0) * k);
         return;
     }
-    // Bleistift: Grafit bleibt nur an den "Zähnen" des Papiers hängen. Körnung in Strich-Koordinaten
-    // (entlang: Bogenlänge, quer: Seite), zu den Rändern hin lückenhafter. Lücken statt Transparenz:
-    // so werden Kreuzungen dichter und dunkler, und das zweite Zeichnen der Striche ändert nichts.
+    // Pencil: graphite only sticks to the "teeth" of the paper. Grain in stroke coordinates
+    // (along: arc length, across: side), more patchy towards the edges. Gaps instead of transparency:
+    // so crossings become denser and darker, and drawing the strokes a second time changes nothing.
     float edge = abs(v_side);
-    // Grafit-Streifen entlang der Strichrichtung: längliche Zellen (lang entlang, schmal quer)
+    // Graphite stripes along the stroke direction: elongated cells (long along, narrow across)
     float streak = hash12(floor(vec2(v_arc * 1.4, (v_side + 1.0) * 2.5)));
     float tooth = hash12(floor(vec2(v_arc * 5.0, (v_side + 1.0) * 3.0)) + 31.0);
-    float pressure = vnoise(vec2(v_arc * 0.35, 3.0));  // Druck schwankt entlang des Strichs
+    float pressure = vnoise(vec2(v_arc * 0.35, 3.0));  // pressure varies along the stroke
     float holes = (mix(0.07, 0.38, smoothstep(0.3, 1.0, edge)) + 0.06 * (0.5 - pressure)) * grain;
-    holes *= smoothstep(1.2, 3.5, v_px);  // sehr dünne Striche nicht zerlöchern
+    holes *= smoothstep(1.2, 3.5, v_px);  // do not perforate very thin strokes
     if (streak * 0.55 + tooth * 0.45 < holes) discard;
     float shade = 0.94 + 0.12 * (1.0 - pressure) + 0.1 * (streak - 0.5);
     vec3 graphite = min(v_color.rgb * shade, vec3(1.0));
@@ -919,13 +919,13 @@ void main() {
 SURFACE_VS = """
 #version 330
 uniform mat4 vp;
-uniform float bias;  // < 0: minimal nach hinten (Tiefen-Durchgang)
-uniform int occluders_only;  // 1 (Deckungskarte): Hilfsflächen verdecken nichts – ihre Ecken fallen aus dem Bild
+uniform float bias;  // < 0: minimally backwards (depth pass)
+uniform int occluders_only;  // 1 (coverage map): helper surfaces cover nothing - their corners drop out of the image
 """ + SURF_DATA + """
 in vec3 in_pos;
-in vec3 in_normal;  // geglättete Normale (unter flachem Blick milchiger)
-in vec3 in_calm;    // stark geglättete Normale: nur fürs Licht mit Licht-Stufen (kleine Wellen ohne Stufenkanten)
-in float in_slot;   // Nummer der Fläche in der Flächen-Tabelle
+in vec3 in_normal;  // smoothed normal (milkier under a flat view)
+in vec3 in_calm;    // strongly smoothed normal: only for light with light steps (small waves without step edges)
+in float in_slot;   // number of the surface in the surface table
 out vec3 v_world;
 out vec3 v_normal;
 out vec3 v_calm;
@@ -941,8 +941,8 @@ void main() {
         gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         return;
     }
-    if (surf(slot, 5).w > 0.5) {  // starr mitgetragen (Gizmo-Zug): Netz vom Zugbeginn mal Lage-Matrix
-        // nur Drehung/gleichmäßige Skalierung: Normalen mitdrehen, Länge wie vorher
+    if (surf(slot, 5).w > 0.5) {  // carried along rigidly (gizmo drag): net from the start of the drag times position matrix
+        // only rotation/uniform scaling: rotate the normals along, length as before
         mat4 model = transpose(mat4(surf(slot, 7), surf(slot, 8), surf(slot, 9), vec4(0.0, 0.0, 0.0, 1.0)));
         mat3 r = mat3(model);
         p = (model * vec4(in_pos, 1.0)).xyz;
@@ -972,12 +972,12 @@ out float v_px;
 out vec3 v_wpos;
 in vec4 in_owner;
 flat out vec4 v_owner;
-in float in_style;     // 2: Pinsel
+in float in_style;     // 2: brush
 flat out float v_brush;
-in vec3 in_normal;     // Malstrich: Flächennormale (sonst 0)
+in vec3 in_normal;     // paint stroke: surface normal (otherwise 0)
 in float in_layer;
 flat out float v_flat;
-flat out mat2 v_inv;   // Malstrich: Bildschirm-Pixel -> Koordinaten der flachen Scheibe
+flat out mat2 v_inv;   // paint stroke: screen pixel -> coordinates of the flat disc
 flat out float v_size;
 void main() {
     v_wpos = in_pos;
@@ -990,7 +990,7 @@ void main() {
     gl_PointSize = max(in_width * focal * half_vp.y / w, min_px);
     gl_Position = vec4(c.xy, c.z - bias * c.w, c.w);
     if (length(in_normal) > 0.5) {
-        // Malstrich: rundes Ende flach in der Fläche – im Bild eine Ellipse (Punkt-Sprite deckt sie ab)
+        // Paint stroke: round end flat in the surface - in the image an ellipse (point sprite covers it)
         vec3 N = normalize(in_normal);
         vec3 U = normalize(cross(N, abs(N.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
         vec3 W = cross(N, U);
@@ -1017,7 +1017,7 @@ void main() {
 CAP_FS = """
 #version 330
 uniform float grain;
-uniform float fade;  // < 1: verdeckte Striche (hinter ausgeblendeten Zeichenflächen) abgeschwächt
+uniform float fade;  // < 1: hidden strokes (behind hidden drawing surfaces) weakened
 in vec4 v_color;
 in float v_w;
 in float v_seed;
@@ -1034,16 +1034,16 @@ uniform vec3 sun_dir;
 uniform vec3 sky_col;
 uniform float shadow_dark;
 """ + NOISE + SHADOW_LIB + OCCL_VIEW + OCCL_LIB + """
-// Hilfsebenen tönen, was hinter ihnen liegt: Ebenen verdecken nichts und werden vor den Strichen gezeichnet – ohne das
-// schienen Striche und Malerei dahinter ungetönt durch (Hafentest 09.11.). Je Ebene: liegt sie zwischen Auge und p
-// (innerhalb ihres Rechtecks), wird die Farbe mit ihrer Füllfarbe gemischt (Deckkraft wie die Ebene selbst).
+// Helper planes tint what lies behind them: planes cover nothing and are drawn before the strokes - without this
+// strokes and painting behind them would show through untinted (harbour test 09.11.). Per plane: does it lie between eye and p
+// (inside its rectangle), the colour is mixed with its fill colour (opacity like the plane itself).
 uniform int plane_n;
 uniform vec3 plane_o[16];
-uniform vec3 plane_u[16];  // halbe Kante in u (Welt)
-uniform vec3 plane_v[16];  // halbe Kante in v (Welt)
-uniform vec4 plane_c[16];  // Füllfarbe + Deckkraft
-uniform float plane_k[16];  // Lasur der Ebene auf einer Fläche, 0: keine
-uniform float plane_s[16];  // 1: unbeteiligte Ebene – auch vor einer Fläche nur die Lasur
+uniform vec3 plane_u[16];  // half edge in u (world)
+uniform vec3 plane_v[16];  // half edge in v (world)
+uniform vec4 plane_c[16];  // fill colour + opacity
+uniform float plane_k[16];  // glaze of the plane on a surface, 0: none
+uniform float plane_s[16];  // 1: uninvolved plane - also in front of a surface only the glaze
 vec3 plane_glaze(vec3 p, vec3 rgb) {
     vec3 e = ortho > 0.5 ? p + view_back * 1.0e6 : eye;
     vec3 d = p - e;
@@ -1051,36 +1051,36 @@ vec3 plane_glaze(vec3 p, vec3 rgb) {
         vec3 nrm = cross(plane_u[i], plane_v[i]);
         float den = dot(nrm, d);
         if (abs(den) < 1e-12) continue;
-        vec3 q;       // wo der Sehstrahl die Ebene trifft
-        bool behind;  // die Ebene liegt hier hinter dem Punkt
+        vec3 q;       // where the view ray hits the plane
+        bool behind;  // the plane lies behind the point here
         if (ortho > 0.5) {
-            // Auge im Unendlichen: Abstand entlang der Blickrichtung in Welteinheiten. (Über das ferne Ersatz-Auge
-            // gerechnet galt jede Ebene näher als 100 Einheiten vor dem Strich als „nicht davor“ – in orthografischen
-            // Ansichten tönten Ebenen die Striche dahinter praktisch nie.)
+            // Eye at infinity: distance along the view direction in world units. (Computed via the distant substitute eye
+            // every plane nearer than 100 units in front of the stroke counted as "not in front" - in orthographic
+            // views planes practically never tinted the strokes behind them.)
             float s = dot(nrm, plane_o[i] - p) / dot(nrm, view_back);
             q = p + view_back * s;
             behind = s <= 1e-3;
         } else {
             float t = dot(nrm, plane_o[i] - e) / den;
-            if (t <= 0.0) continue;  // Ebene liegt hinter dem Auge
+            if (t <= 0.0) continue;  // plane lies behind the eye
             q = e + d * t;
             behind = t >= 1.0 - 1e-4;
         }
-        // … dann zählt sie nur, wo sie trotzdem über die Fläche gezeichnet ist: Taucht eine Ebene in eine Fläche ein,
-        // lasiert sie die Fläche noch ein Stück weit (Spielraum der Deckungskarte). Malerei und Striche auf dieser
-        // Fläche liegen dort VOR der Ebene und blieben ungetönt – sie fraßen sich als Flecken in den Rand der Ebene
-        // (Artist 12.11.).
-        // (gefragt wie die Ebene selbst: als fremde Zeichenhilfe mit einer id, die keine Fläche trägt – mit „keine id“
-        // gälte der weite Spielraum für Unbekanntes, und Malerei würde auch über einer tief vergrabenen Ebene getönt)
+        // ... then it only counts where it is nevertheless drawn over the surface: if a plane dips into a surface,
+        // it still glazes the surface a bit (tolerance of the coverage map). Painting and strokes on this
+        // surface lie IN FRONT of the plane there and would stay untinted - they ate into the edge of the plane as blotches
+        // (artist 12.11.).
+        // (asked like the plane itself: as a foreign drawing aid with an id that no surface carries - with "no id"
+        // the wide tolerance for unknown things would apply, and painting would be tinted even above a deeply buried plane)
         if (behind && (plane_k[i] <= 0.0 || !on_layer(q) || cover(q, vec4(1.0e9, -1.0, -1.0, -1.0)) < 0.5)) continue;
         vec3 x = q - plane_o[i];
         float a = dot(x, plane_u[i]) / max(dot(plane_u[i], plane_u[i]), 1e-12);
         float b = dot(x, plane_v[i]) / max(dot(plane_v[i], plane_v[i]), 1e-12);
         if (abs(a) <= 1.0 && abs(b) <= 1.0) {
-            // so deckend wie die Ebene an dieser Stelle selbst gezeichnet ist (FLAT_FS): liegt sie hier auf einer
-            // Fläche, nur ihre Lasur; davor voll – außer sie lasiert nicht (weder Zeichenebene noch gewählt), dann
-            // weicht sie der Fläche. Sonst wäre Malerei hinter der Ebene anders getönt als die Fläche, auf der sie
-            // liegt (fleckiger, „ausgefressener“ Rand), und eine unbeteiligte Ebene färbte nur die Striche um.
+            // as opaque as the plane is itself drawn at this spot (FLAT_FS): if it lies on a
+            // surface, only its glaze; in front fully - unless it does not glaze (neither drawing plane nor selected), then
+            // it yields to the surface. Otherwise painting behind the plane would be tinted differently from the surface it
+            // lies on (blotchy, "eaten" edge), and an uninvolved plane would tint only the strokes around.
             float alpha = plane_c[i].a;
             if (behind || on_layer(q)) alpha = plane_k[i];
             else if (plane_k[i] <= 0.0) alpha *= 1.0 - front_opacity();
@@ -1092,8 +1092,8 @@ vec3 plane_glaze(vec3 p, vec3 rgb) {
 }
 
 vec3 cap_light(vec3 rgb) {
-    // Licht-Modus: Schatten genau wie das Band am letzten Linienpunkt (v_wpos ist dieser Punkt) – die Kappe hat
-    // dieselbe Helligkeit wie das Linienstück daneben, egal wie sie zur Kamera steht
+    // Light mode: shadow exactly like the band at the last line point (v_wpos is this point) - the cap has
+    // the same brightness as the line piece next to it, no matter how it faces the camera
     if (light_on < 0.5) return rgb;
     float sh = band(in_shadow(v_wpos + sun_dir * shadow_lift));
     if (sh > 0.5) return rgb * (1.0 - shadow_dark * sh) * mix(vec3(1.0), sky_col, sh);
@@ -1102,26 +1102,26 @@ vec3 cap_light(vec3 rgb) {
 void main() {
     float vis = cover(v_wpos, v_owner);
     if (vis <= 0.0) discard;
-    // runde Strichenden: Kreis im Punkt-Sprite (Malstrich: flache Scheibe in der Fläche), Rand gekörnt wie der Strich
+    // round stroke ends: circle in the point sprite (paint stroke: flat disc in the surface), edge grained like the stroke
     vec2 q = gl_PointCoord * 2.0 - 1.0;
     if (v_flat > 0.5) {
         vec2 px = (gl_PointCoord - 0.5) * v_size;
-        q = v_inv * vec2(px.x, -px.y);  // Punkt-Sprite zählt y nach unten
+        q = v_inv * vec2(px.x, -px.y);  // point sprite counts y downwards
     }
     float r = length(q);
     if (r > 1.0 || v_w <= 0.0) discard;
     if (v_brush > 0.5) {
-        // Pinsel-Ende: rund wie beim Stift, aber mit ausfransendem Rand und Borsten-Struktur wie der Strich
+        // Brush end: round as with the pen, but with fraying edge and bristle structure like the stroke
         float ang = atan(q.y, q.x);
         float fray = vnoise(vec2(ang * 2.2 + v_seed * 40.0, 3.0));
-        if (r > 0.72 + 0.2 * fray * smoothstep(1.2, 3.5, v_px)) discard;  // so breit wie der ausfransende Strich
+        if (r > 0.72 + 0.2 * fray * smoothstep(1.2, 3.5, v_px)) discard;  // as wide as the fraying stroke
         float bristle = vnoise(q * 3.5 + v_seed * 17.0);
         vec3 rgb = clamp(v_color.rgb * (0.78 + 0.4 * bristle), 0.0, 1.0);
         f_color = vec4(v_color.a > 1.5 ? rgb : plane_glaze(v_wpos, cap_light(rgb)),
                        min(v_color.a, 1.0) * (vis >= 1.0 ? fade : vis * fade));
         return;
     }
-    float fine = hash12(floor(vec2(q.x * 2.5, (q.y + 1.0) * 3.0)) + v_seed * 97.0);  // Körnung so fein wie im Strich
+    float fine = hash12(floor(vec2(q.x * 2.5, (q.y + 1.0) * 3.0)) + v_seed * 97.0);  // grain as fine as in the stroke
     float holes = mix(0.07, 0.38, smoothstep(0.3, 1.0, r)) * grain * smoothstep(1.2, 3.5, v_px);
     if (fine < holes) discard;
     f_color = vec4(v_color.a > 1.5 ? v_color.rgb : plane_glaze(v_wpos, cap_light(v_color.rgb)),
@@ -1130,8 +1130,8 @@ void main() {
 """
 
 MATERIAL_LIB = """
-// Materialien der Flächen (nur Darstellung): nahtlos und prozedural, triplanar projiziert. p in Textur-Einheiten,
-// fw = Größe eines Pixels darin (Details unter einem Pixel werden ausgeblendet, sonst flimmert es). Alle hell/weißlich.
+// Materials of the surfaces (display only): seamless and procedural, projected triplanar. p in texture units,
+// fw = size of one pixel in them (details below one pixel are faded out, otherwise it flickers). All bright/whitish.
 float fbm2(vec2 p) {
     return vnoise(p) * 0.5 + vnoise(p * 2.03 + 7.1) * 0.25 + vnoise(p * 4.01 + 3.7) * 0.125 + vnoise(p * 8.07 + 1.3) * 0.0625;
 }
@@ -1139,35 +1139,35 @@ float fbm3(vec3 p) {
     return vnoise3(p) * 0.5 + vnoise3(p * 2.03 + 7.1) * 0.25 + vnoise3(p * 4.01 + 3.7) * 0.125 + vnoise3(p * 8.07 + 1.3) * 0.0625;
 }
 float fade_px(float feature, float fw) { return 1.0 - smoothstep(0.35, 1.0, fw / max(feature, 1e-6)); }
-// Papier (gekörntes Aquarellpapier): weiche Buckel, von oben links beleuchtet, feiner Zahn
+// Paper (grainy watercolour paper): soft bumps, lit from top left, fine tooth
 vec3 m_papier(vec2 p, float fw) {
     float s = 22.0;
     float e = 0.35 / s;
     float h0 = fbm2(p * s), hx = fbm2((p + vec2(e, 0.0)) * s), hy = fbm2((p + vec2(0.0, e)) * s);
     float relief = ((h0 - hx) + (h0 - hy)) * 2.2 * fade_px(1.0 / s, fw);
     float tooth = (vnoise(p * 140.0) - 0.5) * fade_px(1.0 / 140.0, fw);
-    float t = (0.968 + relief * 0.05 + tooth * 0.015 + (vnoise(p * 1.1) - 0.5) * 0.01) * 0.91;  // etwas dunkler als Weiß (Artist: 70 % zurück von 0.7)
+    float t = (0.968 + relief * 0.05 + tooth * 0.015 + (vnoise(p * 1.1) - 0.5) * 0.01) * 0.91;  // slightly darker than white (artist: 70 % back from 0.7)
     return vec3(t, t * 0.997, t * 0.99);
 }
-// Stoff (Leinen): Kett- und Schussfäden in Leinwandbindung, einzelne Fäden dicker oder dünner (Noppen)
+// Cloth (linen): warp and weft threads in plain weave, single threads thicker or thinner (slubs)
 vec3 m_stoff(vec2 p, float fw) {
     float f = 45.0;
     vec2 q = p * f;
     float k = fade_px(1.0 / f, fw);
     vec2 cell = floor(q), fr = fract(q);
-    float thick_u = 0.75 + 0.5 * vnoise(vec2(cell.x * 2.3, p.y * 2.5));   // Faden über seine Länge ungleich
+    float thick_u = 0.75 + 0.5 * vnoise(vec2(cell.x * 2.3, p.y * 2.5));   // thread uneven over its length
     float thick_v = 0.75 + 0.5 * vnoise(vec2(p.x * 2.5, cell.y * 1.9 + 50.0));
-    float warp = 1.0 - pow(abs(fr.x - 0.5) * 2.0, 2.0 / thick_u);          // Fadenmitte hell, Fuge dunkel
+    float warp = 1.0 - pow(abs(fr.x - 0.5) * 2.0, 2.0 / thick_u);          // thread centre bright, joint dark
     float weft = 1.0 - pow(abs(fr.y - 0.5) * 2.0, 2.0 / thick_v);
-    float over = mod(cell.x + cell.y, 2.0);                                  // oben liegt abwechselnd Kette/Schuss
+    float over = mod(cell.x + cell.y, 2.0);                                  // warp and weft lie on top alternately
     float thread = mix(warp * (0.85 + 0.15 * weft), weft * (0.85 + 0.15 * warp), over);
     float slub = (vnoise(vec2(cell.x * 0.7, p.y * 0.8)) + vnoise(vec2(p.x * 0.8, cell.y * 0.7 + 9.0))) * 0.5 - 0.5;
     float t = 0.968 - (1.0 - thread) * 0.06 * k + slub * 0.03 * k + (fbm2(p * 1.5) - 0.5) * 0.015;
     return vec3(t, t, t * 0.994);
 }
-// Finnpappe: hell, leicht bräunlich, kurze krause Fasern, wolkig, vereinzelt dunkle Einschlüsse
+// Finnish cardboard: bright, slightly brownish, short curly fibres, cloudy, occasional dark inclusions
 vec3 m_pappe(vec2 p, float fw) {
-    // Fasern: Rauschen, dessen Richtung selbst langsam wandert (keine sichtbare Schraffur)
+    // Fibres: noise whose direction itself wanders slowly (no visible hatching)
     float ang = fbm2(p * 6.0) * 6.2832;
     vec2 d = vec2(cos(ang), sin(ang));
     vec2 r = vec2(dot(p, d), dot(p, vec2(-d.y, d.x)));
@@ -1182,40 +1182,40 @@ vec3 m_pappe(vec2 p, float fw) {
     float t = 1.0 + fib * 0.13 + fine * 0.05 + light_fib * 0.035 + cloud * 0.05 - speck * 0.3;
     return vec3(0.94, 0.905, 0.85) * t;
 }
-// Holz: hell, feine dichte Maserung längs (leicht wellig), dunklere schmale Linien, Poren
+// Wood: bright, fine dense grain lengthwise (slightly wavy), darker narrow lines, pores
 vec3 m_holz(vec2 p, float fw) {
     float warp = fbm2(p * vec2(0.35, 0.08)) * 2.5 + fbm2(p * vec2(1.5, 0.3)) * 0.35;
     float x = p.x * 16.0 + warp * 4.0;
-    float line = 1.0 - smoothstep(0.0, 0.09, abs(fract(x) - 0.5) * 2.0 - 0.0);   // schmale Linie je Jahresring
-    line *= 0.5 + 0.5 * vnoise(vec2(floor(x) * 3.1, p.y * 1.5));                // mal deutlicher, mal kaum
+    float line = 1.0 - smoothstep(0.0, 0.09, abs(fract(x) - 0.5) * 2.0 - 0.0);   // narrow line per annual ring
+    line *= 0.5 + 0.5 * vnoise(vec2(floor(x) * 3.1, p.y * 1.5));                // sometimes clearer, sometimes barely
     float pores = (vnoise(p * vec2(160.0, 7.0)) - 0.5) * fade_px(1.0 / 160.0, fw);
-    float band = fbm2(vec2(x * 0.15, p.y * 0.1)) - 0.5;                           // breite helle/dunkle Zonen
+    float band = fbm2(vec2(x * 0.15, p.y * 0.1)) - 0.5;                           // wide bright/dark zones
     float t = 1.0 - line * 0.07 * fade_px(1.0 / 16.0, fw) + pores * 0.04 + band * 0.04;
     return vec3(0.955, 0.915, 0.855) * t;
 }
-// Sprühfarbe, malerisch: ausgefranste Farbinseln und Sprenkel mit harten Kanten, in wenigen Tonstufen (stilisiert,
-// kaum Verläufe), dazu rauhes Korn. Die Kanten sind über ein verzerrtes Raster unruhig wie gemalt
+// Spray paint, painterly: frayed paint islands and speckles with hard edges, in few tone steps (stylised,
+// hardly any gradients), plus rough grain. The edges are restless like painted via a distorted grid
 vec3 m_spruehfarbe(vec2 p, float fw) {
     vec2 warp = vec2(fbm2(p * 3.1), fbm2(p * 3.1 + 17.3)) - 0.5;
     vec2 q = p + warp * 0.2;
-    float edge = clamp(fw * 6.0, 0.004, 0.08);                    // Kantenbreite: hart, aber ohne Treppen
-    float islands = smoothstep(0.5 - edge, 0.5 + edge, fbm2(q * 1.8));              // große satte/dünne Inseln
-    float patches = smoothstep(0.56 - edge, 0.56 + edge, fbm2(q * 6.5 + 5.0));      // mittlere Flecken
+    float edge = clamp(fw * 6.0, 0.004, 0.08);                    // edge width: hard, but without stair steps
+    float islands = smoothstep(0.5 - edge, 0.5 + edge, fbm2(q * 1.8));              // large rich/thin islands
+    float patches = smoothstep(0.56 - edge, 0.56 + edge, fbm2(q * 6.5 + 5.0));      // medium patches
     float k1 = fade_px(1.0 / 48.0, fw), k2 = fade_px(1.0 / 110.0, fw);
-    float speck = smoothstep(0.71 - edge, 0.71 + edge, vnoise(q * 48.0 + 2.0)) * k1;   // Sprenkel
-    float fine = smoothstep(0.78 - edge, 0.78 + edge, vnoise(q * 110.0 + 9.0)) * k2;   // feine Sprenkel
+    float speck = smoothstep(0.71 - edge, 0.71 + edge, vnoise(q * 48.0 + 2.0)) * k1;   // speckles
+    float fine = smoothstep(0.78 - edge, 0.78 + edge, vnoise(q * 110.0 + 9.0)) * k2;   // fine speckles
     float tone = islands * 0.3 + patches * 0.3 + speck * 0.25 + fine * 0.15;
-    tone = floor(tone * 4.0 + 0.5) / 4.0;                         // vier Tonstufen: stilisiert statt Verlauf
+    tone = floor(tone * 4.0 + 0.5) / 4.0;                         // four tone steps: stylised instead of gradient
     float rough = (vnoise(q * vec2(150.0, 38.0)) + vnoise(q * vec2(38.0, 150.0) + 4.0) - 1.0) * k2;
     float t = 0.95 - tone * 0.17 + rough * 0.025;
     return vec3(t * 0.995, t, t * 1.005);
 }
 
-// Größe der Strukturen je Material (Papier = 1): die anderen gröber, damit alle in derselben Größenordnung leben
+// Size of the structures per material (paper = 1): the others coarser so that all live in the same order of magnitude
 const float MAT_SCALE[5] = float[5](1.0, 0.45, 0.4, 0.5, 0.35);
-// Helligkeit je Material: alle haben im Mittel dieselbe Luminanz wie das Papier (gemessen, Artist)
-const float MAT_GAIN[5] = float[5](1.0, 0.9325, 0.9664, 0.957, 0.976);  // Sprühfarbe nach den Tonstufen neu gemessen
-// Flecken je Material: nur Papier, Pappe und Sprühfarbe (nicht Stoff, nicht Holz)
+// Brightness per material: on average all have the same luminance as the paper (measured, artist)
+const float MAT_GAIN[5] = float[5](1.0, 0.9325, 0.9664, 0.957, 0.976);  // spray paint re-measured after the tone steps
+// Blotches per material: only paper, cardboard and spray paint (not cloth, not wood)
 const float MAT_STAIN[5] = float[5](1.0, 0.0, 1.0, 0.0, 1.0);
 vec3 material2(int m, vec2 p, float fw) {
     int i = clamp(m, 0, 4);
@@ -1230,8 +1230,8 @@ vec3 material2(int m, vec2 p, float fw) {
     else c = m_papier(p, fw);
     return c * MAT_GAIN[i];
 }
-// Tonstufen (Artist): die Struktur der Materialien wirkt abgestuft wie die Licht-Stufen, nicht als feiner Verlauf –
-// die Helligkeit springt in Schritten von TONE_STEP
+// Tone steps (artist): the structure of the materials looks stepped like the light steps, not a fine gradient -
+// the brightness jumps in steps of TONE_STEP
 const float TONE_STEP = 0.022;
 vec3 tone_steps(vec3 c) {
     float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -1247,13 +1247,13 @@ vec3 material_triplanar(int m, vec3 q, vec3 n, float fw) {
     if (w.z > 0.01) c += material2(m, q.xy + 29.3, fw) * w.z;
     return c / max(w.x * float(w.x > 0.01) + w.y * float(w.y > 0.01) + w.z * float(w.z > 0.01), 1e-6);
 }
-// Flecken über allen Materialien (wie Wasser-/Kaffeeflecken): großflächig, mit dunklerem Rand. 3D-Rauschen im
-// Texturraum der Fläche: jede Fläche ein eigenes Stück (Versatz), keine Nähte
+// Blotches over all materials (like water/coffee stains): large-area, with a darker rim. 3D noise in the
+// texture space of the surface: every surface its own piece (offset), no seams
 vec3 stains(vec3 q, float strength) {
     if (strength <= 0.0) return vec3(1.0);
     float s = fbm3(q * 0.3);
-    float body = smoothstep(0.5225, 0.6075, s);  // Flächenanteil ~19 % (30 % weniger als zuvor 28 %)
-    float rim = smoothstep(0.5025, 0.5275, s) * (1.0 - smoothstep(0.5325, 0.5825, s));  // Rand etwas dunkler (Trockenrand)
+    float body = smoothstep(0.5225, 0.6075, s);  // area share ~19 % (30 % less than the previous 28 %)
+    float rim = smoothstep(0.5025, 0.5275, s) * (1.0 - smoothstep(0.5325, 0.5825, s));  // rim somewhat darker (dry edge)
     float mottled = fbm3(q * 1.3 + 31.0);
     float k = (body * (0.5 + 0.5 * mottled) * 0.12 + rim * 0.09) * strength;
     return mix(vec3(1.0), vec3(0.80, 0.70, 0.55), k);
@@ -1262,24 +1262,24 @@ vec3 stains(vec3 q, float strength) {
 
 MATERIAL_FS = """
 #version 330
-// je Fläche, aus der Flächen-Tabelle (load_surface, als Erstes in main):
+// per surface, from the surface table (load_surface, first thing in main):
 int material;
-vec3 tint;          // Färbung (weiß = Material wie es ist)
-vec3 anchor;        // Bezugspunkt der Fläche: verschiebt man sie, wandert die Textur mit
-vec3 offset;        // Zufalls-Versatz je Fläche (Textur-Einheiten)
-float tex_scale;    // Welteinheiten je Textur-Einheit (global, etwas mit der Flächengröße)
-vec4 state;         // Zustand: Farbe + Stärke (aktiv, gewählt, Flächenmodus)
-float grid_step;    // Raster der aktiven Zeichenfläche (Welteinheiten, 0 = keins)
+vec3 tint;          // tint (white = material as it is)
+vec3 anchor;        // reference point of the surface: if it is moved, the texture moves along
+vec3 offset;        // random offset per surface (texture units)
+float tex_scale;    // world units per texture unit (global, somewhat with the surface size)
+vec4 state;         // state: colour + strength (active, selected, surface mode)
+float grid_step;    // grid of the active drawing surface (world units, 0 = none)
 float grid_alpha;
 vec3 grid_color;
-float opacity;      // Deckkraft der Fläche (Regler im Outliner)
+float opacity;      // opacity of the surface (slider in the outliner)
 vec4 owner;
-float lift;         // Schatten-Prüfpunkt so weit von der Fläche weg (Welteinheiten)
+float lift;         // shadow test point this far away from the surface (world units)
 flat in int v_slot;
-uniform float lift_min;     // … mindestens so weit (ein paar Texel der Schattenkarte)
-uniform float stain;        // Stärke der Flecken
-uniform float layer;        // 0: Verdecktes (X-Ray), 1: vorderste Schicht
-uniform float front_alpha;  // Deckkraft der vordersten Schicht (1, X-Ray: Regler)
+uniform float lift_min;     // ... at least this far (a few texels of the shadow map)
+uniform float stain;        // strength of the blotches
+uniform float layer;        // 0: hidden (X-Ray), 1: front-most layer
+uniform float front_alpha;  // opacity of the front-most layer (1, X-Ray: slider)
 uniform float mono;
 uniform float light_on;
 uniform vec3 sun_dir;
@@ -1287,7 +1287,7 @@ uniform vec3 sun_col;
 uniform vec3 sky_col;
 uniform float away_dark;
 uniform float shadow_dark;
-uniform float calm;         // Anteil der stark geglätteten Normale am Licht (mit Licht-Stufen, sonst 0)
+uniform float calm;         // share of the strongly smoothed normal in the light (with light steps, otherwise 0)
 in vec3 v_world;
 in vec3 v_normal;
 in vec3 v_calm;
@@ -1305,8 +1305,8 @@ void load_surface() {
 }
 void main() {
     load_surface();
-    // Ableitungen vor jedem discard (danach sind sie in den Nachbarpixeln undefiniert); entartet die Normale am Rand
-    // (Länge 0), gilt die geglättete
+    // Derivatives before every discard (afterwards they are undefined in the neighbouring pixels); if the normal degenerates at the edge
+    // (length 0), the smoothed one applies
     vec3 vn = length(v_normal) > 1e-9 ? normalize(v_normal) : vec3(0.0, 1.0, 0.0);
     vec3 cr = cross(dFdx(v_world), dFdy(v_world));
     vec3 n_geo = length(cr) > 1e-20 ? normalize(cr) : vn;
@@ -1314,17 +1314,17 @@ void main() {
     float fw = min(length(fwidth(q)), 1e3);
     vec3 g = v_world / max(grid_step, 1e-9);
     vec3 gw = max(fwidth(g), vec3(1e-6));
-    float vis = cover_edge(v_world, owner);  // dahinter: weg (X-Ray: sanft); am Umriss davor: Tiefentest
+    float vis = cover_edge(v_world, owner);  // behind: gone (X-Ray: soft); at the outline in front: depth test
     bool front = vis >= 1.0;
     if (front != (layer > 0.5) || vis <= 0.0) discard;
     vec3 view = ortho > 0.5 ? view_back : normalize(eye - v_world);
     vec3 c = tone_steps(material_triplanar(material, q, n_geo, fw) * stains(q, stain * MAT_STAIN[clamp(material, 0, 4)]))
              * tint;
     vec3 nrm = vn;
-    if (dot(nrm, view) < 0.0) nrm = -nrm;  // die Seite, die man sieht
+    if (dot(nrm, view) < 0.0) nrm = -nrm;  // the side that is seen
     float facing = abs(dot(nrm, view));
     if (light_on > 0.5) {
-        // mit Licht-Stufen: die großen Formen schattieren, nicht jede kleine Welle der Netzfläche (sonst Tarnmuster)
+        // with light steps: shade the large forms, not every small wave of the net surface (otherwise camouflage pattern)
         vec3 cn = length(v_calm) > 1e-9 ? normalize(v_calm) : nrm;
         if (dot(cn, nrm) < 0.0) cn = -cn;
         vec3 ln = normalize(mix(nrm, cn, calm));
@@ -1334,9 +1334,9 @@ void main() {
         float lit = min(mix(1.0 - away_dark, 1.0, k), 1.0 - shadow_dark * sh);
         c *= sun_and_sky(ln, lit, sky_col) * mix(sky_col, sun_col, k * (1.0 - sh));
     } else {
-        c *= 0.9 + 0.1 * facing;  // dezent: schräg gesehene Flächen etwas dunkler (Form bleibt lesbar)
+        c *= 0.9 + 0.1 * facing;  // subtle: surfaces seen at a slant somewhat darker (form stays readable)
     }
-    if (grid_step > 0.0 && grid_alpha > 0.0) {  // aktive Zeichenfläche: Raster
+    if (grid_step > 0.0 && grid_alpha > 0.0) {  // active drawing surface: grid
         vec3 dist = abs(fract(g - 0.5) - 0.5) / gw;
         vec3 w = pow(abs(n_geo), vec3(4.0));
         w /= max(w.x + w.y + w.z, 1e-6);
@@ -2175,7 +2175,7 @@ class Renderer:
         rows = self._surface_rows(surfaces)
         if same:  # test check mode: the same list must yield the same values
             assert rows.shape == last[2].shape and np.array_equal(rows, last[2]), \
-                "Flächen-Tabelle: dieselbe Liste wie im letzten Bild, aber andere Werte"
+                "surface table: same list as in the last frame, but different values"
             return
         n = len(surfaces)
         blocks = (n + SURF_ROWS - 1) // SURF_ROWS
@@ -2513,12 +2513,12 @@ class Renderer:
         verts, _ = ribbon_vertices(state["ents"])
         caps = cap_vertices(state["ents"])
         same = lambda x, y: x.shape == y.shape and np.allclose(x, y, rtol=1e-5, atol=1e-5)  # arc length: rounding
-        assert same(verts, state["verts"]), "Strich-Teil-Upload weicht ab"
-        assert same(caps, state["caps"]), "Strich-Enden im Teil-Upload weichen ab"
+        assert same(verts, state["verts"]), "partial stroke upload differs"
+        assert same(caps, state["caps"]), "stroke ends in the partial upload differ"
         gpu = np.frombuffer(self._ribbon[0].read(size=verts.nbytes), "f4").reshape(verts.shape)
-        assert np.array_equal(gpu, state["verts"]), "GPU-Puffer der Striche weicht ab"
+        assert np.array_equal(gpu, state["verts"]), "GPU buffer of the strokes differs"
         gpu = np.frombuffer(self._caps[0].read(size=caps.nbytes), "f4").reshape(caps.shape)
-        assert np.array_equal(gpu, state["caps"]), "GPU-Puffer der Strich-Enden weicht ab"
+        assert np.array_equal(gpu, state["caps"]), "GPU buffer of the stroke ends differs"
 
     def _fill_stroke_buffers(self, verts, idx, caps, ribbon, capbuf):
         """Write ribbon and end-point data into (growing) GPU buffers -> (ribbon, caps)."""

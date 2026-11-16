@@ -1013,7 +1013,7 @@ class SurfaceSyncMixin:
                        and ok[2] == len(s.attached) and ok[3] == sum(s.attached) and ok[4] == len(s.curves))
             if trusted and self.VERIFY_SYNC:
                 assert ok == self._surface_stamp(s, world, refs, count=False), \
-                    f"„{s.name}“: niemand hat sich gemeldet, aber ihr Stempel hat sich geändert"
+                    f"\"{s.name}\": nobody reported, but its stamp has changed"
             if (trusted or ok == self._surface_stamp(s, world, refs)) \
                     and not any(src is not None and src[0] != "lines" for src in getattr(s, "sources", ())):
                 clean.add(id(s))
@@ -1040,19 +1040,19 @@ class SurfaceSyncMixin:
             for s, key, att, placed in before.values():
                 if placed is None:
                     assert s._cache_key() == key and tuple(s.attached) == att, \
-                        f"Abgleich übersprungen, obwohl sich „{s.name}“ dabei geändert hätte"
+                        f"synchronisation skipped although \"{s.name}\" would have changed"
                     continue
                 size = float(np.linalg.norm(np.ptp(placed["mesh"][0], axis=0))) if placed["mesh"] is not None else 1.0
                 now = _placed_state(s)
                 m0, m1 = placed.pop("mesh"), now.pop("mesh")
-                why = _loose_diff(placed, now, 1e-9 * max(size, 1e-9), "Stand")
+                why = _loose_diff(placed, now, 1e-9 * max(size, 1e-9), "state")
                 if why is None and m0 is not None and m1 is not None:
-                    if m0[0].shape != m1[0].shape or _loose_diff(m0[0], m1[0], 1e-6 * size, "Netz"):
+                    if m0[0].shape != m1[0].shape or _loose_diff(m0[0], m1[0], 1e-6 * size, "net"):
                         # different division of the displayed net (the curvature lies at a threshold, and recomputed
                         # the grid differs in the last digit): then at least the same position
                         why = _loose_diff(np.array([m0[0].min(axis=0), m0[0].max(axis=0)]),
-                                          np.array([m1[0].min(axis=0), m1[0].max(axis=0)]), 1e-3 * size, "Netz-Hülle")
-                assert why is None, f"„{s.name}“ mitverschoben statt neu gerechnet, aber nicht gleich – {why}"
+                                          np.array([m1[0].min(axis=0), m1[0].max(axis=0)]), 1e-3 * size, "net hull")
+                assert why is None, f"\"{s.name}\" moved along instead of recomputed, but not equal - {why}"
             clean = set(before)
         if any(s.frozen is None and not s.aid for s in self.surfaces):
             refs = network.refs_by_pid(self)  # state after the sync (it assigns point IDs)
@@ -1071,7 +1071,7 @@ class SurfaceSyncMixin:
             if id(s) in calm and stirred is not None and id(s) not in stirred and "_dep_curves" in s.__dict__:
                 if self.VERIFY_SYNC:
                     assert s._sync_ok == self._surface_stamp(s, world, refs, count=False), \
-                        f"„{s.name}“: im Abgleich hat sich niemand gemeldet, aber ihr Stempel ist ein anderer"
+                        f"\"{s.name}\": nobody reported during synchronisation, but its stamp is different"
                 if book["reg"].get(id(s)) is not s:  # came back from an undo copy: in the book from now on
                     self._sync_enrol(book, s)
                 continue  # nothing has changed for it: stamp and dependencies stay

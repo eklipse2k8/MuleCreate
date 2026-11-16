@@ -4,7 +4,7 @@ picture, so an AI without access to the pictures knows what they show).
 
 Source: docs/handbook/pictures.json, written by packaging/handbook_images.py. Call in the repo root after the pictures:
     .venv/Scripts/python.exe packaging/handbook_intro.py
-tests/test_handbuch.py checks that the handbook block is current.
+tests/test_handbook.py checks that the handbook block is current.
 """
 import html
 import json

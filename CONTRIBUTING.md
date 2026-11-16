@@ -31,12 +31,3 @@ Copyright (C) 2026 Felix Barthel
 Mule is licensed under the GNU General Public License v3.0 (see `LICENSE`). You may use, study,
 change and share it under the terms of that license. The name **Mule Create** and the Mule logo
 are not covered by the license: please do not use them for modified versions.
-
----
-
-## Deutsch (kurz)
-
-Rückmeldungen, Fehlerberichte und Ideen bitte als **Issue** auf GitHub, gern mit Szene oder Screenshot.
-Fragen und Ideen zum Besprechen gern unter **Discussions**, alles andere an **mulecreate@gmail.com**.
-Code-Beiträge (Pull Requests) werden während der Alpha **nicht angenommen**. Mule steht unter der
-GPL 3.0; Name „Mule Create“ und Logo sind davon ausgenommen.

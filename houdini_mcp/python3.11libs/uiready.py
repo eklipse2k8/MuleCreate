@@ -1,4 +1,4 @@
-"""Startet den houdini_code-MCP-Server, sobald die Houdini-Oberfläche bereit ist (SM_HOUDINI_MCP_AUTOSTART=0: aus)."""
+"""Starts the houdini_code MCP server as soon as the Houdini UI is ready (SM_HOUDINI_MCP_AUTOSTART=0: off)."""
 import os
 
 if os.environ.get("SM_HOUDINI_MCP_AUTOSTART", "1") == "1":

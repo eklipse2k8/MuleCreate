@@ -1,23 +1,23 @@
-"""Testlauf: alle tests/test_*.py, jede Datei in einem eigenen Prozess (eigenes App-Fenster).
+"""Test runner: all tests/test_*.py, each file in its own process (its own app window).
 
-    python tests/run.py                 alle Tests (Stufe 1 und 2)
-    python tests/run.py paint layers    nur Dateien, deren Name das enthält
-    python tests/run.py --kern          nur Stufe 1: Kern-Tests ohne Fenster (Sekunden) – nach jeder Änderung
-    python tests/run.py --gross         Stufe 3: Prüfrunde an der großen Hafenszene (Minuten) – nach jedem Planschritt
-                                        und vor jedem Paket; braucht die eingefrorene Szene (bench/pruefrunde.py)
+    python tests/run.py                 all tests (levels 1 and 2)
+    python tests/run.py paint layers    only files whose name contains one of the words
+    python tests/run.py --core          level 1 only: core tests without a window (seconds) - after every change
+    python tests/run.py --gross         level 3: check run on the large harbour scene (minutes) - after every plan step
+                                        and before every package; needs the frozen scene (bench/pruefrunde.py)
 
-Drei Stufen (tests/LIESMICH.md):
-    1 Kern      Datei trägt die Zeile  STUFE = "kern"  – kein Fenster, die Tests bekommen h = None
-    2 Bedienung alle übrigen Dateien – echtes Fenster, echte Mausereignisse
-    3 Groß      bench/pruefrunde.py und bench/hafen.py an der Hafenszene
-    python tests/run.py --update-baseline   Referenzbilder des Pixelvergleichs neu anlegen
+Three levels (tests/README.md):
+    1 Core      file carries the line  LEVEL = "core"  - no window, the tests get h = None
+    2 Handling  all other files - real window, real mouse events
+    3 Large     bench/pruefrunde.py and bench/hafen.py on the harbour scene
+    python tests/run.py --update-baseline   recreate the reference images of the pixel comparison
 
-Ergebnisse je Test:
-    OK          bestanden
-    FEHLER      gescheitert (muss behoben werden)
-    ERWARTET    bekanntes Problem (expected_failure), scheitert wie erwartet
-    BEHOBEN     bekanntes Problem läuft plötzlich durch – Markierung entfernen
-Exit-Code 1, wenn es FEHLER gibt.
+Result per test:
+    OK          passed
+    FAIL        failed (must be fixed)
+    EXPECTED    known problem (expected_failure), fails as expected
+    FIXED       known problem suddenly passes - remove the marker
+Exit code 1 if there is a FAIL.
 """
 import glob
 import json
@@ -31,15 +31,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def run_file(path, out_json):
-    """Im Kindprozess: alle test_* Funktionen einer Datei nacheinander ausführen."""
+    """In the child process: run all test_* functions of one file one after another."""
     sys.path.insert(0, ROOT)
     import importlib.util
     from tests.harness import H, QT_ERRORS
     spec = importlib.util.spec_from_file_location(os.path.splitext(os.path.basename(path))[0], path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    kern = getattr(mod, "STUFE", "") == "kern"  # Stufe 1: ohne Fenster (die Prüfmodi der Harness gelten trotzdem)
-    h = None if kern else H()
+    core = getattr(mod, "LEVEL", "") == "core"  # level 1: without a window (the harness check modes still apply)
+    h = None if core else H()
     results = []
     for name in [n for n in dir(mod) if n.startswith("test_")]:
         fn = getattr(mod, name)
@@ -52,15 +52,15 @@ def run_file(path, out_json):
             note = fn(h)
             if h is not None:
                 h.grab()
-            if QT_ERRORS:  # Fehler in paintGL o. ä.: im Viewport bunte Kästchen
+            if QT_ERRORS:  # error in paintGL or similar: coloured boxes in the viewport
                 lines = QT_ERRORS[0].splitlines()
-                raise RuntimeError("Fehler in einem Qt-Rückruf: " + lines[-1] + "\n" + "\n".join(lines[-4:-1]))
-            status, detail = ("BEHOBEN", expected) if expected else ("OK", note or "")
+                raise RuntimeError("Error in a Qt callback: " + lines[-1] + "\n" + "\n".join(lines[-4:-1]))
+            status, detail = ("FIXED", expected) if expected else ("OK", note or "")
         except Exception as exc:  # noqa: BLE001
             if expected:
-                status, detail = "ERWARTET", f"{expected} – {type(exc).__name__}: {exc}"
+                status, detail = "EXPECTED", f"{expected} – {type(exc).__name__}: {exc}"
             else:
-                status, detail = "FEHLER", "".join(traceback.format_exception(exc)).strip().splitlines()[-1] + \
+                status, detail = "FAIL", "".join(traceback.format_exception(exc)).strip().splitlines()[-1] + \
                     "\n" + "".join(traceback.format_tb(exc.__traceback__)[-2:])
         results.append({"test": name, "status": status, "detail": str(detail), "s": round(time.perf_counter() - t, 2)})
         with open(out_json, "w", encoding="utf-8") as f:
@@ -69,10 +69,10 @@ def run_file(path, out_json):
         h.close()
 
 
-def is_kern(path):
-    """Stufe 1? (am Quelltext erkannt, ohne die Datei zu laden)"""
+def is_core(path):
+    """Level 1? (recognised from the source text, without loading the file)"""
     with open(path, encoding="utf-8") as f:
-        return any(line.startswith('STUFE = "kern"') for line in f)
+        return any(line.startswith('LEVEL = "core"') for line in f)
 
 
 def main():
@@ -86,16 +86,16 @@ def main():
     if "--gross" in sys.argv:
         scene = os.path.join(ROOT, "Feedback", "2026-11-11_architektur", "messlatte", "hafen_messlatte.mule")
         if not os.path.exists(scene):
-            print("Stufe 3 braucht die eingefrorene Hafenszene:\n  " + scene + "\n(liegt nicht im Git)")
+            print("Level 3 needs the frozen harbour scene:\n  " + scene + "\n(not in Git)")
             return 1
         return subprocess.run([sys.executable, os.path.join(ROOT, "bench", "pruefrunde.py")], cwd=ROOT, env=env).returncode
     files = sorted(glob.glob(os.path.join(ROOT, "tests", "test_*.py")))
     if args:
         files = [f for f in files if any(a in os.path.basename(f) for a in args)]
-    if "--kern" in sys.argv:
-        files = [f for f in files if is_kern(f)]
+    if "--core" in sys.argv or "--kern" in sys.argv:  # --kern: old name
+        files = [f for f in files if is_core(f)]
     else:
-        files.sort(key=lambda f: not is_kern(f))  # das Schnelle zuerst: ein Fehler im Kern zeigt sich in Sekunden
+        files.sort(key=lambda f: not is_core(f))  # fast ones first: an error in the core shows within seconds
     out_dir = os.path.join(ROOT, "tests", "_out")
     os.makedirs(out_dir, exist_ok=True)
     totals = {}
@@ -116,12 +116,12 @@ def main():
                 line += f"\n             {r['detail'].strip()}".replace("\n", "\n             ")
             print(line)
         if proc.returncode != 0:
-            totals["FEHLER"] = totals.get("FEHLER", 0) + 1
+            totals["FAIL"] = totals.get("FAIL", 0) + 1
             tail = (proc.stderr or proc.stdout).strip().splitlines()[-6:]
-            print("  FEHLER    Prozess abgebrochen:\n             " + "\n             ".join(tail))
-    print(f"\nGesamt ({time.perf_counter() - start:.0f} s): " +
+            print("  FAIL      Process aborted:\n             " + "\n             ".join(tail))
+    print(f"\nTotal ({time.perf_counter() - start:.0f} s): " +
           ", ".join(f"{k} {v}" for k, v in sorted(totals.items())))
-    return 1 if totals.get("FEHLER") else 0
+    return 1 if totals.get("FAIL") else 0
 
 
 if __name__ == "__main__":

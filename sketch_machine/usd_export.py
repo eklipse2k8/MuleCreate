@@ -230,7 +230,7 @@ def _light_data(scene):
     notes = []
     for n in scene.notes:
         items = n.board.get("items", [])
-        notes.append({"id": maps["nid"][n.id], "title": n.title or "(ohne Überschrift)",
+        notes.append({"id": maps["nid"][n.id], "title": n.title or "(untitled)",
                       "text": [it["text"] for it in items if it.get("kind") == "text"],
                       "images": [f"notes/{it['file']}" for it in items if it.get("kind") == "image"]})
     return {"_vis": vis, "_maps": maps, "notes": notes,
@@ -253,8 +253,8 @@ class _Writer:
     def write(self, path):
         o = self.out
         o += ["#usda 1.0", "(", '    defaultPrim = "sketch"', "    metersPerUnit = 1", '    upAxis = "Y"',
-              '    doc = "Mule – Szene als USD (sketch/usd_export.py). Ids wie im Sketch Brief; alles in '
-              'Weltkoordinaten, Symmetrie/Array herausgerechnet."', *timing_export.usd_header(self.scene), ")", "",
+              '    doc = "Mule - scene as USD (sketch/usd_export.py). Ids as in the Sketch Brief; everything in '
+              'world coordinates, symmetry/array resolved."', *timing_export.usd_header(self.scene), ")", "",
               'def Xform "sketch"', "{"]
         kids = self._children(None)
         self._block(kids, 1)

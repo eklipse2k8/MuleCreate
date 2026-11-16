@@ -1,4 +1,4 @@
-# vis_map.py – Sichtkarte, step 2 (Blender headless): flat-ID renders per camera and state -> pixel counts ->
+# vis_map.py – visibility map, step 2 (Blender headless): flat-ID renders per camera and state -> pixel counts ->
 # tiers A/B/C/S/D -> report (md + json) -> tier-coloured judging pictures.  Never opens or saves a project .blend.
 #   blender -b --factory-startup -P vis_map.py -- <config.json> [--only_states rest] [--max_cams N] [--skip_render]
 # Reads <cache_dir>/scene.json + geo_<state>.npz written by vis_export.py (any source that writes this format works).
@@ -124,7 +124,7 @@ if "skip_render" not in opt:
 D = json.load(open(cnt_path)); counts = D["counts"]; tim = D["timing"]
 
 # ---------- 2. classification -------------------------------------------------------------------------
-# Decision unit = one connected piece ("Teilstück", item part#nnnn) when its part has the same pieces and prim counts in
+# Decision unit = one connected piece ("piece", item part#nnnn) when its part has the same pieces and prim counts in
 # every state where it exists (stable topology); otherwise the whole part. Parts are grouped by part_alias (regex).
 from collections import defaultdict
 alias = [(re.compile(k), v) for k, v in cfg.get("part_alias", {}).items()]
@@ -224,11 +224,11 @@ json.dump(res, open(os.path.join(OUT, "vis_%s.json" % UNIT), "w"), indent=0)
 json.dump({"attribute": "vis_tier", "key": "part attribute + '#' + piece index (primitive connectivity, rank inside the part)",
            "pieces": {u: TU[u] for u in UNITS}, "parts": TP}, open(os.path.join(OUT, "vis_%s_tier_attr.json" % UNIT), "w"), indent=0)
 
-L = ["# Sichtkarte %s (Pilot)" % UNIT, "",
-     "Schwelle %d px bei %d×%d, Wolke %d Kameras je Hero (±%s°, ±%d %% Abstand), Zustände: %s. Pixel = Maximum über alle Kameras der Klasse und alle Zustände (Teil-Ebene: Summe aller Teilstücke im selben Bild)." % (
+L = ["# Visibility map %s (pilot)" % UNIT, "",
+     "Threshold %d px at %d×%d, cloud of %d cameras per hero (±%s°, ±%d %% distance), states: %s. Pixels = maximum over all cameras of the class and all states (part level: sum of all pieces in the same image)." % (
          THR, RX, RY, CN, cfg["cloud"]["ang_deg"], round(100 * cfg["cloud"]["dist_frac"]), ", ".join(ALLST)), "",
-     "Stufe je Teil (ganzes Objekt) und je Teilstück (zusammenhängendes Stück, z. B. eine Öse). Prims = Polygone im Zustand %s." % FIRST, "",
-     "| Teil | Prims | Stücke | Hero px | (wo) | Wolke px | (wo) | Kontrolle px | (wo) | Stufe Teil | Stücke A/B/C/S/D | Prims A/B/C/S/D (Stücke) | " + " | ".join(VAR) + " |",
+     "Tier per part (whole object) and per piece (connected piece, e.g. an eyelet). Prims = polygons in state %s." % FIRST, "",
+     "| Part | Prims | Pieces | Hero px | (where) | Cloud px | (where) | Control px | (where) | Part tier | Pieces A/B/C/S/D | Prims A/B/C/S/D (pieces) | " + " | ".join(VAR) + " |",
      "|---|---:|---:|---:|---|---:|---|---:|---|:-:|---|---|" + "|".join([":-:"] * len(VAR)) + "|"]
 for p in sorted(PARTS, key=lambda p: -PPRIM[p]):
     r = res["parts"][p]
@@ -237,15 +237,15 @@ for p in sorted(PARTS, key=lambda p: -PPRIM[p]):
              "/".join(str(r["piece_prims"][k]) for k in "ABCSD"), " | ".join(r["variants"][k] for k in VAR)))
 ps, pt = res["summary_pieces"], res["summary_parts"]
 cdp = ps["C"]["prims"] + ps["S"]["prims"] + ps["D"]["prims"]; cdt = pt["C"]["prims"] + pt["S"]["prims"] + pt["D"]["prims"]
-L += ["", "## Kennzahl", "",
-      "| Stufe | Teile | Prims (Teil-Ebene) | Teilstücke | Prims (Stück-Ebene) | Anteil (Stück) |", "|---|---:|---:|---:|---:|---:|"]
+L += ["", "## Key figures", "",
+      "| Tier | Parts | Prims (part level) | Pieces | Prims (piece level) | Share (pieces) |", "|---|---:|---:|---:|---:|---:|"]
 for k in "ABCSD":
     L.append("| %s | %d | %d | %d | %d | %.1f %% |" % (k, pt[k]["parts"], pt[k]["prims"], ps[k]["pieces"], ps[k]["prims"], 100.0 * ps[k]["prims"] / max(tot, 1)))
-L += ["", "**C + S + D, Stück-Ebene: %d von %d Teilstücken, %d von %d Prims (%.1f %%). Teil-Ebene: %d Prims (%.1f %%).** Nie ein einziges Pixel: %d Stücke / %d Prims." % (
+L += ["", "**C + S + D, piece level: %d of %d pieces, %d of %d prims (%.1f %%). Part level: %d prims (%.1f %%).** Never a single pixel: %d pieces / %d prims." % (
           ps["C"]["pieces"] + ps["S"]["pieces"] + ps["D"]["pieces"], len(UFIRST), cdp, tot, 100.0 * cdp / max(tot, 1), cdt, 100.0 * cdt / max(tot, 1),
           res["never_any_pixel"]["pieces"], res["never_any_pixel"]["prims"]), "",
-      "## Stabilität (Varianten gegen Hauptwerte)", "",
-      "| Variante | Stück-Prims A/B/C/S/D | C+S+D Prims | Stücke anders | Prims anders | Teile anders |", "|---|---|---:|---:|---:|---:|"]
+      "## Stability (variants against main values)", "",
+      "| Variant | Piece prims A/B/C/S/D | C+S+D prims | Pieces different | Prims different | Parts different |", "|---|---|---:|---:|---:|---:|"]
 for k, v in res["variants"].items():
     L.append("| %s | %s | %d | %d | %d | %d |" % (k, "/".join(str(v["pieces"][x]["prims"]) for x in "ABCSD"), v["pieces"]["C"]["prims"] + v["pieces"]["S"]["prims"] + v["pieces"]["D"]["prims"],
              v["changed_pieces"], v["changed_prims"], v["changed_parts"]))
@@ -258,8 +258,8 @@ if COMP:
     L += ["", "Blind spots (read only in a random view, in no chosen view or hero camera): " +
           (", ".join("%s (%d px, %s)" % (b["piece"], b["px_random"], b["at"]) for b in res["blind_spots"][:12]) or "none") +
           (" – a view may be missing; propose one to the main chat." if BLIND else "")]
-L +=["", "Teile mit wechselnder Topologie zwischen Zuständen (nur Teil-Ebene): " + ", ".join(res["unstable_parts_part_level"]), "",
-      "## Laufzeit", "", "Export (hython): %s" % json.dumps(D.get("export_timing")), "", "Render (Blender Workbench): %s" % json.dumps(tim)]
+L +=["", "Parts with changing topology between states (part level only): " + ", ".join(res["unstable_parts_part_level"]), "",
+      "## Runtime", "", "Export (hython): %s" % json.dumps(D.get("export_timing")), "", "Render (Blender Workbench): %s" % json.dumps(tim)]
 with open(os.path.join(OUT, "%s_vis.md" % UNIT), "w", encoding="utf-8") as fh:   # name the gate hook checks (review/vis/<unit>_vis.md)
     fh.write("\n".join(L) + "\n")
 print("VIS_SUMMARY pieces", json.dumps(ps), "parts", json.dumps(pt), "CD_piece_prims", cdp, "of", tot)

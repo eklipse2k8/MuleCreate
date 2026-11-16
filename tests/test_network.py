@@ -1,4 +1,4 @@
-"""Kurvennetz (F3): Punkte mit Identität – Einrasten verbindet, Nähe nicht; Kopien sind eigene Punkte; Übernahme."""
+"""Curve net (F3): points with identity - snapping connects, proximity does not; copies are their own points; migration."""
 import json
 import os
 import time
@@ -20,17 +20,17 @@ def _ground(h: H):
     return sc.curves[-1]
 
 
-def test_einrasten_am_ende_verbindet(h: H):
+def test_snapping_at_the_end_connects(h: H):
     a = _ground(h)
     h.stroke_world([[2, 0, 0], [2, 0, 0.7], [2, 0, 1.5]])
     b = h.curves()[-1]
-    assert np.allclose(b.points[0], a.points[-1]), "Strich rastet am Linienende ein"
-    assert network.pid_of(a, len(a.points) - 1) == network.pid_of(b, 0), "gemeinsamer Punkt"
+    assert np.allclose(b.points[0], a.points[-1]), "stroke snaps to the line end"
+    assert network.pid_of(a, len(a.points) - 1) == network.pid_of(b, 0), "shared point"
 
 
-def test_naehe_verbindet_nicht(h: H):
+def test_proximity_does_not_connect(h: H):
     a = _ground(h)
-    h.v.ws.magnet = False  # ohne Einrasten: endet knapp daneben
+    h.v.ws.magnet = False  # without snapping: ends just beside it
     try:
         h.stroke_world([[2.0005, 0, 0.0005], [2, 0, 0.7], [2, 0, 1.5]])
     finally:
@@ -39,22 +39,22 @@ def test_naehe_verbindet_nicht(h: H):
     assert network.pid_of(a, len(a.points) - 1) != network.pid_of(b, 0)
 
 
-def test_einrasten_mitten_auf_linie_teilt_nicht(h: H):
+def test_snapping_mid_line_does_not_split(h: H):
     a = _ground(h)
     h.stroke_world([[1.0, 0, 0], [1.0, 0, 0.7], [1.0, 0, 1.5]])
     curves = h.curves()
-    assert len(curves) == 2, f"{len(curves)} Linien – die Linie bleibt ganz, der neue Strich kommt dazu"
+    assert len(curves) == 2, f"{len(curves)} lines - the line stays whole, the new stroke is added"
     b = curves[-1]
     a = curves[0]
     ks = components.knots(a)
     mid = [k for k in ks[1:-1] if np.linalg.norm(a.points[k] - b.points[0]) < 1e-6]
-    assert mid, "Knoten an der Einrast-Stelle"
-    assert network.pid_of(a, mid[0]) == network.pid_of(b, 0), "T-Stoß ist ein gemeinsamer Punkt"
+    assert mid, "knot at the snap location"
+    assert network.pid_of(a, mid[0]) == network.pid_of(b, 0), "T-junction is a shared point"
     refs = network.refs_by_pid(h.sc)[network.pid_of(b, 0)]
     assert network.degree(refs) == 3
 
 
-def test_ecken_beim_zeichnen(h: H):
+def test_corners_while_drawing(h: H):
     h.camera([1, 0, 1], 6, [0, 1, 0.01])
     h.v.ws.magnet = False
     try:
@@ -63,17 +63,17 @@ def test_ecken_beim_zeichnen(h: H):
         h.v.ws.magnet = True
     c = h.curves()[-1]
     ks = components.knots(c)
-    assert len(ks) == 3, f"eine Ecke erkannt ({ks})"
+    assert len(ks) == 3, f"one corner detected ({ks})"
     corner = c.points[ks[1]].copy()
     arc = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(c.points, axis=0), axis=1))])
     t = np.linspace(0, arc[-1], len(c.points) * 2 + 1)
     c.points = np.stack([np.interp(t, arc, c.points[:, i]) for i in range(3)], axis=1)
     c.widths = np.full(len(c.points), c.widths.mean())
     ks2 = components.knots(c)
-    assert len(ks2) == 3 and np.linalg.norm(c.points[ks2[1]] - corner) < 0.05, "Ecke bleibt an ihrer Stelle"
+    assert len(ks2) == 3 and np.linalg.norm(c.points[ks2[1]] - corner) < 0.05, "corner stays in place"
 
 
-def test_kopie_ist_nicht_mit_dem_original_verbunden(h: H):
+def test_copy_is_not_connected_to_the_original(h: H):
     sc = h.sc
     sc.new_stroke()
     sc.add_curve(line([0, 0, 0], [1, 0, 0], 10), None)
@@ -86,14 +86,14 @@ def test_kopie_ist_nicht_mit_dem_original_verbunden(h: H):
     paste(sc, clip, "elements")
     network.sync(sc)
     a2, b2 = sc.curves[-2:]
-    assert network.pid_of(a2, len(a2.points) - 1) == network.pid_of(b2, 0), "in der Kopie verbunden"
-    assert network.pid_of(a2, 0) != network.pid_of(a, 0), "mit dem Original nicht verbunden"
+    assert network.pid_of(a2, len(a2.points) - 1) == network.pid_of(b2, 0), "connected within the copy"
+    assert network.pid_of(a2, 0) != network.pid_of(a, 0), "not connected to the original"
     group = components.ComponentGroup(sc, [(a2, 0)], [])
     group.translate(np.array([0.0, 0.5, 0.0]))
-    assert np.allclose(a.points[0], [0, 0, 0]), "Ziehen an der Kopie lässt das Original stehen"
+    assert np.allclose(a.points[0], [0, 0, 0]), "dragging the copy leaves the original in place"
 
 
-def test_teilen_behaelt_punkte(h: H):
+def test_splitting_keeps_points(h: H):
     sc = h.sc
     sc.new_stroke()
     sc.add_curve(line([0, 0, 0], [2, 0, 0], 21), None)
@@ -104,12 +104,12 @@ def test_teilen_behaelt_punkte(h: H):
     sc.split_all_at(np.array([1.0, 0, 0]))
     network.sync(sc)
     first, second = sc.curves[0], sc.curves[1]
-    assert network.pid_of(first, len(first.points) - 1) == network.pid_of(second, 0), "Schnitt ist gemeinsamer Punkt"
-    assert network.pid_of(second, len(second.points) - 1) == end_pid, "alte Verbindung bleibt"
+    assert network.pid_of(first, len(first.points) - 1) == network.pid_of(second, 0), "the cut is a shared point"
+    assert network.pid_of(second, len(second.points) - 1) == end_pid, "old connection stays"
 
 
-def test_uebernahme_alter_datei(h: H):
-    # ältere Datei nachbauen: dieselbe Szene ohne Punkt-IDs an den Linien
+def test_migration_of_an_old_file(h: H):
+    # rebuild an older file: the same scene without point IDs on the lines
     with open(os.path.join(ROOT, "tests", "scenes", "topologie.sketch.json"), encoding="utf-8") as f:
         raw = json.load(f)
 
@@ -139,11 +139,11 @@ def test_uebernahme_alter_datei(h: H):
     for _ in range(20):
         network.sync(s2)
     dt = (time.perf_counter() - t0) / 20
-    assert dt < 0.01, f"Abgleich ohne Änderung {dt * 1000:.1f} ms"
-    return f"{rep['points']} Punkte, {rep['shared']} verbunden, {rep['free_ends']} offene Enden"
+    assert dt < 0.01, f"sync without change {dt * 1000:.1f} ms"
+    return f"{rep['points']} points, {rep['shared']} connected, {rep['free_ends']} open ends"
 
 
-def test_verbindungsanzeige(h: H):
+def test_connection_display(h: H):
     a = _ground(h)
     h.stroke_world([[2, 0, 0], [2, 0, 0.7], [2, 0, 1.5]])
     h.edit_mode("point")
@@ -152,15 +152,15 @@ def test_verbindungsanzeige(h: H):
     h.save_image("netz_punkte.png")
 
 
-def test_loop_bis_zum_t_stoss_und_fuellen(h: H):
-    """Rechteck mit Mittellinie (T-Stöße oben und unten): Doppelklick auf die linke Seite wählt die linke Hälfte –
-    bis zu den gemeinsamen Punkten; F füllt genau sie (erst dabei werden die Linien geteilt)."""
+def test_loop_up_to_the_t_junction_and_fill(h: H):
+    """Rectangle with a centre line (T-junctions top and bottom): double-click on the left side selects the left half -
+    up to the shared points; F fills exactly that (only then are the lines split)."""
     sc = h.sc
     h.camera([1, 0, 1], 6, [0, 1, 0.01])
     for a, b in (([0, 0, 0], [2, 0, 0]), ([2, 0, 0], [2, 0, 2]), ([2, 0, 2], [0, 0, 2]), ([0, 0, 2], [0, 0, 0])):
         h.stroke_world([a, (np.array(a) + np.array(b)) / 2, b])
     h.stroke_world([[1, 0, 0], [1, 0, 1], [1, 0, 2]])
-    assert len(h.curves()) == 5, "Mittellinie teilt die Rechteckseiten nicht"
+    assert len(h.curves()) == 5, "centre line does not split the rectangle sides"
     h.edit_mode("edge")
     h.v.select_loop(h.scrf([0, 0, 1.0]), "replace")
     assert len(h.v.edge_selection) == 2 and len(h.v.seg_selection) == 2, (h.v.edge_selection, h.v.seg_selection)
@@ -170,7 +170,7 @@ def test_loop_bis_zum_t_stoss_und_fuellen(h: H):
 
 
 def _patch_square(h: H):
-    """Kurvenfläche aus vier leicht gewölbten Randlinien auf dem Boden (wie Test des Artists: Umriss -> Fläche)."""
+    """Curve surface from four slightly arched boundary lines on the ground (like the artist's test: outline -> surface)."""
     sc = h.sc
     sc.new_stroke()
     t = np.linspace(0, 1, 16)
@@ -188,17 +188,17 @@ def _patch_square(h: H):
     return ps, lines
 
 
-def test_strich_ueber_den_flaechenrand_endet_auf_der_randlinie(h: H):
+def test_stroke_over_the_surface_edge_ends_on_the_boundary_line(h: H):
     ps, lines = _patch_square(h)
     h.stroke_world([[2.0, 0.3, 2.0], [3.0, 0.3, 2.0], [3.8, 0.3, 2.0], [4.6, 0.0, 2.0], [5.2, 0.0, 2.0]])
     c = h.curves()[-1]
     assert c.plane_id == ps.id
     right = lines[1]
-    assert network.pid_of(c, len(c.points) - 1) in set(right.pids.values()), "Ende ist ein gemeinsamer Punkt der Randlinie"
-    assert len([x for x in h.curves() if not x.paint]) == 5, "Randlinie bleibt ein Strich"
+    assert network.pid_of(c, len(c.points) - 1) in set(right.pids.values()), "end is a shared point of the boundary line"
+    assert len([x for x in h.curves() if not x.paint]) == 5, "boundary line stays one stroke"
 
 
-def test_kreuzung_auf_derselben_ebene_wird_punkt(h: H):
+def test_crossing_on_the_same_plane_becomes_a_point(h: H):
     h.camera([1, 0, 1], 6, [0, 1, 0.01])
     h.v.ws.magnet = False
     try:
@@ -208,19 +208,19 @@ def test_kreuzung_auf_derselben_ebene_wird_punkt(h: H):
         h.v.ws.magnet = True
     a, b = h.curves()
     shared = set(a.pids.values()) & set(b.pids.values())
-    assert len(shared) == 1, "eine gemeinsame Kreuzung"
+    assert len(shared) == 1, "one shared crossing"
     refs = network.refs_by_pid(h.sc)[shared.pop()]
     assert network.degree(refs) == 4 and len(h.curves()) == 2
 
 
-def test_nur_scheinbare_kreuzung_bleibt_getrennt(h: H):
+def test_merely_apparent_crossing_stays_separate(h: H):
     sc = h.sc
     sc.new_stroke()
     sc.add_curve(line([0, 0, 1], [2, 0, 1], 20), sc.planes[0].id)
     h.v._changed()
     h.camera([1, 0, 1], 6, [0, 1, 0.01])
     other = sc.custom[0] if sc.custom else None
-    lifted = np.array([[1, 1.0, 0], [1, 1.0, 2]])  # 1 über dem Boden: von oben gesehen kreuzt sie
+    lifted = np.array([[1, 1.0, 0], [1, 1.0, 2]])  # 1 above the ground: seen from above it crosses
     sc.add_curve(np.linspace(lifted[0], lifted[1], 20), sc.planes[0].id)
     h.v._connect_new_crossings([sc.curves[-1]])
     a, b = sc.curves[-2:]
@@ -228,11 +228,11 @@ def test_nur_scheinbare_kreuzung_bleibt_getrennt(h: H):
     assert not set(a.pids.values()) & set(b.pids.values())
 
 
-def test_cleanup_kreuzungen_zwischen_flaechen(h: H):
+def test_cleanup_crossings_between_planes(h: H):
     sc = h.sc
     sc.new_stroke()
-    sc.add_curve(line([0, 0, 1], [2, 0, 1], 20), sc.planes[0].id)  # auf dem Boden
-    sc.add_curve(line([1, -1, 1], [1, 1, 1], 20), sc.planes[2].id)  # senkrecht, durch den Boden
+    sc.add_curve(line([0, 0, 1], [2, 0, 1], 20), sc.planes[0].id)  # on the ground
+    sc.add_curve(line([1, -1, 1], [1, 1, 1], 20), sc.planes[2].id)  # vertical, through the ground
     h.v._changed()
     h.v.set_cleanup_global(True)
     try:
@@ -240,17 +240,17 @@ def test_cleanup_kreuzungen_zwischen_flaechen(h: H):
     finally:
         h.v.set_cleanup_global(False)
     a, b = sc.curves[-2:]
-    assert set(a.pids.values()) & set(b.pids.values()), "Kreuzung im Raum verbunden"
+    assert set(a.pids.values()) & set(b.pids.values()), "crossing in space connected"
 
 
-def test_verschweissen_verbindet_aufeinanderliegende_enden(h: H):
+def test_welding_connects_ends_lying_on_each_other(h: H):
     sc = h.sc
     sc.new_stroke()
     sc.add_curve(line([0, 0, 0], [1, 0, 0], 10), None)
     network.sync(sc)
     sc.add_curve(line([1, 0, 0], [1, 0, 1], 10), None)
     b = sc.curves[-1]
-    b.pids = {0: network.new_pid(), len(b.points) - 1: network.new_pid()}  # eigener Punkt, liegt aber genau drauf
+    b.pids = {0: network.new_pid(), len(b.points) - 1: network.new_pid()}  # own point, but lies exactly on it
     a = sc.curves[0]
     network.sync(sc)
     assert network.pid_of(a, len(a.points) - 1) != network.pid_of(b, 0)
@@ -260,31 +260,31 @@ def test_verschweissen_verbindet_aufeinanderliegende_enden(h: H):
         h.v.run_cleanup("weld")
     finally:
         h.v.set_cleanup_global(False)
-    assert network.pid_of(a, len(a.points) - 1) == network.pid_of(b, 0), "verschweißt = verbunden"
+    assert network.pid_of(a, len(a.points) - 1) == network.pid_of(b, 0), "welded = connected"
 
 
-def test_v_einrasten_verbindet(h: H):
+def test_v_snapping_connects(h: H):
     sc = h.sc
     sc.new_stroke()
     sc.add_curve(line([0, 0, 0], [1, 0, 0], 10), None)
     sc.add_curve(line([1.0, 0, 0.5], [1, 0, 1], 10), None)
     a, b = sc.curves[-2:]
     network.sync(sc)
-    b.translate(np.array([0.0, 0.0, -0.5]))  # wie ein V-Zug: Ende genau aufs andere Ende
+    b.translate(np.array([0.0, 0.0, -0.5]))  # like a V drag: end exactly onto the other end
     h.v._connect_at(a.points[-1])
     assert network.pid_of(a, len(a.points) - 1) == network.pid_of(b, 0)
     c = sc.curves[0]
     sc.add_curve(line([0.5, 0, 0.6], [0.5, 0, 1.5], 10), None)
     d = sc.curves[-1]
-    d.translate(np.array([0.0, 0.0, -0.6]))  # auf die Linienmitte
+    d.translate(np.array([0.0, 0.0, -0.6]))  # onto the middle of the line
     h.v._connect_at(d.points[0])
-    assert network.pid_of(d, 0) in set(c.pids.values()), "Linienmitte bekommt einen gemeinsamen Punkt"
+    assert network.pid_of(d, 0) in set(c.pids.values()), "line middle gets a shared point"
 
 
-def test_kreuzung_auf_fuellflaeche_bleibt_ein_punkt(h: H):
-    """Szene des Artists (new_topology_v002): zweiter Strich über eine Füllfläche, kreuzt den ersten und läuft über den
-    Rand hinaus. Die Außenlinie bekommt dabei neue Punkte, die Fläche folgt ihr – die Kreuzung muss trotzdem ein
-    gemeinsamer Punkt bleiben, und das Zeichnen darf keine Fehler im Bild werfen (bunte Kästchen)."""
+def test_crossing_on_fill_surface_stays_one_point(h: H):
+    """The artist's scene (new_topology_v002): second stroke over a fill surface, crosses the first and runs past the
+    edge. The outer line gets new points in the process, the surface follows it - the crossing must still remain a
+    shared point, and drawing must not throw errors in the image (coloured boxes)."""
     h.load("tests/scenes/netz_fuellflaeche_kreuz.sketch.json")
     sc = h.sc
     surf = sc.surfaces[0]
@@ -294,20 +294,20 @@ def test_kreuzung_auf_fuellflaeche_bleibt_ein_punkt(h: H):
     h.stroke_frames([h.scrf(p) for p in [a + t * (b - a) for t in np.linspace(0.02, 0.98, 30)] + [b + d * 0.6]])
     new = h.curves()[-1]
     first = next(c for c in h.curves() if c.plane_id == surf.id and c is not new)
-    assert set(first.pids.values()) & set(new.pids.values()), "Kreuzung ist ein gemeinsamer Punkt"
+    assert set(first.pids.values()) & set(new.pids.values()), "crossing is a shared point"
     assert len(new.widths) == len(new.points) and len(first.widths) == len(first.points)
     h.edit_mode("point")
     h.save_image("netz_fuellflaeche_kreuz.png")
 
 
-def test_flaeche_kopieren_als_teilgraph(h: H):
-    """Nur die Fläche kopieren (Flächenmodus) und einfügen: die Kopie nimmt ihr Netz mit – Randlinien und eine Linie
-    darauf –, ist intern verbunden wie das Original, mit dem Original aber nicht; Material und Färbung kommen mit.
-    Verschoben bewegt sich die ganze Kopie, das Original bleibt."""
+def test_copying_a_surface_as_a_subgraph(h: H):
+    """Copy only the surface (surface mode) and paste: the copy takes its net along - boundary lines and a line
+    on it -, is internally connected like the original, but not with the original; material and tint come along.
+    Moved, the whole copy moves, the original stays."""
     from sketch_machine import loft
     sc = h.sc
     ps, lines = _patch_square(h)
-    h.stroke_world([[-0.5, 0.3, 2.0], [2.0, 0.3, 2.0], [4.5, 0.3, 2.0]])  # echte Linie quer über die Fläche
+    h.stroke_world([[-0.5, 0.3, 2.0], [2.0, 0.3, 2.0], [4.5, 0.3, 2.0]])  # real line across the surface
     across = h.curves()[-1]
     assert across.plane_id == ps.id
     ps.material, ps.tint = "holz", (0.8, 0.3, 0.2)
@@ -319,31 +319,31 @@ def test_flaeche_kopieren_als_teilgraph(h: H):
     h.v.copy_selection()
     h.v.paste()
     copy_s = sc.surfaces[-1]
-    assert copy_s is not ps and type(copy_s) is type(ps), "Kopie ist wieder eine Kurvenfläche"
-    assert len(h.curves()) == n_lines + 5, f"{len(h.curves()) - n_lines} neue Linien statt 5 (Rand + Linie darauf)"
-    assert copy_s.material == "holz" and copy_s.tint == ps.tint, "Material und Färbung mitkopiert"
+    assert copy_s is not ps and type(copy_s) is type(ps), "copy is a curve surface again"
+    assert len(h.curves()) == n_lines + 5, f"{len(h.curves()) - n_lines} new lines instead of 5 (edge + line on it)"
+    assert copy_s.material == "holz" and copy_s.tint == ps.tint, "material and tint copied along"
     border = sc.patch_border(copy_s)
-    assert len(border) == 4 and not any(any(c is x for x in lines) for c in border), "Rand der Kopie = kopierte Linien"
+    assert len(border) == 4 and not any(any(c is x for x in lines) for c in border), "edge of the copy = copied lines"
     new_across = [c for c in h.curves() if c.plane_id == copy_s.id]
-    assert len(new_across) == 1, "Linie auf der Fläche gehört zur Kopie"
+    assert len(new_across) == 1, "line on the surface belongs to the copy"
     network.sync(sc)
     old_pids = {p for c in lines + [across] for p in (c.pids or {}).values()}
     new_pids = {p for c in border + new_across for p in (c.pids or {}).values()}
-    assert not old_pids & new_pids, "mit dem Original nicht verbunden"
+    assert not old_pids & new_pids, "not connected to the original"
     ends = {network.pid_of(new_across[0], 0), network.pid_of(new_across[0], len(new_across[0].points) - 1)}
-    assert ends <= {p for c in border for p in (c.pids or {}).values()}, "intern verbunden wie das Original"
+    assert ends <= {p for c in border for p in (c.pids or {}).values()}, "internally connected like the original"
     target = h.v.transform_target
     target.translate(np.array([6.0, 0, 0]))
     h.v._changed()
     for cid, pts0 in before.items():
-        assert np.allclose(sc.curve_by_id(cid).points, pts0), "Original bleibt"
+        assert np.allclose(sc.curve_by_id(cid).points, pts0), "original stays"
     v = copy_s.fill_mesh()[0]
-    assert v[:, 0].min() > 5.9, "Kopie ist ganz mitgewandert"
+    assert v[:, 0].min() > 5.9, "copy moved along completely"
 
 
-def test_fuellflaeche_und_roehre_kopieren_als_teilgraph(h: H):
-    """Füllfläche (L-Form) und Röhre allein kopiert: Umriss bzw. Querschnitte und Seitenlinien kommen mit, die Kopie
-    folgt ihren eigenen Linien (nicht dem Original)."""
+def test_copying_fill_surface_and_tube_as_a_subgraph(h: H):
+    """Fill surface (L shape) and tube copied alone: outline or cross-sections and rails come along, the copy
+    follows its own lines (not the original)."""
     from sketch_machine.scene import LoftSurface, SurfaceObject
     sc = h.sc
     sc.new_stroke()
@@ -373,16 +373,16 @@ def test_fuellflaeche_und_roehre_kopieren_als_teilgraph(h: H):
         h.v.paste()
         c = sc.surfaces[-1]
         assert type(c) is kind and c is not s
-        assert len(h.curves()) == before + n, f"{s.name}: {len(h.curves()) - before} neue Linien statt {n}"
+        assert len(h.curves()) == before + n, f"{s.name}: {len(h.curves()) - before} new lines instead of {n}"
         h.v.transform_target.translate(np.array([0, 0, 10.0]))
         h.v._changed()
-        assert c.fill_mesh()[0][:, 2].min() > mesh0[:, 2].min() + 9.9, f"{s.name}: Kopie folgt ihren Linien"
-        assert np.allclose(s.fill_mesh()[0], mesh0), f"{s.name}: Original bleibt"
+        assert c.fill_mesh()[0][:, 2].min() > mesh0[:, 2].min() + 9.9, f"{s.name}: copy follows its lines"
+        assert np.allclose(s.fill_mesh()[0], mesh0), f"{s.name}: original stays"
 
 
-def test_eingefuegter_punkt_auf_randlinie_ist_verbunden(h: H):
-    """Strg+Klick auf eine Randlinie: der neue Punkt liegt mitten auf der Linie und wird als verbunden (gefüllt)
-    angezeigt, nicht als offener oder heller Punkt."""
+def test_inserted_point_on_boundary_line_is_connected(h: H):
+    """Ctrl+click on a boundary line: the new point lies in the middle of the line and is displayed as connected (filled),
+    not as an open or light point."""
     ps, lines = _patch_square(h)
     h.edit_mode("point")
     before = len(h.v._net_marks()[0])
@@ -390,12 +390,12 @@ def test_eingefuegter_punkt_auf_randlinie_ist_verbunden(h: H):
     h.click(h.scr(p), Qt.ControlModifier)
     shared, free, plain = h.v._net_marks()
     assert len(shared) == before + 1 and not plain, (before, len(shared), len(plain))
-    assert min(np.linalg.norm(np.array(shared) - p, axis=1)) < 0.05, "der neue Punkt ist gefüllt"
+    assert min(np.linalg.norm(np.array(shared) - p, axis=1)) < 0.05, "the new point is filled"
 
 
-def test_ganze_linie_ziehen_verbunden_nur_ueber_punkt_id(h: H):
-    """Ganze Linie mit dem Gizmo ziehen: eine Linie, die mit ihrem Ende verbunden ist (gleiche Punkt-ID), geht mit; eine,
-    deren Ende nur zufällig an derselben Stelle liegt, bleibt (verbunden ist, was sich einen Punkt teilt – nie die Lage)."""
+def test_dragging_a_whole_line_connected_only_via_point_id(h: H):
+    """Drag a whole line with the gizmo: a line connected at its end (same point ID) goes along; one
+    whose end merely happens to lie in the same place stays (connected is what shares a point - never the position)."""
     from sketch_machine import edges
     sc = h.sc
     for joined in (True, False):
@@ -417,41 +417,41 @@ def test_ganze_linie_ziehen_verbunden_nur_ueber_punkt_id(h: H):
         edges.handles_for(sc, [edges.curve_to_ref(sc, a)])[0].translate(np.array([0.0, 1.0, 0.0]))
         moved = float(np.linalg.norm(b.points[0] - before[0]))
         if joined:
-            assert moved > 0.99 and np.allclose(b.points[-1], before[-1]), "verbundene Linie geht mit (weich, Ende bleibt)"
+            assert moved > 0.99 and np.allclose(b.points[-1], before[-1]), "connected line goes along (soft, end stays)"
         else:
-            assert moved == 0.0, "nur aufeinanderliegend: bleibt stehen"
+            assert moved == 0.0, "merely lying on top of each other: stays put"
 
 
-def test_abgleich_merkt_jede_aenderung_trotz_schnellweg(h: H):
-    """network.sync antwortet ohne Änderung aus dem Zähler (Schnellweg) – Punkte verschieben, Linie weg, Linie
-    wieder dazu: jedes Mal wird wirklich neu abgeglichen."""
+def test_sync_notices_every_change_despite_the_fast_path(h: H):
+    """network.sync answers from the counter without a change (fast path) - moving points, line removed, line
+    added again: every time it is really resynced."""
     sc = h.sc
     a = _ground(h)
     sc.add_curve(line([2, 0, 0], [2, 2, 0], 12), sc.planes[0].id)
     b = sc.curves[-1]
     network.sync(sc)
     state = sc._net_sync
-    assert network.sync(sc) is state[1] and sc._net_sync is state, "ohne Änderung: derselbe Stand"
-    assert network.pid_of(a, len(a.points) - 1) == network.pid_of(b, 0), "Ende an Anfang: ein Punkt"
+    assert network.sync(sc) is state[1] and sc._net_sync is state, "without change: same state"
+    assert network.pid_of(a, len(a.points) - 1) == network.pid_of(b, 0), "end to start: one point"
     pts = b.points.copy()
     pts[0] += [0.5, 0, 0]
     b.points = pts
     network.sync(sc)
-    assert sc._net_sync is not state, "verschobene Linie: neu abgeglichen"
-    assert network.pid_of(a, len(a.points) - 1) != network.pid_of(b, 0), "auseinander: zwei Punkte"
+    assert sc._net_sync is not state, "moved line: resynced"
+    assert network.pid_of(a, len(a.points) - 1) != network.pid_of(b, 0), "apart: two points"
     state = sc._net_sync
     owner = sc.owner_of(b)
     owner.curves.remove(b)
-    assert network.sync(sc)["points"] != state[1]["points"], "Linie weg: neu gezählt"
+    assert network.sync(sc)["points"] != state[1]["points"], "line gone: counted anew"
     owner.curves.append(b)
-    sc.strokes[:] = list(sc.strokes)  # gleiche Liste, gleicher Inhalt: darf aus dem Schnellweg kommen
+    sc.strokes[:] = list(sc.strokes)  # same list, same content: may come from the fast path
     stats = network.sync(sc)
-    assert stats["points"] == state[1]["points"], "Linie wieder da: dieselbe Zählung wie vorher"
+    assert stats["points"] == state[1]["points"], "line back: same count as before"
 
 
-def test_strich_durch_zwei_fast_gleiche_punkte_verbindet_beide(h: H):
-    """Zufallsfolge 3: Zwei Linien haben fast am selben Ort je einen eigenen Punkt, ein neuer Strich kreuzt beide. Sein
-    einer Punkt verbindet alle drei – vorher riss die zweite Verbindung die erste wieder ab."""
+def test_stroke_through_two_nearly_identical_points_connects_both(h: H):
+    """Random sequence 3: Two lines each have their own point at almost the same place, a new stroke crosses both. Its
+    one point connects all three - formerly the second connection tore the first one off again."""
     sc = h.sc
     sc.new_stroke()
     sc.add_curve(line([0, 0, 0], [4, 0, 0], 41), None)
@@ -467,6 +467,6 @@ def test_strich_durch_zwei_fast_gleiche_punkte_verbindet_beide(h: H):
     a = min(components.knots(first), key=lambda k: np.linalg.norm(first.points[k] - [2.0, 0, 0]))
     b = min(components.knots(second), key=lambda k: np.linalg.norm(second.points[k] - [2.001, 0, 0]))
     shared = set(stroke.pids.values())
-    assert network.pid_of(first, a) in shared and network.pid_of(second, b) in shared, "alle drei am selben Punkt"
+    assert network.pid_of(first, a) in shared and network.pid_of(second, b) in shared, "all three at the same point"
     assert network.pid_of(first, a) == network.pid_of(second, b)
-    assert np.allclose(first.points[a], second.points[b]), "gleicher Punkt: gleiche Lage"
+    assert np.allclose(first.points[a], second.points[b]), "same point: same position"

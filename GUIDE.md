@@ -4,7 +4,7 @@ Mule Create is a program for sketching in 3D space with lines. You draw on plane
 notes and reference pictures, and export a **Sketch Brief**: a folder with pictures and text from which an AI
 (e.g. Claude Code or Codex) rebuilds the object in Houdini or Blender.
 
-This is an early public alpha. There will be bugs – please report them (see below). (German version: `ANLEITUNG.md`.)
+This is an early public alpha. There will be bugs – please report them (see below).
 
 ## Install and start
 
@@ -101,8 +101,7 @@ the environment variable `SM_WHISPER_PYTHON`.
 - Only Windows is tested in the package. Linux runs from source and is hardly tested; macOS not at all.
 - The program is not signed (SmartScreen warning, see above).
 - Whisper is not in the package (see above). For the AI connection you need your own Claude or Codex account.
-- Parts of the interface, the detailed feature list `LIESMICH.md`, some code comments and test names are still German;
-  the manual (F1) exists in German and English.
+- The interface and the manual (F1) exist in English and German (View → Sprache / Language).
 - Internally, package, settings, scene format and MCP server are still called “Sketch Machine”.
 - Large scenes can get slow while drawing.
 - Videos on the note board play without sound.

@@ -22,21 +22,21 @@ C = collections.Counter()
 
 # What the counters mean (for reports)
 NAMES = {
-    "netz_abgleich": "Kurvennetz neu abgeglichen (Durchläufe)",
-    "netz_linien": "… dabei angefasste Linien",
-    "netz_schluessel": "Linien, über die nur der Schlüssel des Kurvennetzes gebildet wurde",
-    "netz_verweise": "Linien, über die das Verzeichnis Punkt → Linien neu gebaut wurde",
-    "flaechen_stempel": "Flächen, deren Stempel nachgerechnet wurde",
-    "flaechen_abgleich": "Flächen, die wirklich abgeglichen wurden",
-    "strich_objekte": "Linienobjekte, deren Strich-Einträge neu zusammengestellt wurden",
-    "strich_objekte_geprueft": "Linienobjekte, deren Stand für die Strichliste geprüft wurde",
-    "strich_upload": "Striche, die neu aufbereitet und hochgeladen wurden",
-    "flaechen_upload": "Flächen, deren Ecken neu hochgeladen wurden",
-    "zeichenaufrufe": "Zeichenaufrufe für Flächen (je Fläche und Durchgang einer)",
-    "undo_geprueft": "Linien und Flächen, die die Undo-Kopie auf Änderung geprüft hat",
-    "suche_objekt": "Objekt per Durchsuchen aller Listen gefunden (object_by_id)",
-    "suche_besitzer": "Besitzer einer Linie per Durchsuchen aller Objekte gefunden (owner_of)",
-    "linien_index": "Linien, über die das Verzeichnis id → Linie neu gebaut wurde",
+    "netz_abgleich": "curve net re-synchronised (passes)",
+    "netz_linien": "… lines touched in the process",
+    "netz_schluessel": "lines over which only the key of the curve net was built",
+    "netz_verweise": "lines over which the point → lines directory was rebuilt",
+    "flaechen_stempel": "surfaces whose stamp was recomputed",
+    "flaechen_abgleich": "surfaces that were actually synchronised",
+    "strich_objekte": "line objects whose stroke entries were reassembled",
+    "strich_objekte_geprueft": "line objects whose state was checked for the stroke list",
+    "strich_upload": "strokes that were reprocessed and uploaded",
+    "flaechen_upload": "surfaces whose corners were uploaded again",
+    "zeichenaufrufe": "draw calls for surfaces (one per surface and pass)",
+    "undo_geprueft": "lines and surfaces the undo copy checked for changes",
+    "suche_objekt": "object found by searching all lists (object_by_id)",
+    "suche_besitzer": "owner of a line found by searching all objects (owner_of)",
+    "linien_index": "lines over which the id → line directory was rebuilt",
 }
 
 

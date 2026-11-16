@@ -1,6 +1,6 @@
 # Changelog
 
-## Mule Create Alpha 1.3 – v0.99.270 (2026-11-16)
+## Mule Create Alpha 1.3 – v0.99.271 (2026-11-16)
 
 - **Where Mule keeps its files:** new in the Help menu – program folder, data folder with every entry and its size,
   settings, backups, and how to remove Mule completely (with **Delete settings …**). The guide and the README say

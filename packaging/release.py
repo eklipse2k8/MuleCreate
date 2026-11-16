@@ -95,23 +95,25 @@ def pack(program, tag):
     out = os.path.join(WORK, "paket")
     os.makedirs(out)
     source = os.path.join(WORK, "quelle")
-    for name in DOCS + ("CONTRIBUTING.md",):
+    # the public repo has no German guides (ANLEITUNG.md, LIESMICH.md, since v0.99.257): take what this repo has
+    present = [n for n in DOCS if os.path.isfile(os.path.join(source, n))]
+    for name in present + ["CONTRIBUTING.md"]:
         shutil.copy2(os.path.join(source, name), os.path.join(program, name))
     if os.path.isdir(os.path.join(source, "docs")):  # introduction with its pictures, next to the guides
         shutil.copytree(os.path.join(source, "docs"), os.path.join(program, "docs"), dirs_exist_ok=True)
     windows = shutil.make_archive(os.path.join(out, "Mule_Windows"), "zip", os.path.dirname(program), "Mule")
-    linux = os.path.join(out, "Mule_Linux.tar.gz")
-    git("archive", "--format=tar.gz", "--prefix=Mule/", "-o", linux, "HEAD", *LINUX_FILES)
     if ALPHA:  # Source code instead of the Linux extract, plus guide and changelog as separate files
-        os.remove(linux)
         linux = os.path.join(out, SOURCE_ZIP)
         git("archive", "--format=zip", "--prefix=Mule/", "-o", linux, "HEAD", "--", ".",
             *(f":(exclude){p}" for p in SOURCE_EXCLUDE))
-        docs = [os.path.join(out, name) for name in DOCS]
-        for name, dst in zip(DOCS, docs):
+        docs = [os.path.join(out, name) for name in present]
+        for name, dst in zip(present, docs):
             shutil.copy2(os.path.join(source, name), dst)
         print(f"{tag}: Windows {os.path.getsize(windows) / 1e6:.0f} MB, Quellcode {os.path.getsize(linux) / 1e6:.1f} MB", flush=True)
         return [windows, linux, *docs]
+    linux = os.path.join(out, "Mule_Linux.tar.gz")
+    git("archive", "--format=tar.gz", "--prefix=Mule/", "-o", linux, "HEAD",
+        *(p for p in LINUX_FILES if os.path.exists(os.path.join(source, p))))
     readme = os.path.join(out, "LIESMICH.txt")
     shutil.copy2(os.path.join(ROOT, "packaging", "LIESMICH_Studio.txt"), readme)
     print(f"{tag}: Windows {os.path.getsize(windows) / 1e6:.0f} MB, Linux {os.path.getsize(linux) / 1e6:.1f} MB", flush=True)

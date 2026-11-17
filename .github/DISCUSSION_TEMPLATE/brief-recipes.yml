@@ -1,0 +1,49 @@
+title: "[Recipe] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share a brief recipe, or the result of running one. How recipes work and how to make your own:
+        [docs/recipes.md](https://github.com/felixbfx/MuleCreate/blob/main/docs/recipes.md).
+
+        **Before you import someone else's recipe:** Mule shows every hook command, permission and network call
+        of a recipe before it copies it. Read that list.
+  - type: input
+    id: name
+    attributes:
+      label: Recipe name and version
+      placeholder: "e.g. Lean Builder 1.2"
+    validations:
+      required: true
+  - type: textarea
+    id: purpose
+    attributes:
+      label: What is it for, and what does it change compared to Mule Default?
+      placeholder: "e.g. fewer review loops for hard-surface objects; drops the look step"
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model and tool you ran it with
+      placeholder: "e.g. Claude Code with Opus, Blender 5.0"
+  - type: textarea
+    id: results
+    attributes:
+      label: Results
+      description: Which object(s), how long, how many tokens, how often you stepped in. Pictures welcome.
+  - type: input
+    id: mule_version
+    attributes:
+      label: Mule version
+      description: The release you downloaded
+      placeholder: "e.g. Alpha 1.5"
+  - type: textarea
+    id: lock
+    attributes:
+      label: Lock file (.mule_recipe.json)
+      description: Paste it so others can see exactly which recipe build you used.
+      render: json
+  - type: markdown
+    attributes:
+      value: Attach the zipped recipe folder below (drag it into the text field above).

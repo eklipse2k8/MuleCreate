@@ -1,0 +1,19 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask anything about drawing in Mule, briefs, recipes or building with an AI.
+        Something broken? Please open an [issue](https://github.com/felixbfx/MuleCreate/issues/new/choose) instead.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What are you trying to do, and what happens instead? Screenshots help.
+    validations:
+      required: true
+  - type: input
+    id: mule_version
+    attributes:
+      label: Mule version and system
+      description: The release you downloaded
+      placeholder: "e.g. Alpha 1.5, Windows 11"

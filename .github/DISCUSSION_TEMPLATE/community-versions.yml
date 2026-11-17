@@ -1,0 +1,43 @@
+title: "[Version] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Made your own Mule? Show it here. Two rules:
+
+        1. **Link the source.** Mule is GPL-3.0: a changed version you share must come with its source code.
+           A fork on GitHub is the easiest way.
+        2. **No bare executables.** Nobody can check an .exe from a stranger. Share the source; a build is fine
+           as a Release in your fork, next to that source.
+
+        Good changes may find their way back into Mule. If you like, open a pull request too.
+  - type: input
+    id: fork
+    attributes:
+      label: Link to your fork / source code
+      placeholder: "https://github.com/you/MuleCreate"
+    validations:
+      required: true
+  - type: input
+    id: base
+    attributes:
+      label: Based on which Mule version?
+      placeholder: "e.g. Alpha 1.5"
+    validations:
+      required: true
+  - type: textarea
+    id: changes
+    attributes:
+      label: What did you change, and why?
+      description: Screenshots or a short video help a lot.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Tested on
+      multiple: true
+      options:
+        - Windows
+        - macOS
+        - Linux

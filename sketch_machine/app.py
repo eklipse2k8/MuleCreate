@@ -1795,57 +1795,43 @@ class MainWindow(QMainWindow):
             e.ignore()
 
 
-def _set_app_identity():
-    """Windows: own app ID - otherwise the taskbar groups Mule under python.exe and shows the Python icon."""
-    if sys.platform == "win32":
-        try:
-            import ctypes
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("felixbfx.Mule")
-        except Exception:
-            pass
-
-
-def _set_app_icon(app):
-    """Mule logo as window and taskbar icon (Windows, Linux); Linux assigns via the desktop name."""
-    from PySide6.QtGui import QIcon
-    icon = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "mule_icon.png")
-    if os.path.isfile(icon):
-        app.setWindowIcon(QIcon(icon))
-    app.setDesktopFileName("mule")
-
-
 def main():
+    """Everything in one go (self-test, or with the start animation switched off); the normal start goes through
+    launch.py, which shows the animation while this module is still loading."""
     paths.start_log()
     if "--selftest" in sys.argv:
         from . import selftest
         selftest.use_throwaway_settings()
-    QApplication.setAttribute(Qt.AA_ShareOpenGLContexts)  # all viewports share their GPU buffers
-    # graphics tablet: ~200 positions/s; unbundled, the queue backs up when one event takes longer
-    # (feels like freezing) - Qt merges waiting tablet moves like with the mouse
-    QApplication.setAttribute(Qt.AA_CompressTabletEvents)
-    _set_app_identity()
-    app = QApplication(sys.argv)
-    _set_app_icon(app)
+    app = startup.make_application()
+    window = make_window(app)
+    startup.start(window, lambda: show_window(window))
+    sys.exit(app.exec())
+
+
+def make_window(app):
+    """The main window with the AI connection, not shown yet. Exits here in a self-test."""
     window = MainWindow()
     if "--selftest" in sys.argv:
+        from . import selftest
         sys.exit(selftest.run(window, app, sys.argv[sys.argv.index("--selftest") + 1]))
     from . import mcp_server
     window.mcp = mcp_server.start(window)  # Claude (subscription) sees the scene: http://127.0.0.1:8770/mcp
     assoc.register()  # double-click on a .mule scene opens this Mule (Windows only, per user)
+    return window
 
 
-    def begin():
-        window.show()
-        if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):  # double-click on a scene; load after showing
-            QTimer.singleShot(startup.FADE_MS + 50, lambda: window.load_path(sys.argv[1]))
-        from . import intro
-        QTimer.singleShot(startup.FADE_MS + 600, lambda: intro.ask_at_first_start(window))  # once: offer the intro
-        if window.mcp is None:  # port taken: otherwise the AI silently talks to the other Mule
-            QTimer.singleShot(startup.FADE_MS + 100, lambda: window.statusBar().showMessage(tr(
-                "KI-Anbindung aus: Port {0} ist belegt (läuft schon eine Mule?) – die KI sieht dann die andere Mule"
-            ).format(mcp_server.PORT), 20000))
-    startup.start(window, begin)
-    sys.exit(app.exec())
+def show_window(window):
+    """Shows the window once the start animation is over; then the scene from a double-click and the intro question."""
+    from . import mcp_server
+    window.show()
+    if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):  # double-click on a scene; load after showing
+        QTimer.singleShot(startup.FADE_MS + 50, lambda: window.load_path(sys.argv[1]))
+    from . import intro
+    QTimer.singleShot(startup.FADE_MS + 600, lambda: intro.ask_at_first_start(window))  # once: offer the intro
+    if window.mcp is None:  # port taken: otherwise the AI silently talks to the other Mule
+        QTimer.singleShot(startup.FADE_MS + 100, lambda: window.statusBar().showMessage(tr(
+            "KI-Anbindung aus: Port {0} ist belegt (läuft schon eine Mule?) – die KI sieht dann die andere Mule"
+        ).format(mcp_server.PORT), 20000))
 
 
 def _open_folder(path):

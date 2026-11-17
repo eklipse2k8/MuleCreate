@@ -84,3 +84,35 @@ def test_without_file_or_disabled_mule_starts_anyway(h: H):
     finally:
         startup.StartAnimation.__init__.__defaults__ = (original[0],)
         startup.enabled = original[1]
+
+
+def test_holds_with_loading_until_mule_is_ready(h: H):
+    """Early start (launch.py): the head draws itself and waits at HOLD_FRAME with "Loading"; only after loaded() the
+    animation plays on and the window comes – exactly once."""
+    calls = []
+    anim = startup.StartAnimation()
+    anim.movie.setSpeed(1000)
+    assert anim.play()
+    _wait(lambda: anim._waiting, 3)
+    assert anim._waiting and anim.movie.currentFrameNumber() == startup.HOLD_FRAME
+    _wait(lambda: False, 0.3)
+    assert anim.movie.currentFrameNumber() == startup.HOLD_FRAME and not calls, "holds while loading"
+    anim.finish()
+    assert not calls, "finish before loading does nothing"
+    anim.loaded(lambda: calls.append(1))
+    assert not anim._waiting
+    _wait(lambda: calls, 3)
+    assert calls == [1]
+    _wait(lambda: not anim.isVisible(), 1)
+
+
+def test_click_while_loading_skips_once_ready(h: H):
+    calls = []
+    anim = startup.StartAnimation()
+    assert anim.play()
+    QApplication.processEvents()
+    anim._skip_or_finish()
+    assert not calls
+    anim.loaded(lambda: calls.append(1))
+    assert calls == [1], "skipped right when Mule was ready"
+    _wait(lambda: not anim.isVisible(), 1)

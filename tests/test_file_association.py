@@ -1,4 +1,4 @@
-"""Double-click on a scene: its own extension .mule, Mule gets the file as an argument (app.main). The association itself
+"""Double-click on a scene: its own extension .mule, Mule gets the file as an argument (launch.main). The association itself
 (the user's registration) is not written here - only what would be entered."""
 import os
 import sys
@@ -14,7 +14,7 @@ def test_entries_point_to_this_mule(h: H):
     assert e[".mule"] == assoc.PROGID
     cmd = e[assoc.PROGID + r"\shell\open\command"]
     assert cmd.endswith('"%1"') and os.path.dirname(sys.executable) in cmd
-    assert "sketch_machine.app" in cmd and os.path.dirname(os.path.dirname(assoc.__file__)) in cmd
+    assert "sketch_machine.launch" in cmd and os.path.dirname(os.path.dirname(assoc.__file__)) in cmd
 
 
 def test_extension_on_save_and_old_files(h: H):

@@ -6,7 +6,7 @@ and can simply be renamed).
 
 Mule registers itself on every start for the logged-in user (HKEY_CURRENT_USER, no administrator rights):
 it then opens the Mule that ran last – the installed program or the working copy from the project folder.
-Only written if something changed. The scene arrives as the first argument (app.main)."""
+Only written if something changed. The scene arrives as the first argument (launch.main)."""
 import os
 import sys
 
@@ -41,7 +41,7 @@ def command():
     # starts in the scene's folder, not in the project)
     exe = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
     exe = exe if os.path.isfile(exe) else sys.executable
-    code = f"import sys; sys.path.insert(0, r'{_root()}'); from sketch_machine.app import main; main()"
+    code = f"import sys; sys.path.insert(0, r'{_root()}'); from sketch_machine.launch import main; main()"
     return f'"{exe}" -c "{code}" "%1"'
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## Mule Create Alpha 1.7 – v0.99.285 (2026-11-17)
+
+- **Start: the logo shows right away.** The head draws itself while Mule is still loading and waits with
+  "Loading …" until Mule is ready; then the head shakes, "Mule" is written, the tongue licks and the window opens.
+  Before, the first start of the Windows package showed nothing for a long time, so it looked as if Mule did not
+  start. `mule.log` notes how long loading took.
+
 ## Mule Create Alpha 1.6 – v0.99.281 (2026-11-17)
 
 - **Mule opens in English on first start.** Before, a fresh install started in German, and the language menu was

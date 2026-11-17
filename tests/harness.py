@@ -36,6 +36,8 @@ class _TestSettings(_OrigSettings):
 
 
 QtCore.QSettings = _TestSettings
+# the suite checks German UI texts: the throwaway settings start in German (the program itself starts in English)
+_TestSettings().setValue("language", "de")
 # brief recipes of the user (recipes.py): tests see an empty recipe folder of their own, never the real one
 os.environ["MULE_RECIPES"] = os.path.join(_SETTINGS_DIR, "recipes")
 

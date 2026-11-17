@@ -1,5 +1,11 @@
 # Changelog
 
+## Mule Create Alpha 1.6 – v0.99.281 (2026-11-17)
+
+- **Mule opens in English on first start.** Before, a fresh install started in German, and the language menu was
+  hard to find for people who do not read German. German stays one click away: View → Sprache / Language. A
+  language chosen earlier is kept.
+
 ## Mule Create Alpha 1.5 – v0.99.279 (2026-11-17)
 
 - **Introduction: new picture "Drawing on surfaces"** (now 19 pictures, right after own planes): click a surface to

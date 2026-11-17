@@ -11,7 +11,7 @@ from PySide6.QtCore import QSettings
 from .i18n_en import EN
 
 LANGUAGES = (("de", "Deutsch"), ("en", "English"))
-_DEFAULT = "de"
+_DEFAULT = "en"  # first start (no saved setting) opens in English; German via View → Sprache / Language
 
 
 def _load():

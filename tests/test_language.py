@@ -67,11 +67,23 @@ def test_no_german_ui_in_english(h: H):
     assert not german, "\n".join(x[:130] for x in german)
 
 
-def test_default_stays_german(h: H):
+def test_first_start_is_english(h: H):
+    """Feedback (Linux download): without a saved setting the UI opened in German and the language menu was
+    hard to find. The first start is English; a saved choice still applies."""
+    from PySide6.QtCore import QSettings
     from sketch_machine import i18n
-    if not os.environ.get("MULE_LANG"):
-        assert i18n.LANG == "de"
-        assert i18n.tr("Zeichnen") == "Zeichnen"
+    settings = QSettings("SketchMachine", "SketchMachine")
+    saved = settings.value("language")
+    env = os.environ.pop("MULE_LANG", None)
+    try:
+        settings.remove("language")
+        assert i18n._load() == "en" and i18n.saved_language() == "en", "no setting: English"
+        i18n.set_language("de")
+        assert i18n._load() == "de", "saved choice applies"
+    finally:
+        if env is not None:
+            os.environ["MULE_LANG"] = env
+        settings.setValue("language", saved if saved is not None else "de")
     assert i18n.EN["Zeichnen"] == "Draw"
 
 

@@ -39,6 +39,9 @@ Example scene to open: [Example_Alpaca_Monowheel.zip](https://github.com/felixbf
 - **Purpose.** A user asks you about Mule ("how do I…", "why does…", "can Mule…"), or you work with the user and
   Mule over MCP, or you rebuild a sketch from a Sketch Brief. Everything Mule can do, every shortcut, every workflow
   the developer knows of, the brief format and all MCP tools are described here, so you do not have to guess.
+- **Why, not only how.** §Design principles (in chapter 1) and the sections "Idea and intended use" at the start
+  of the big areas (surfaces, notes, Shots, Review, brief) say what a feature is for and how it is meant to be used.
+  When a user asks how to approach something, answer from there first, then give the exact steps.
 - **Answer in the user's language.** The handbook is English; answer in the language the user writes in.
 - **German UI.** Mule starts in English; the user may have switched to German (View → Sprache / Language, takes
   effect after a restart). This handbook uses the English UI names. When the user quotes a German name, or runs the German UI, look
@@ -114,6 +117,26 @@ Internally, settings, the scene format (`"format": "sketch-machine-scene"`) and 
   (see §Notes).
 - **The brief is the output.** Mule itself does not model the final object; it produces the brief, and an AI builds
   from it (see §Brief). While Mule runs, the AI can also look into the open scene over MCP (see §MCP).
+
+### Design principles (why Mule works this way)
+These come from the developer's decisions while building Mule. Use them to explain *why* something behaves as it
+does, and to recommend the way of working Mule is made for.
+- **The brief is the product, but sketching must stay free and fun.** Mule is a sketching tool first; it is not a
+  polygon modeller and does not try to become one. The scene can travel along with the brief, never instead of it.
+- **Predictability before speed.** You always draw on the target you clicked; the drawing target never changes by
+  itself. Pencil lines are never coloured – they are for construction; only brush lines carry colour.
+- **One direction of dependence: points → lines → surfaces → paint.** Lines connect points, real lines shape
+  surfaces, surfaces never move lines, paint hangs on surfaces. Moving a surface with the gizmo moves its lines only
+  as a selection shortcut.
+- **The form binds, the construction is free.** For the AI, the drawn form is the intent: the look must stay clearly
+  recognisable, and the AI must not bend the shape to hit numbers or fits (this happened in an early build test and
+  is why the rule exists). How the object is built is up to the AI. Design freedom only where the artist hands it
+  over ("a monster from this stick figure"); otherwise quiet, with variants to choose from.
+- **A brief is a prompt, not a blueprint.** Better open than wrong or contradictory. Say what matters and what is
+  meant; secure unclear things with a screenshot on a note board instead of covering every special case.
+- **Ask instead of classify.** There are deliberately no per-stroke categories like "precise / gesture / idea". The
+  building AI asks in its first round, with a picture, about anything it does not clearly understand – including
+  the approach. A conversation is more precise than fixed categories.
 
 ### Typical end-to-end workflow
 1. Draw the object on ground planes and own planes (Draw mode, LMB; Space+N for new planes; Q for free drawing).
@@ -1424,6 +1447,18 @@ Topology rule for loft and extrude: they never create a second line between the 
 merged with the existing line (surfaces follow it), and new points exactly on existing ones are connected.
 Existing lines are never altered by this.
 
+### Idea and intended use
+- **Lines carry the form, surfaces follow.** A surface is never modelled directly: you change it by changing its
+  lines. Lines drawn onto a curve surface are its **control lines** (net lines from border to border shape it
+  exactly, other lines bend it in between); paint on it only colours it (introduction picture 7).
+- **Extrude and loft tell the shape with as few lines as possible, as many as needed:** what you drew is pulled
+  along, and longitudinal lines appear only where the form needs them (kinks, connections, every quarter turn).
+  Hard corners split the wall into separate surfaces – a square cross-section gives four walls.
+- **Hardness is read from the form, nothing is stored:** a crease appears only where crossing lines kink.
+- **No duplicate lines between the same two points** – that would break the net, so loft and extrude merge them.
+- **Groups and generators work like in Cinema 4D:** a null is a group, Symmetry and Array show live copies of what
+  is under them while the original stays unchanged until you convert (Alt+C).
+
 ### Surface from lines (F)
 `F` in Edit is **the one surface command**: from the selected lines a **curve surface** is created (even grid,
 any number of sides). If its grid would fold – outline kinked inwards such as an L, U or star shape – a **fill
@@ -1741,6 +1776,19 @@ an AI turns into draft notes) and the input Recording. How notes and boards end 
 
 ## Notes mode
 
+### Idea and intended use
+- **A note is a prompt for the AI, placed where it applies.** Write what matters and what is meant – not a
+  specification of every detail. Name notes after the component ("seat", "wheel arch"), not after a scene detail.
+- **The board is the context.** Pictures, crops, screenshots, handwriting and arrows that point at parts of the
+  sketch. Things placed close together on a board belong together. Every reference picture should get a caption
+  (the AI may propose captions; the artist confirms them).
+- **The octopus exists because a note usually points at one example.** In early blind tests the AI only treated the
+  one part the leader line touched; the octopus says which similar or mirrored parts are meant too. A group counts
+  as one arm; a part may belong to several notes.
+- **Hero cameras are the views the artist curates.** The AI renders and judges its work from exactly these angles.
+  For the AI the order of trust is: geometry, then notes, then any generated images.
+- **The AI never rewrites notes or the brief on its own** – it proposes, the artist decides.
+
 ### What a note is
 - A note is a **local prompt**: a short heading placed in 3D space, always upright (Y up), drawn in a thin font
   with brackets at the top left and bottom right. Behind every note sits a **note board** (text, pictures, videos,
@@ -2010,6 +2058,36 @@ other hoses, panels, legs …).
   `sketch_machine/vp/timing_view.py` (viewport: flipbook rendering, cameras, viewfinder), shot boards in
   `sketch_machine/note_board.py` (`ShotRow`), export in `sketch_machine/timing_export.py`.
 
+### Idea and intended use
+- **Why Shots exists:** after seeing Mule, VFX supervisors asked for a way to say *when* something happens, how big
+  it is at that moment and from which camera it is seen. Shots answers that without turning Mule into an animation
+  program. (The tab is called Shots because "timing" is not a film/VFX term; frames start at 1001 as in VFX
+  pipelines.)
+- **States jump, nothing moves.** A drawing or camera position holds until the next one; what happens in between is
+  written as text in the shot notes. There is deliberately no way to move strokes across frames (that would be
+  hidden keyframing) and no interpolation inside Mule – smoothing is the 3D artist's job (export option "linear").
+  The drawings are hints; the meaning is in the notes. When explaining Shots, avoid the word "keyframe".
+- **How the pieces fit together:**
+  - A **flipbook layer** carries one thing that changes (an explosion, a door, a pose). Only the paint on it changes
+    over time, never the layer itself.
+  - A **shot note** is one event. Its leader lines and octopus reach the layers that take part, so one note can
+    cover several layers.
+  - A **camera** is a perspective on that event. It is not a scene object: it lives on the board of its shot note
+    (as the pictures of its positions) and so belongs to the same event and layers as the note. The note says what
+    the camera shows, not when it exists – every camera spans the whole timeline.
+  - **Several cameras on one note** show the same event from several angles. There is no active camera and no cut
+    list; Mule is not an editing program.
+  - **Two positions of one camera** mean a camera move. Mule jumps; the note text and the export describe the move.
+  - A camera on the **Global** shot note is a general camera: an overview, or a camera move around a static model
+    without any flipbook layer. The Global note itself says what the whole sequence is about (tempo, mood,
+    references).
+- **Typical workflow:** sketch the object as usual → Global shot note: what it is about → one flipbook layer per
+  changing thing, a few drawings at the moments that matter (keep painting: the held drawing is copied forward, you
+  erase and add) → one shot note per event, anchored to its layers, with text for what happens in between → cameras
+  as screenshots on that note's board, ➜ for further positions → export; the brief gets "Shots – what happens when".
+- **Deliberately not part of Shots:** keyframe animation, interpolation, animated camera moves inside Mule, cuts,
+  a curve editor, audio, orthographic shot cameras (use a long focal length such as 500 mm instead).
+
 ### Flipbook layers (flipbook planes)
 - `Space+N` in Shots creates a flipbook layer: its own plane type (never becomes a normal plane) with its own
   stroke object.
@@ -2097,6 +2175,15 @@ checks and accepts. No video is recorded: Mule knows the camera at every moment 
   (standalone transcription script), `sketch_machine/whisper_setup.py` (setup dialog), draft bar in
   `sketch_machine/note_board.py` (`_make_review_bar`), UI in `sketch_machine/app.py`.
 - Not to be confused with **review rounds** (feedback on a running brief build, `review_round.py`) – see §Brief.
+
+### Why it works this way
+- It is meant to feel like a review session with a VFX supervisor, with the AI watching: you look, point and talk
+  instead of typing notes.
+- **Drafts instead of questions:** the AI writes draft notes; you listen to the quote, check and accept each one in
+  Mule. Unaccepted drafts stay visible as open points.
+- **As few notes as possible, as many as needed:** one note per part or area, not one per sentence (early drafts were
+  too fine-grained). Arrows only where you really pointed; a spoken "here" with a still cursor counts as pointing.
+- No keyboard shortcut for marks, deliberately: holding keys while talking turned out to be unintuitive.
 
 ### Starting and stopping
 - **View → Review → Start Review** (Ansicht → Review → Review starten), or the **Review** button in the mode bar
@@ -2259,6 +2346,18 @@ Code: `sketch_machine/brief.py` (analysis, pictures, brief.md/brief.json, export
 `_export_review_round`, `export_usd`, `export_curves`).
 
 ## Sketch Brief export
+
+### Idea and intended use
+- The export dialog only frames **one export** (the task in one sentence, hints for this export). Everything about
+  the object itself belongs in the scene and its notes, so it travels with every later export.
+- The brief is a **prompt for a building AI, not a finished specification** – see §Design principles: the form
+  binds, the construction is free, and anything unclear is asked in the first round with a picture.
+- **Feedback goes into the running build, not a new one.** A review round ("Builds on") is like dropping new
+  screenshots and notes into the same AI chat: the AI keeps its context and continues. Starting a new chat per round
+  was tried and felt wrong.
+- **The way of working is exchangeable** (Brief recipes): Mule's own recipe is one proposal. Recipes are written
+  vendor-neutral so Claude Code and Codex can both follow them, and the idea is that users compare recipes on the
+  same objects (tokens, time, model, result) and share better ones.
 
 ### Starting the export
 - Menu **File → Export Sketch Brief…** (Datei → Sketch Brief exportieren…), shortcut `Ctrl+E`. Works in every mode.
